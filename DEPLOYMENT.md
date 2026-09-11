@@ -94,3 +94,10 @@ Protocol/reference tools: [OpenTimestamps](https://opentimestamps.org/), [JavaSc
 ## Legal publication inputs
 
 Terms, Privacy, Disclaimer, Disclosure and versioned Reward Rules are implemented. Before public reward launch, supply the operator's legal identity/address and applicable jurisdiction, confirm provider/data-transfer arrangements and jurisdiction-specific notices, and have the reward/payout rules reviewed for the actual operator. These facts were not provided and are not invented in the copy. Confirm any permanent-placement wording and payout withholding/fee disclosures. Keep reward promotion and payouts disabled until the operator completes this review and external staging verification.
+
+
+## Resend delivery webhooks
+
+The implemented endpoint is `https://takethewall.com/api/webhooks/resend`. Set its signing secret as `RESEND_WEBHOOK_SECRET` in Vercel (and `.env.local` for local tests). Subscribe to `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained`, `email.failed`, and `email.suppressed`; `email.scheduled` is also supported. `email.received` is acknowledged but ignored because inbound-mail handling is not implemented.
+
+The handler verifies the unmodified request body with Svix, rejects stale/invalid signatures, bounds payload size, and records only the email ID, event type and event time in the protected admin audit log. Duplicate event IDs are idempotent; out-of-order events remain separate historical entries. It does not store email bodies, recipients, OTPs or claim links, and it does not automatically resend failed messages or create a suppression list. Persistence failures return 500 for provider retry. The signing secret belongs in Next.js/Vercel; sending credentials remain in Convex.

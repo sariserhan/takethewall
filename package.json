@@ -24,7 +24,8 @@
     "react": "latest",
     "react-dom": "latest",
     "sharp": "latest",
-    "stripe": "latest"
+    "stripe": "latest",
+    "svix": "^2.5.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "latest",

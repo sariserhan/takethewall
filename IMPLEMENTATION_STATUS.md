@@ -21,7 +21,7 @@ The V1 app and authorized consolidated enhancement spec are implemented locally.
 
 ## Verification evidence
 
-- `npm run check`: lint, TypeScript, **90 unit/backend/route tests**, and production build pass.
+- `npm run check`: lint, TypeScript, **95 unit/backend/route tests**, and production build pass.
 - **14 Playwright tests pass**, covering desktop/mobile V1 interactions, uploads, drafts, personal placements, all new public pages, all five milestone routes, unknown-route 404, admin/claim access boundaries and absence of private-route analytics.
 - Better Auth test exercises the actual Convex component's OTP sign-in/session endpoints with mocked email delivery and verifies OTP single use. Backend tests cover admin allowlisting, claims, OTP/session revocation, cascades, payout publication, snapshot freezing, private documents/retention, moderation, cursor pagination, rules immutability and audit tampering/migration.
 - Final log review caught and fixed a Convex-unsupported dynamic import in Reward Rules. The strengthened browser test now waits for actual rule text. Repeated upload tests exercised the six-per-hour limit; the final full run used a process-only isolated test hash identity, then restored the regular local server. No limits or persistent secrets were changed.
@@ -50,3 +50,8 @@ The V1 app and authorized consolidated enhancement spec are implemented locally.
 - Singleton counters and basic anonymous abuse controls match the current app; assess contention and abuse response with real production load.
 
 Specification: [consolidated delta](docs/IMPLEMENTATION_DELTA.md). Deployment and verification procedures: [DEPLOYMENT.md](DEPLOYMENT.md).
+
+
+## Webhook registration follow-up
+
+Stripe and Resend webhooks are now registered and their signing secrets are present locally. Added the Resend signature-verified receiver, private delivery audit records and regression tests. Signed local requests pass for both handlers; public delivery is blocked by `takethewall.com` DNS resolution. See [provider test results](docs/PROVIDER_TEST_RESULTS.md) for exact test scope and remaining deployment work.

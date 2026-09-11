@@ -26,6 +26,9 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "emailDelivery":
+          result = await ctx.runMutation(internal.emailDelivery.record, args);
+          break;
         case "paymentIssue":
           result = await ctx.runMutation(internal.paymentIssues.record, args);
           break;

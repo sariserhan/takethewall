@@ -16,6 +16,7 @@ import type * as auth from "../auth.js";
 import type * as claimAuth from "../claimAuth.js";
 import type * as crons from "../crons.js";
 import type * as documents from "../documents.js";
+import type * as emailDelivery from "../emailDelivery.js";
 import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
 import type * as mail from "../mail.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   claimAuth: typeof claimAuth;
   crons: typeof crons;
   documents: typeof documents;
+  emailDelivery: typeof emailDelivery;
   http: typeof http;
   jobs: typeof jobs;
   mail: typeof mail;

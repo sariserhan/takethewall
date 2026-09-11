@@ -25,9 +25,22 @@ The successful PaymentIntent is a provider-level test, not a completed hosted Ch
 
 This is Resend's delivery simulator, not proof of delivery to a human inbox. Reference: https://resend.com/docs/dashboard/emails/send-test-emails
 
-## Configuration still needed for complete app flows
+## Configuration observed during the initial check
 
 - `STRIPE_WEBHOOK_SECRET` is empty, and Stripe lists no configured webhook endpoints. Signed delivery into the app and paid wall activation were therefore not tested end to end.
 - `RESEND_FROM` is empty in `.env.local`. The verified sender above was used only for this explicit test.
 - The local Convex deployment has neither `RESEND_API_KEY` nor `RESEND_FROM`. App transactional mail and admin OTP delivery run in Convex and will remain idle/unavailable until those deployment variables are configured.
 - Existing reward/payout feature flags and persistent secrets were not changed.
+
+
+## Follow-up after webhook registration
+
+Both provider registrations are now enabled and both signing secrets are present locally. Stripe points to `/api/webhook` in **test mode** with the five required events plus `checkout.session.async_payment_failed` (currently acknowledged without a state transition). Resend points to `/api/webhooks/resend`; its registered `email.received` event is ignored, and `email.suppressed` can be added for suppression notifications.
+
+Implemented the missing Resend receiver and deployed its audit-recording function to the local Convex backend. The production build on localhost:3002 passed:
+
+- Stripe: locally signed replay of an actual provider `checkout.session.expired` event returned HTTP 200; modified payload returned 400.
+- Resend: locally signed `email.delivered` fixture returned HTTP 200, duplicate returned 200, modified payload returned 400. These were local replays, not provider-originated HTTP deliveries.
+- Automated checks: 95 tests, lint, TypeScript and production build pass. Regression tests include stale/missing/modified signatures, private-field projection, duplicate/out-of-order events and retryable persistence failure.
+
+Public POST attempts to both registered URLs failed because this environment could not resolve `takethewall.com` (`ENOTFOUND`). Production provider-to-app delivery remains unverified until DNS, deployment and production environment variables are ready. No live-mode payment or real customer email was triggered by this follow-up.

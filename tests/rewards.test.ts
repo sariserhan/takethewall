@@ -472,14 +472,12 @@ it("resending immediately revokes old sessions and OTPs before email delivery", 
   ).toBe(true);
   vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
   const updated = (await t.run((ctx) => ctx.db.get(c._id)))!;
-  await t
-    .withIdentity(adminIdentity)
-    .mutation(api.admin.claimAction, {
-      claimId: c._id,
-      action: "resend",
-      expectedStatus: updated.status,
-      confirmed: true,
-    });
+  await t.withIdentity(adminIdentity).mutation(api.admin.claimAction, {
+    claimId: c._id,
+    action: "resend",
+    expectedStatus: updated.status,
+    confirmed: true,
+  });
   expect(await t.mutation(internal.claimAuth.sessionValid, { session })).toBe(
     false,
   );
@@ -533,15 +531,13 @@ it("protects private documents across claims and cleans finalized claims after r
     }),
   ).rejects.toThrow();
   vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
-  await t
-    .withIdentity(adminIdentity)
-    .mutation(api.admin.claimAction, {
-      claimId: c._id,
-      action: "ineligible",
-      expectedStatus: "under_review",
-      body: "Not eligible",
-      confirmed: true,
-    });
+  await t.withIdentity(adminIdentity).mutation(api.admin.claimAction, {
+    claimId: c._id,
+    action: "ineligible",
+    expectedStatus: "under_review",
+    body: "Not eligible",
+    confirmed: true,
+  });
   expect((await t.run((ctx) => ctx.db.get(own)))!.deleteAt).toBe(
     Date.now() + 90 * 86400_000,
   );
@@ -554,14 +550,12 @@ it("admin removal preserves paid numbering and safe restoration", async () => {
   const t = await setup();
   const p = await activate(t, 1);
   vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
-  await t
-    .withIdentity(adminIdentity)
-    .mutation(api.admin.moderate, {
-      takeoverId: p.takeoverId,
-      removeLive: true,
-      reason: "Harmful content",
-      confirmed: true,
-    });
+  await t.withIdentity(adminIdentity).mutation(api.admin.moderate, {
+    takeoverId: p.takeoverId,
+    removeLive: true,
+    reason: "Harmful content",
+    confirmed: true,
+  });
   const site = (await t.run((ctx) => ctx.db.query("siteStats").first()))!;
   expect(site.totalTakeovers).toBe(1);
   expect(site.currentTakeoverId).not.toBe(p.takeoverId);
@@ -609,4 +603,25 @@ it("configuration publishes authoritative future values and paginates same-time 
   expect(new Set([...first.rows, ...next.rows].map((r) => r._id)).size).toBe(
     61,
   );
+});
+
+it("deduplicates Resend callbacks and preserves out-of-order delivery history", async () => {
+  const t = make();
+  const event = {
+    eventId: "msg-delivered",
+    emailId: "email-test",
+    type: "email.delivered" as const,
+    occurredAt: Date.now(),
+  };
+  await t.mutation(internal.emailDelivery.record, event);
+  await t.mutation(internal.emailDelivery.record, event);
+  await t.mutation(internal.emailDelivery.record, {
+    ...event,
+    eventId: "msg-sent",
+    type: "email.sent",
+    occurredAt: Date.now() - 1000,
+  });
+  const rows = await t.run((ctx) => ctx.db.query("adminAudit").take(10));
+  expect(rows).toHaveLength(2);
+  expect(rows.map((r) => r.action)).toEqual(["EMAIL_DELIVERED", "EMAIL_SENT"]);
 });
