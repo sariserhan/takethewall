@@ -27,7 +27,7 @@ The V1 app and authorized consolidated enhancement spec are implemented locally.
 - Final log review caught and fixed a Convex-unsupported dynamic import in Reward Rules. The strengthened browser test now waits for actual rule text. Repeated upload tests exercised the six-per-hour limit; the final full run used a process-only isolated test hash identity, then restored the regular local server. No limits or persistent secrets were changed.
 - Local Convex watcher successfully deployed the final functions and schema. Local public audit/milestone smoke checks pass. Production server runs at `http://localhost:3001`.
 - Desktop wall/admin and mobile milestone screenshots inspected: readable layout with no horizontal overflow. Browser plugin unavailable; Playwright uses existing host libraries.
-- No real card charge, wire, external email, external timestamp confirmation, live VisitorPing delivery or production deployment is claimed.
+- External Stripe test-mode Checkout creation/idempotency, simulated payment/refund/decline, and Resend simulator delivery passed on 2026-09-11. See [provider test results](docs/PROVIDER_TEST_RESULTS.md). No real card charge, wire, human-inbox delivery, external timestamp confirmation, live VisitorPing delivery or production deployment is claimed.
 
 ## Remaining external launch work
 
