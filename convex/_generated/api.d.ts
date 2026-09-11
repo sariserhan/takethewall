@@ -16,6 +16,7 @@ import type * as model from "../model.js";
 import type * as operations from "../operations.js";
 import type * as purchases from "../purchases.js";
 import type * as uploads from "../uploads.js";
+import type * as visitorping from "../visitorping.js";
 import type * as wall from "../wall.js";
 
 import type {
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   operations: typeof operations;
   purchases: typeof purchases;
   uploads: typeof uploads;
+  visitorping: typeof visitorping;
   wall: typeof wall;
 }>;
 

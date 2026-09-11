@@ -21,7 +21,24 @@ export const jobKind = v.union(
   v.literal("take_wall_clicked"),
   v.literal("checkout_started"),
 );
+export const visitorPingSnapshot = v.object({
+  takeoverId: v.id("takeovers"),
+  from: v.string(),
+  to: v.string(),
+  fetchedAt: v.number(),
+  impressions: v.number(),
+  uniqueVisitors: v.number(),
+  clicks: v.number(),
+});
 export default defineSchema({
+  visitorPingReports: defineTable({
+    key: v.literal("current"),
+    attempt: v.number(),
+    nextAt: v.number(),
+    failures: v.number(),
+    lastError: v.optional(v.string()),
+    snapshot: v.optional(visitorPingSnapshot),
+  }).index("by_key", ["key"]),
   takeovers: defineTable({
     websiteUrl: v.string(),
     domain: v.string(),

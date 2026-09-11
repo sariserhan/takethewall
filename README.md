@@ -25,7 +25,7 @@ Copy the relevant variables from `.env.example` into Next.js and Convex configur
 ## Payments and services
 
 - **Next.js:** Stripe secret key, webhook secret, optional existing Price ID, `WALL_TOKEN_SECRET`, `WALL_SERVER_SECRET`, `CONVEX_HTTP_URL`, `NEXT_PUBLIC_SITE_URL`, and `WALL_ENVIRONMENT`.
-- **Convex:** the same `WALL_SERVER_SECRET` and `WALL_ENVIRONMENT`, plus `RESEND_API_KEY`, `RESEND_FROM`, `VISITORPING_SITE_KEY`, and `PUBLIC_METRICS_ENABLED`.
+- **Convex:** the same `WALL_SERVER_SECRET` and `WALL_ENVIRONMENT`, plus `RESEND_API_KEY`, `RESEND_FROM`, `VISITORPING_SITE_KEY`, `VISITORPING_API_KEY`, `VISITORPING_SITE_ID`, and `PUBLIC_METRICS_ENABLED`.
 - **Both:** set `PUBLIC_METRICS_ENABLED=true` only on a dedicated production deployment. Next.js additionally requires `VERCEL_ENV=production` to accept production traffic. All local/preview traffic remains excluded. Test and live payments must use separate Convex deployments.
 - Stripe keys are checked against `WALL_ENVIRONMENT` before Checkout creation. The price is server-owned: 299 cents, USD, one time. No promotional codes or adaptive pricing. Dynamic hosted Checkout methods permit supported wallets configured in Stripe.
 - Enable Stripe payment receipts in its Dashboard. The buyer email prefills Checkout; the final receipt email is kept separately. Resend activation/replacement messages go to the original purchase contact, never to a public profile.
@@ -41,11 +41,21 @@ Set the resulting signing secret in Next.js. Subscribe to `checkout.session.comp
 
 ## VisitorPing contract
 
-Integration was verified against the existing VisitorPing source (`apps/ingest/src/validate.ts`, `delivery-dedupe.ts`, and tracker code) in the adjacent workspace. It sends supported JSON to `https://ingest.visitorping.com/e` with the actual `vp_XXXXXXXX` site key and stable UUID `deliveryId`, anonymous `visitorId`/`sessionId`, event name, path `/`, empty referrer, timestamp, and sanitized metadata. No speculative private VisitorPing API key is used.
+Integration was verified against the existing VisitorPing source (`apps/ingest/src/validate.ts`, `delivery-dedupe.ts`, and tracker code) in the adjacent workspace. It sends supported JSON to `https://ingest.visitorping.com/e` with the actual `vp_XXXXXXXX` site key and stable UUID `deliveryId`, anonymous `visitorId`/`sessionId`, event name, path `/`, empty referrer, timestamp, and sanitized metadata. The write pipeline uses the public ingestion key; the separate read API uses its own private key.
 
 Browser interactions use the first-party event endpoint, then a persistent Convex delivery job. Browser visitor hashes and page identities are preserved; authoritative payment events use a separate system identity. Country metadata comes from the trusted Vercel request. Convex's public counters are independent of VisitorPing.
 
 The automatic tracker script is intentionally not loaded: its current automatic outbound-link capture includes full destination query strings. Using supported ingestion preserves the spec's privacy boundary. All six required event names are delivered. URL query strings, fragments, credentials, email, purchase-status tokens, and Stripe references are excluded. Provider-side geographic inference can reflect server delivery; use the explicit country metadata and Convex counters for public attribution.
+
+The [Analytics API](https://visitorping.com/developers/analytics-api) is integrated through an internal Convex action. Configure `VISITORPING_API_KEY` and `VISITORPING_SITE_ID` in Convex. A shared 30-second cron reads current-takeover impressions/uniques and clicks, bounded to the most recent 24 hours or activation time, whichever is later. Requests use exact `takeoverId` filters and exclude classified bots. Reports retain the last complete successful result on failure, honor `Retry-After`, back off with jitter, and discard responses if ownership changes during the read. The cron is idle outside production or without configuration. Its schedule plus request duration can make successful refreshes approximately 30–60 seconds apart.
+
+Reports are operator-only and include their time window and fetch timestamp. They are not added to public Convex counters. Country breakdowns are not consumed because provider session geography can reflect server forwarding; public country attribution continues using trusted Vercel request metadata. A cached report can be stale and is never a lifetime count or an ingestion-completeness guarantee.
+
+```sh
+npx convex run visitorping:report '{}'
+```
+
+Use `--prod` only for the intended production project. See [DEPLOYMENT.md](DEPLOYMENT.md) for the Cloudflare/Vercel setup, environment placement, and launch sequence.
 
 ## Operations (deployment credentials only)
 

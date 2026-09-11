@@ -8,4 +8,10 @@ crons.interval(
   internal.operations.cleanup,
   {},
 );
+crons.interval(
+  "VisitorPing aggregate report",
+  { seconds: 30 },
+  internal.visitorping.refresh,
+  {},
+);
 export default crons;
