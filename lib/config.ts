@@ -1,0 +1,21 @@
+export const TAKEOVER_PRICE_CENTS = 399;
+export const LEGAL_VERSION = "2026-09-11.1";
+export const MILESTONES = [100, 1000, 10000, 100000, 1000000].map(
+  (takeoverNumber) => ({ takeoverNumber, rewardUsd: takeoverNumber }),
+);
+export const INITIAL_CLAIM_DEADLINE_DAYS = 7;
+export const ADDITIONAL_INFORMATION_DEADLINE_DAYS = 7;
+export const CLAIM_TOKEN_BYTES = 32;
+export const OTP_EXPIRATION_MINUTES = 10;
+export const OTP_MAX_ATTEMPTS = 5;
+export const CLAIM_SESSION_HOURS = 12;
+export const CLAIM_SESSION_MAX_HOURS = 24;
+export const MILESTONE_SEQUENCE_RADIUS = 3;
+export const ANALYTICS_LATE_EVENT_WINDOW_MS = 120_000;
+export const CHAT_MESSAGE_MAX_CHARS = 5000;
+export const CHAT_MESSAGES_PER_MINUTE = 10;
+export const WINNER_CHAT_EMAIL_DELAY_MINUTES = 10;
+export const SUPPORT_MESSAGE_MAX_CHARS = 10000;
+export const PRIVATE_DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
+export const MAX_PRIVATE_DOCUMENTS_PER_CLAIM = 10;
+export const PRIVATE_DOCUMENT_RETENTION_DAYS_AFTER_FINALIZATION = 90;

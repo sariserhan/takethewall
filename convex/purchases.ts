@@ -1,3 +1,7 @@
+import { auditHash } from "../lib/audit";
+import { validateWallContent } from "../lib/content";
+import { LEGAL_VERSION } from "../lib/config";
+import { TAKEOVER_PRICE_CENTS } from "../lib/config";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import {
@@ -9,12 +13,7 @@ import {
   publicOwner,
   zeros,
 } from "./model";
-import {
-  validateUrl,
-  validateDescription,
-  validateEmail,
-  validateContent,
-} from "../lib/validation";
+import { validateEmail } from "../lib/validation";
 export const pending = internalMutation({
   args: {
     requestKey: v.string(),
@@ -22,6 +21,9 @@ export const pending = internalMutation({
     tokenHash: v.string(),
     ownerHash: v.string(),
     uploadKey: v.string(),
+    contentType: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    linkType: v.optional(v.string()),
     websiteUrl: v.string(),
     description: v.string(),
     buyerEmail: v.string(),
@@ -57,10 +59,8 @@ export const pending = internalMutation({
       };
     }
     await getSite(ctx);
-    const url = validateUrl(a.websiteUrl),
-      description = validateDescription(a.description),
+    const content = validateWallContent(a),
       buyerEmail = validateEmail(a.buyerEmail);
-    validateContent(url.domain, description, process.env.BLOCKED_DOMAINS);
     if (a.environment !== (process.env.WALL_ENVIRONMENT ?? "test"))
       throw new Error("Payment environment mismatch");
     const upload = await ctx.db
@@ -68,15 +68,14 @@ export const pending = internalMutation({
       .withIndex("by_key", (q) => q.eq("key", a.uploadKey))
       .unique();
     if (
-      !upload?.storageId ||
-      upload.ownerHash !== a.ownerHash ||
-      upload.expiresAt <= Date.now()
+      (content.contentType !== "personal" && !upload?.storageId) ||
+      (upload && upload.ownerHash !== a.ownerHash) ||
+      (upload && upload.expiresAt <= Date.now())
     )
       throw new Error("Upload expired. Choose your logo again.");
     const id = await ctx.db.insert("takeovers", {
-      ...url,
-      description,
-      logoStorageId: upload.storageId,
+      ...content,
+      ...(upload?.storageId ? { logoStorageId: upload.storageId } : {}),
       kind: "paid",
       status: "pending",
       blocked: false,
@@ -88,6 +87,7 @@ export const pending = internalMutation({
     const purchaseId = await ctx.db.insert("purchases", {
       takeoverId: id,
       buyerEmail,
+      legalVersion: LEGAL_VERSION,
       requestKey: a.requestKey,
       fingerprint: a.fingerprint,
       tokenHash: a.tokenHash,
@@ -98,7 +98,7 @@ export const pending = internalMutation({
       createdAt: Date.now(),
       contactDeleteAt: Date.now() + 30 * 86400_000,
     });
-    await ctx.db.patch(upload._id, { claimed: true });
+    if (upload) await ctx.db.patch(upload._id, { claimed: true });
     return { takeoverId: id, purchaseId, checkoutUrl: null, checkoutExpiresAt };
   },
 });
@@ -138,7 +138,7 @@ export const activate = internalMutation({
   handler: async (ctx, a) => {
     if (
       !a.paid ||
-      a.amountCents !== 299 ||
+      a.amountCents !== TAKEOVER_PRICE_CENTS ||
       a.currency !== "usd" ||
       !a.paymentIntentId
     )
@@ -191,6 +191,31 @@ export const activate = internalMutation({
       previous = (await ctx.db.get(site.currentTakeoverId))!;
     const now = Date.now(),
       sequence = site.currentActivationSequence + 1;
+    const takeoverNumber = site.totalTakeovers + 1;
+    const publicTakeoverId = "ttw_" + crypto.randomUUID().replaceAll("-", "");
+    const contentHash = auditHash({
+      type: t.contentType ?? "link",
+      linkType: t.linkType ?? "website",
+      destinationUrl: t.websiteUrl,
+      displayName: t.displayName ?? t.domain,
+      description: t.description,
+      imageStorageId: t.logoStorageId ?? null,
+    });
+    const audit = {
+      takeoverNumber,
+      publicTakeoverId,
+      activatedAt: now,
+      amountCents: a.amountCents,
+      currency: "usd",
+      contentHash,
+      previousAuditHash: site.auditHash ?? "",
+    };
+    const finalHash = auditHash(audit);
+    await ctx.db.insert("takeoverAudit", {
+      ...audit,
+      takeoverId: t._id,
+      auditHash: finalHash,
+    });
     await ctx.db.patch(previous._id, {
       status: "replaced",
       replacedAt: now,
@@ -200,13 +225,17 @@ export const activate = internalMutation({
       status: "active",
       activatedAt: now,
       activationSequence: sequence,
+      takeoverNumber,
+      publicTakeoverId,
+      previousAuditHash: audit.previousAuditHash,
+      auditHash: finalHash,
       ...zeros,
     });
     await ctx.db.patch(p._id, {
       paidAt: now,
       cleanupAt: undefined,
       expiredConfirmed: undefined,
-      amountCents: 299,
+      amountCents: TAKEOVER_PRICE_CENTS,
       currency: "usd",
       sessionId: a.sessionId,
       paymentIntentId: a.paymentIntentId,
@@ -218,7 +247,8 @@ export const activate = internalMutation({
     await ctx.db.patch(site._id, {
       currentTakeoverId: t._id,
       currentActivationSequence: sequence,
-      totalTakeovers: site.totalTakeovers + 1,
+      totalTakeovers: takeoverNumber,
+      auditHash: finalHash,
       updatedAt: now,
     });
     const d = await daily(ctx);

@@ -1,15 +1,14 @@
 "use client";
+import { contentCta, validateWallContent } from "@/lib/content";
 import Image from "next/image";
 import { Arrow } from "./arrow";
 import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
-import {
-  validateUrl,
-  validateDescription,
-  validateEmail,
-  validateFile,
-} from "@/lib/validation";
+import { validateEmail, validateFile } from "@/lib/validation";
 interface Draft {
+  contentType: "link" | "personal";
+  category: "website" | "app" | "social" | "personal";
+  displayName: string;
   websiteUrl: string;
   description: string;
   buyerEmail: string;
@@ -18,6 +17,9 @@ interface Draft {
   requestKey: string;
 }
 const empty: Draft = {
+  contentType: "link",
+  category: "website",
+  displayName: "",
   websiteUrl: "",
   description: "",
   buyerEmail: "",
@@ -90,10 +92,10 @@ export function PurchaseSheet({
     if (busy || uploading) return;
     setError("");
     try {
-      validateUrl(draft.websiteUrl);
-      validateDescription(draft.description);
+      validateWallContent(draft);
       validateEmail(draft.buyerEmail);
-      if (!draft.uploadKey) throw new Error("Choose your logo before paying.");
+      if (draft.contentType !== "personal" && !draft.uploadKey)
+        throw new Error("Choose your logo before paying.");
       setBusy(true);
       const requestKey = draft.requestKey || crypto.randomUUID();
       const saved = { ...draft, requestKey };
@@ -143,19 +145,75 @@ export function PurchaseSheet({
       <div className="purchase-grid">
         <form onSubmit={submit} className="purchase-form">
           <fieldset disabled={busy}>
+            <legend>WHAT DO YOU WANT TO PUT ON THE WALL?</legend>
+            <div className="content-choices">
+              {(["website", "app", "social", "personal"] as const).map(
+                (category) => (
+                  <button
+                    type="button"
+                    aria-pressed={draft.category === category}
+                    key={category}
+                    onClick={() =>
+                      change({
+                        category,
+                        contentType:
+                          category === "personal" ? "personal" : "link",
+                      })
+                    }
+                  >
+                    {
+                      {
+                        website: "Website",
+                        app: "App",
+                        social: "Social",
+                        personal: "Me / Message",
+                      }[category]
+                    }
+                  </button>
+                ),
+              )}
+            </div>
             <label>
-              Website URL
+              Display name{" "}
+              {draft.contentType !== "personal" && (
+                <span className="field-hint">
+                  Optional; defaults to the domain
+                </span>
+              )}
               <input
-                type="url"
-                autoComplete="url"
-                placeholder="https://your-website.com"
-                required
-                value={draft.websiteUrl}
-                onChange={(e) => change({ websiteUrl: e.target.value })}
+                maxLength={60}
+                required={draft.contentType === "personal"}
+                value={draft.displayName}
+                onChange={(e) => change({ displayName: e.target.value })}
               />
             </label>
+            {draft.contentType !== "personal" && (
+              <>
+                <label>
+                  {draft.category === "app"
+                    ? "App Store / Google Play URL"
+                    : draft.category === "social"
+                      ? "Profile/channel URL"
+                      : "Website URL"}
+                  <input
+                    type="url"
+                    autoComplete="url"
+                    placeholder="https://your-website.com"
+                    required
+                    value={draft.websiteUrl}
+                    onChange={(e) => change({ websiteUrl: e.target.value })}
+                  />
+                </label>
+              </>
+            )}
             <label>
-              Logo{" "}
+              {draft.category === "personal"
+                ? "Optional avatar/image"
+                : draft.category === "app"
+                  ? "App icon"
+                  : draft.category === "social"
+                    ? "Image/avatar"
+                    : "Logo"}{" "}
               <span className="field-hint">PNG, JPEG or WEBP · 2 MB max</span>
               <input
                 type="file"
@@ -168,7 +226,9 @@ export function PurchaseSheet({
               <p role="status">Checking and uploading your logo…</p>
             )}
             <label>
-              Description{" "}
+              {draft.contentType === "personal"
+                ? "Optional message"
+                : "Description"}{" "}
               <span className="field-hint">
                 {[...draft.description].length}/120
               </span>
@@ -176,7 +236,6 @@ export function PurchaseSheet({
                 rows={3}
                 maxLength={120}
                 placeholder="Make your 120 characters count."
-                required
                 value={draft.description}
                 onChange={(e) => change({ description: e.target.value })}
               />
@@ -208,13 +267,21 @@ export function PurchaseSheet({
             disabled={busy || uploading}
             type="submit"
           >
-            {busy ? "Preparing checkout…" : "PAY $2.99 & TAKE THE WALL"}
+            {busy ? "Preparing checkout…" : "PAY $3.99 & TAKE THE WALL"}
             <Arrow />
           </button>
           <p className="field-note">
-            By paying, you accept the Terms and Content policy below. No
-            guaranteed duration, audience, impressions or clicks. No refunds for
-            a short reign or low traffic.
+            Checkout does not reserve a takeover number. By paying, you accept
+            the{" "}
+            <a href="/terms" target="_blank" rel="noreferrer">
+              Terms
+            </a>{" "}
+            and{" "}
+            <a href="/rewards" target="_blank" rel="noreferrer">
+              Reward Rules
+            </a>
+            . No guaranteed duration, audience, impressions or clicks. No
+            refunds for a short reign or low traffic.
           </p>
         </form>
         <aside className="preview">
@@ -235,14 +302,19 @@ export function PurchaseSheet({
                 LOGO
               </div>
             )}
-            <h3>{domain}</h3>
+            <h3>
+              {draft.displayName ||
+                (draft.contentType === "personal" ? "YOUR NAME" : domain)}
+            </h3>
             <p>
               {draft.description ||
                 "Your big moment. Your little corner of the internet."}
             </p>
-            <span className="visit">
-              VISIT WEBSITE <Arrow />
-            </span>
+            {draft.contentType !== "personal" && (
+              <span className="visit">
+                {contentCta()} <Arrow />
+              </span>
+            )}
           </div>
           <div className="preview-footer">
             It could be yours for

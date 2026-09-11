@@ -99,7 +99,7 @@ export const data = internalQuery({
         : {}),
       timestamp: j.timestamp,
       attempts: j.attempts,
-      domain: t.domain,
+      domain: t.displayName ?? t.domain,
       websiteUrl: t.websiteUrl,
       activatedAt: t.activatedAt ?? 0,
       ...(t.replacedAt !== undefined ? { replacedAt: t.replacedAt } : {}),

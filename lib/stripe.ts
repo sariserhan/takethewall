@@ -1,3 +1,4 @@
+import { TAKEOVER_PRICE_CENTS } from "./config";
 import Stripe from "stripe";
 import { env, HttpError } from "./server";
 export const getStripe = () => {
@@ -34,7 +35,7 @@ export function checkoutParameters(a: {
           : {
               price_data: {
                 currency: "usd",
-                unit_amount: 299,
+                unit_amount: TAKEOVER_PRICE_CENTS,
                 product_data: {
                   name: "Take The Wall",
                   description:
@@ -65,7 +66,7 @@ export function verifiedSession(event: Stripe.Event, production: boolean) {
   if (
     s.mode !== "payment" ||
     s.status !== "complete" ||
-    s.amount_total !== 299 ||
+    s.amount_total !== TAKEOVER_PRICE_CENTS ||
     s.currency !== "usd" ||
     s.livemode !== production ||
     event.livemode !== production ||

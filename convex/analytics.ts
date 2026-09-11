@@ -45,6 +45,7 @@ export const record = internalMutation({
         (a.issuedAt > t.replacedAt || now > t.replacedAt + 120_000))
     )
       throw new Error("Invalid reign attribution");
+    if (a.event === "click" && (t.contentType === "personal" || t.outboundLinkEnabled === false)) return false;
     await limit(ctx, "events:" + a.visitorHash, 90);
     if (a.event === "click") await limit(ctx, "clicks:" + a.visitorHash, 20);
     const eventKey =

@@ -143,7 +143,7 @@ describe("real route boundaries", () => {
           expect.objectContaining({
             quantity: 1,
             price_data: expect.objectContaining({
-              unit_amount: 299,
+              unit_amount: 399,
               currency: "usd",
             }),
           }),

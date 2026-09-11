@@ -1,3 +1,5 @@
+import { validateWallContent } from "@/lib/content";
+import { TAKEOVER_PRICE_CENTS } from "@/lib/config";
 import {
   backend,
   clientHash,
@@ -12,11 +14,7 @@ import {
   sameOrigin,
   statusToken,
 } from "@/lib/server";
-import {
-  validateEmail,
-  validateDescription,
-  validateContent,
-} from "@/lib/validation";
+import { validateEmail } from "@/lib/validation";
 import { checkoutParameters, getStripe } from "@/lib/stripe";
 export const runtime = "nodejs";
 export async function POST(req: Request) {
@@ -24,12 +22,15 @@ export async function POST(req: Request) {
     sameOrigin(req);
     await rate(req, "checkout", 15, 3600_000);
     const a = await jsonBody(req);
-    if (!opaqueId(a.requestKey) || !opaqueId(a.uploadKey))
+    if (
+      !opaqueId(a.requestKey) ||
+      (a.contentType !== "personal" && !opaqueId(a.uploadKey))
+    )
       throw new HttpError("Choose a logo before paying.");
-    const url = await publicDestination(a.websiteUrl);
-    const buyerEmail = validateEmail(a.buyerEmail),
-      description = validateDescription(a.description);
-    validateContent(url.domain, description, process.env.BLOCKED_DOMAINS);
+    const content = validateWallContent(a);
+    if (content.contentType !== "personal")
+      await publicDestination(content.websiteUrl);
+    const buyerEmail = validateEmail(a.buyerEmail);
     const stripe = getStripe();
     const environment =
       process.env.WALL_ENVIRONMENT === "production" ? "production" : "test";
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
       const price = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID);
       if (
         !price.active ||
-        price.unit_amount !== 299 ||
+        price.unit_amount !== TAKEOVER_PRICE_CENTS ||
         price.currency !== "usd" ||
         price.type !== "one_time" ||
         price.livemode !== (environment === "production")
@@ -58,14 +59,15 @@ export async function POST(req: Request) {
       checkoutExpiresAt: number;
     }>("pending", {
       requestKey: a.requestKey,
-      fingerprint: hash(
-        JSON.stringify([url.websiteUrl, description, buyerEmail, a.uploadKey]),
-      ),
+      fingerprint: hash(JSON.stringify([content, buyerEmail, a.uploadKey])),
       tokenHash: hash(token),
       ownerHash: clientHash(req),
       uploadKey: a.uploadKey,
-      websiteUrl: url.websiteUrl,
-      description,
+      websiteUrl: content.websiteUrl,
+      description: content.description,
+      displayName: content.displayName,
+      contentType: content.contentType,
+      linkType: content.linkType,
       buyerEmail,
       environment,
     });

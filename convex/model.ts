@@ -4,6 +4,11 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { jobKind } from "./schema";
 export const publicOwner = v.object({
   id: v.id("takeovers"),
+  contentType: v.string(),
+  linkType: v.string(),
+  displayName: v.string(),
+  takeoverNumber: v.union(v.number(), v.null()),
+  outboundLinkEnabled: v.boolean(),
   websiteUrl: v.string(),
   domain: v.string(),
   description: v.string(),
@@ -18,10 +23,16 @@ export const publicOwner = v.object({
 export async function projectOwner(ctx: QueryCtx, t: Doc<"takeovers">) {
   return {
     id: t._id,
+    contentType: t.contentType ?? "link",
+    linkType: t.linkType ?? "website",
+    displayName: t.displayName ?? t.domain,
+    takeoverNumber: t.takeoverNumber ?? null,
+    outboundLinkEnabled:
+      t.outboundLinkEnabled !== false && t.contentType !== "personal",
     websiteUrl: t.websiteUrl,
     domain: t.domain,
     description: t.description,
-    logoUrl: await ctx.storage.getUrl(t.logoStorageId),
+    logoUrl: t.logoStorageId ? await ctx.storage.getUrl(t.logoStorageId) : null,
     activatedAt: t.activatedAt ?? 0,
     activationSequence: t.activationSequence ?? 0,
     impressions: t.impressions,

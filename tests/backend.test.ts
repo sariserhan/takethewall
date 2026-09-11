@@ -12,7 +12,7 @@ async function seed(t: T) {
   );
   const id = await t.mutation(internal.wall.seed, { logoStorageId: storageId });
   const owner = await t.run((ctx) => ctx.db.get(id));
-  return { id, storageId: owner!.logoStorageId };
+  return { id, storageId: owner!.logoStorageId! };
 }
 let serial = 0;
 async function pending(t: T) {
@@ -42,7 +42,7 @@ function payment(takeoverId: Id<"takeovers">, suffix: string) {
     eventId: "evt_" + suffix,
     sessionId: "cs_" + suffix,
     paymentIntentId: "pi_" + suffix,
-    amountCents: 299,
+    amountCents: 399,
     currency: "usd",
     paid: true,
     livemode: false,

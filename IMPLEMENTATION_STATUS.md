@@ -45,3 +45,4 @@
 - Implementation proceeds in logical tested commits. Reward activation defaults off; external provider/identity/legal configuration is a launch dependency, not a coding blocker.
 - Existing paid-only numbering is not yet implemented; moderation sequence must not be reused as the paid number. Existing late-event allowance is 120 seconds.
 - Browser plugin unavailable; use existing Playwright setup for rendered verification.
+- Unit 1 complete: fixed 399-cent server price, linked/personal content validation and purchase UI, platform CTA selection, optional personal image, paid-only numbering and canonical SHA-256 activation chain. 69 tests, lint, and typecheck pass. Existing records use backward-compatible optional fields; historical migration follows in the rewards unit.

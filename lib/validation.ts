@@ -101,6 +101,7 @@ export function validateContent(
     );
 }
 export function safeDestination(value: string) {
+  if (!value) return "";
   const u = new URL(value);
   return u.origin + u.pathname;
 }

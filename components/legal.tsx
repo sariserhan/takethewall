@@ -14,7 +14,7 @@ export function Legal({
         {page === "Terms" ? (
           <>
             <p>
-              One successfully verified $2.99 USD purchase activates your
+              One successfully verified $3.99 USD purchase activates your
               advertisement. The next successfully activated purchase replaces
               it immediately. There is no minimum or maximum ownership duration.
             </p>

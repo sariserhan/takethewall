@@ -28,7 +28,7 @@ function stripeEvent(patch: Record<string, unknown> = {}) {
         mode: "payment",
         status: "complete",
         payment_status: "paid",
-        amount_total: 299,
+        amount_total: 399,
         currency: "usd",
         livemode: false,
         metadata: { takeoverId: "takeover123", environment: "test" },
@@ -54,7 +54,7 @@ describe("Checkout and webhook boundary", () => {
       mode: "payment",
       customer_email: "buyer@example.com",
       line_items: [
-        { quantity: 1, price_data: { unit_amount: 299, currency: "usd" } },
+        { quantity: 1, price_data: { unit_amount: 399, currency: "usd" } },
       ],
       allow_promotion_codes: false,
       success_url: "https://takethewall.com/?purchase=opaque",
@@ -64,14 +64,14 @@ describe("Checkout and webhook boundary", () => {
   });
   it("accepts only authoritative successful sessions", () => {
     expect(verifiedSession(stripeEvent(), false)).toMatchObject({
-      amountCents: 299,
+      amountCents: 399,
       receiptEmail: "final@example.com",
     });
     expect(
       verifiedSession(stripeEvent({ payment_status: "unpaid" }), false),
     ).toBeNull();
     expect(() =>
-      verifiedSession(stripeEvent({ amount_total: 399 }), false),
+      verifiedSession(stripeEvent({ amount_total: 299 }), false),
     ).toThrow();
     expect(() => verifiedSession(stripeEvent(), true)).toThrow();
   });

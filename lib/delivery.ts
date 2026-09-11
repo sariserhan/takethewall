@@ -10,7 +10,7 @@ export function visitorPingPayload(a: {
   pageId?: string;
   region?: string;
 }) {
-  const u = new URL(a.websiteUrl);
+  const u = a.websiteUrl ? new URL(a.websiteUrl) : null;
   return {
     siteId: a.siteKey,
     deliveryId: a.deliveryId,
@@ -23,7 +23,7 @@ export function visitorPingPayload(a: {
     data: {
       takeoverId: a.takeoverId,
       ownerDomain: a.domain,
-      destination: u.origin + u.pathname,
+      destination: u ? u.origin + u.pathname : "",
       ...(a.region ? { country: a.region } : {}),
     },
   };

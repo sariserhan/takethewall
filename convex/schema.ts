@@ -31,6 +31,18 @@ export const visitorPingSnapshot = v.object({
   clicks: v.number(),
 });
 export default defineSchema({
+  takeoverAudit: defineTable({
+    takeoverNumber: v.number(),
+    publicTakeoverId: v.string(),
+    takeoverId: v.id("takeovers"),
+    activatedAt: v.number(),
+    amountCents: v.number(),
+    currency: v.string(),
+    contentHash: v.string(),
+    previousAuditHash: v.string(),
+    auditHash: v.string(),
+  }).index("by_number", ["takeoverNumber"]),
+
   visitorPingReports: defineTable({
     key: v.literal("current"),
     attempt: v.number(),
@@ -43,7 +55,15 @@ export default defineSchema({
     websiteUrl: v.string(),
     domain: v.string(),
     description: v.string(),
-    logoStorageId: v.id("_storage"),
+    logoStorageId: v.optional(v.id("_storage")),
+    contentType: v.optional(v.union(v.literal("link"), v.literal("personal"))),
+    linkType: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    takeoverNumber: v.optional(v.number()),
+    publicTakeoverId: v.optional(v.string()),
+    previousAuditHash: v.optional(v.string()),
+    auditHash: v.optional(v.string()),
+    outboundLinkEnabled: v.optional(v.boolean()),
     kind,
     status,
     sourceTakeoverId: v.optional(v.id("takeovers")),
@@ -59,12 +79,15 @@ export default defineSchema({
     uniqueVisitors: v.number(),
     clicks: v.number(),
   })
+    .index("by_takeoverNumber", ["takeoverNumber"])
     .index("by_status", ["status"])
     .index("by_activationSequence", ["activationSequence"])
     .index("by_logoStorageId", ["logoStorageId"]),
   purchases: defineTable({
     takeoverId: v.id("takeovers"),
     buyerEmail: v.string(),
+    legalVersion: v.optional(v.string()),
+    paymentIssue: v.optional(v.string()),
     receiptEmail: v.optional(v.string()),
     requestKey: v.string(),
     fingerprint: v.string(),
@@ -99,6 +122,7 @@ export default defineSchema({
     key: v.literal("wall"),
     currentTakeoverId: v.id("takeovers"),
     currentActivationSequence: v.number(),
+    auditHash: v.optional(v.string()),
     totalVisitors: v.number(),
     totalTakeovers: v.number(),
     updatedAt: v.number(),

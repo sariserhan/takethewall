@@ -105,6 +105,9 @@ export const disable = internalMutation({
       endReason: "moderation",
     });
     const restoredId = await ctx.db.insert("takeovers", {
+      contentType: source.contentType,
+      linkType: source.linkType,
+      displayName: source.displayName,
       websiteUrl: source.websiteUrl,
       domain: source.domain,
       description: source.description,
@@ -183,7 +186,8 @@ export const cleanup = internalMutation({
           q.eq("logoStorageId", t.logoStorageId),
         )
         .first();
-      if (!other) await ctx.storage.delete(t.logoStorageId);
+      if (!other)
+        if (t.logoStorageId) await ctx.storage.delete(t.logoStorageId);
       await ctx.db.delete(p._id);
     }
     const contacts = await ctx.db

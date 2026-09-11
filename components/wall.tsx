@@ -1,4 +1,5 @@
 "use client";
+import { contentCta } from "@/lib/content";
 import Image from "next/image";
 import { Arrow } from "./arrow";
 import {
@@ -186,7 +187,7 @@ function WallView({
       <header className="masthead">
         <h1>TAKE THE WALL</h1>
         <div className="strap">
-          <p>One wall. One owner. $2.99.</p>
+          <p>One wall. One owner. $3.99.</p>
           <span className="connection">
             <i className={connected ? "online" : ""} />
             {connected ? "LIVE" : "CONNECTING"}
@@ -238,6 +239,12 @@ function WallView({
         <Metric label="PAID TAKEOVERS" value={numbers(data?.totalTakeovers)} />
       </section>
       <section className="owner-section" aria-label="Current owner">
+        <p className="eyebrow">
+          CURRENT TAKEOVER{" "}
+          {owner?.takeoverNumber
+            ? `#${owner.takeoverNumber}`
+            : "HOUSE PLACEMENT"}
+        </p>
         <p className="eyebrow ownership-label" aria-live="polite">
           {changed
             ? "THE WALL WAS JUST TAKEN"
@@ -248,12 +255,15 @@ function WallView({
             key={owner.id}
             ref={adRef}
             className="owner-ad"
-            href={owner.websiteUrl}
+            href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined}
             target="_blank"
             rel="noopener noreferrer sponsored"
-            onClick={() => void wallEvent(owner.id, "click")}
+            onClick={() => {
+              if (owner.outboundLinkEnabled) void wallEvent(owner.id, "click");
+            }}
             onAuxClick={(e) => {
-              if (e.button === 1) void wallEvent(owner.id, "click");
+              if (e.button === 1 && owner.outboundLinkEnabled)
+                void wallEvent(owner.id, "click");
             }}
           >
             {owner.logoUrl ? (
@@ -269,11 +279,13 @@ function WallView({
             ) : (
               <span className="missing-logo">{owner.domain}</span>
             )}
-            <h2>{owner.domain}</h2>
+            <h2>{owner.displayName}</h2>
             <p>{owner.description}</p>
-            <span className="visit">
-              VISIT WEBSITE <Arrow />
-            </span>
+            {owner.outboundLinkEnabled && (
+              <span className="visit">
+                {contentCta(owner.linkType)} <Arrow />
+              </span>
+            )}
           </a>
         ) : (
           <div className="owner-ad loading-owner">
@@ -329,14 +341,14 @@ function WallView({
         </div>
       </section>
       <section className="purchase-band">
-        <strong className="price">$2.99</strong>
+        <strong className="price">$3.99</strong>
         <p>
           It could be yours for 1 second or 100 days.
           <br />
-          Someone else pays $2.99, they take it.
+          Someone else pays $3.99, they take it.
         </p>
         <button className="button primary" onClick={takeWall}>
-          TAKE THE WALL — $2.99 <Arrow />
+          TAKE THE WALL — $3.99 <Arrow />
         </button>
       </section>
       <footer>

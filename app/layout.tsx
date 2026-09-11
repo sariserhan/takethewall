@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://takethewall.com",
   ),
-  title: "Take The Wall — One Wall. One Owner. $2.99.",
+  title: "Take The Wall — One Wall. One Owner. $3.99.",
   description:
-    "Pay $2.99 and take over the only ad on the page. Keep it until somebody else pays $2.99.",
+    "Pay $3.99 and take over the only ad on the page. Keep it until somebody else pays $3.99.",
   referrer: "no-referrer",
   openGraph: {
-    title: "Take The Wall — One Wall. One Owner. $2.99.",
-    description: "Pay $2.99. Take the wall. Keep it until someone else does.",
+    title: "Take The Wall — One Wall. One Owner. $3.99.",
+    description: "Pay $3.99. Take the wall. Keep it until someone else does.",
     type: "website",
     siteName: "Take The Wall",
   },
