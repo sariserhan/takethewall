@@ -14,11 +14,15 @@
 - Local anonymous Convex deployment, private local secrets, original VisitorPing house seed and actual zero paid-takeover counters.
 - 59 unit/backend/route tests passed. All 8 desktop/mobile Playwright tests passed against the production build at http://localhost:3001. Lint, typecheck, production build, and actual local Convex deployment passed. Final screenshots show no overflow or console errors.
 
+- VisitorPing read API integration: shared internal report cache, current-takeover event filters, bounded 24-hour window, rate-limit/backoff handling, stale-result retention, and owner-change race protection.
+- Agreed deployment architecture documented in `DEPLOYMENT.md`: Cloudflare DNS only, Vercel hosting, Convex backend, VisitorPing analytics.
+- Updated verification: 66 tests pass, including seven new API/cache tests; lint, typecheck, and production build pass. Local Convex watcher deployed the reporting functions and internal smoke checks passed. External API credentials remain unconfigured.
+
 ## In Progress
 - External launch configuration only; implementation and local verification are complete.
 
 ## Remaining
-- Configure the actual Vercel/Convex production targets, Stripe test/live credentials, TakeTheWall VisitorPing site key, and verified Resend sender.
+- Configure the actual Vercel/Convex production targets, Stripe test/live credentials, TakeTheWall VisitorPing ingestion key, Analytics API key/site ID, and verified Resend sender.
 - Execute external Stripe test-mode Checkout/wallet/receipt end-to-end tests and live-service delivery checks.
 - Deploy and verify takethewall.com, HTTPS, production webhook, support/privacy mailboxes, and production traffic attribution before enabling live payments.
 
@@ -35,3 +39,9 @@
 - Use VisitorPing's supported ingestion contract rather than its automatic tracker because the latter captures full outbound URL queries. Public metrics remain Convex-owned.
 - Preserve unresolved Stripe sessions during cleanup so payment failures can be reconciled. Remove only unreferenced or authoritatively abandoned assets; never delete historical paid creative.
 - No features from the spec's future-only list were added.
+
+## Authorized enhancement implementation (in progress)
+- Consolidated specification: `docs/IMPLEMENTATION_DELTA.md`. Includes both addenda, authoritative decisions, repository mapping, and Terms/Privacy/Disclaimer/Disclosure routes.
+- Implementation proceeds in logical tested commits. Reward activation defaults off; external provider/identity/legal configuration is a launch dependency, not a coding blocker.
+- Existing paid-only numbering is not yet implemented; moderation sequence must not be reused as the paid number. Existing late-event allowance is 120 seconds.
+- Browser plugin unavailable; use existing Playwright setup for rendered verification.
