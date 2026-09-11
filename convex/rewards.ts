@@ -8,8 +8,10 @@ import {
   settings,
   systemMessage,
 } from "./rewardModel";
+import { operatorEligibility } from "../lib/reward-rules";
 import { plainText } from "../lib/content";
 import { limit } from "./model";
+import { MILESTONES } from "../lib/config";
 import { snapshot } from "./rewardSchema";
 const sequenceRow = v.object({
   number: v.number(),
@@ -50,6 +52,9 @@ export const overview = query({
       .withIndex("by_number")
       .take(100);
     const definitions = [...config.milestones];
+    for (const m of MILESTONES)
+      if (!definitions.some((d) => d.takeoverNumber === m.takeoverNumber))
+        definitions.push(m);
     for (const r of reached)
       if (!definitions.some((m) => m.takeoverNumber === r.milestoneNumber))
         definitions.push({
@@ -163,6 +168,7 @@ export const portal = query({
     dob: v.string(),
     rulesVersion: v.string(),
     payoutStatus: v.string(),
+    requiredActions: v.array(v.string()),
     messages: v.array(
       v.object({
         id: v.id("rewardMessages"),
@@ -206,14 +212,17 @@ export const portal = query({
       dob: c.dob ?? "",
       rulesVersion: r.rulesVersion,
       payoutStatus: r.payoutStatus ?? "pending",
-      messages: messages
-        .reverse()
-        .map((m) => ({
-          id: m._id,
-          sender: m.sender,
-          body: m.body,
-          createdAt: m.createdAt,
-        })),
+      requiredActions: operatorEligibility.getRequirements({
+        country: c.country ?? "",
+        region: c.region,
+        prizeUsd: r.rewardUsd,
+      }).requiredActions,
+      messages: messages.reverse().map((m) => ({
+        id: m._id,
+        sender: m.sender,
+        body: m.body,
+        createdAt: m.createdAt,
+      })),
       unread: messages.filter(
         (m) => m.sender === "admin" && m.createdAt > c.lastWinnerReadAt,
       ).length,
@@ -268,7 +277,7 @@ export const submit = mutation({
       country,
       region: plainText(a.region, 100, false),
       dob: a.dob,
-      declaration: plainText(a.declaration, 5000, false),
+      declaration: plainText(a.declaration, 5000, false, true),
       rulesAcceptedAt: Date.now(),
       submittedAt: Date.now(),
       status: "under_review",
@@ -291,7 +300,7 @@ export const send = mutation({
     await limit(ctx, "winner-chat:" + c._id, 10);
     if (["expired", "ineligible"].includes(c.status))
       throw new Error("This claim is closed; contact support");
-    const body = plainText(a.body, 5000);
+    const body = plainText(a.body, 5000, true, true);
     await ctx.db.insert("rewardMessages", {
       claimId: c._id,
       body,
@@ -326,6 +335,13 @@ export async function cascade(
   const r = (await ctx.db.get(c.rewardId))!;
   if (r.claimId !== c._id || r.status === "paid") return;
   await ctx.db.patch(c._id, { status, privateReason: reason });
+  const documents = await ctx.db
+    .query("claimDocuments")
+    .withIndex("by_claim", (q) => q.eq("claimId", c._id))
+    .take(10);
+  for (const d of documents)
+    if (!d.deletedAt && !d.retentionOverride)
+      await ctx.db.patch(d._id, { deleteAt: Date.now() + 90 * 86400_000 });
   await audit(
     ctx,
     actor,

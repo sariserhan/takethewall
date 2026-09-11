@@ -223,6 +223,7 @@ export const rewardTables = {
     size: v.optional(v.number()),
     uploadedAt: v.optional(v.number()),
     deleteAt: v.optional(v.number()),
+    retentionOverride: v.optional(v.boolean()),
     deletedAt: v.optional(v.number()),
   })
     .index("by_claim", ["claimId"])

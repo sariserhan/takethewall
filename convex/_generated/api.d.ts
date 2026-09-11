@@ -8,13 +8,25 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as analytics from "../analytics.js";
+import type * as anchoring from "../anchoring.js";
+import type * as auditTrail from "../auditTrail.js";
+import type * as auth from "../auth.js";
+import type * as claimAuth from "../claimAuth.js";
 import type * as crons from "../crons.js";
+import type * as documents from "../documents.js";
 import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
+import type * as mail from "../mail.js";
 import type * as model from "../model.js";
 import type * as operations from "../operations.js";
+import type * as paymentIssues from "../paymentIssues.js";
 import type * as purchases from "../purchases.js";
+import type * as rewardModel from "../rewardModel.js";
+import type * as rewardSchema from "../rewardSchema.js";
+import type * as rewards from "../rewards.js";
+import type * as support from "../support.js";
 import type * as uploads from "../uploads.js";
 import type * as visitorping from "../visitorping.js";
 import type * as wall from "../wall.js";
@@ -26,13 +38,25 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   analytics: typeof analytics;
+  anchoring: typeof anchoring;
+  auditTrail: typeof auditTrail;
+  auth: typeof auth;
+  claimAuth: typeof claimAuth;
   crons: typeof crons;
+  documents: typeof documents;
   http: typeof http;
   jobs: typeof jobs;
+  mail: typeof mail;
   model: typeof model;
   operations: typeof operations;
+  paymentIssues: typeof paymentIssues;
   purchases: typeof purchases;
+  rewardModel: typeof rewardModel;
+  rewardSchema: typeof rewardSchema;
+  rewards: typeof rewards;
+  support: typeof support;
   uploads: typeof uploads;
   visitorping: typeof visitorping;
   wall: typeof wall;
@@ -64,4 +88,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+};

@@ -1,7 +1,11 @@
+import { authComponent, createAuth } from "./auth";
+import { validatePrivateDocument } from "../lib/private-document";
+import type { Id } from "./_generated/dataModel";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 const http = httpRouter();
+authComponent.registerRoutes(http, createAuth);
 http.route({
   path: "/server",
   method: "POST",
@@ -22,6 +26,12 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "paymentIssue":
+          result = await ctx.runMutation(internal.paymentIssues.record, args);
+          break;
+        case "supportSubmit":
+          result = await ctx.runMutation(internal.support.submit, args);
+          break;
         case "claimStart":
           result = await ctx.runMutation(internal.claimAuth.start, args);
           break;
@@ -100,5 +110,102 @@ http.route({
       );
     }
   }),
+});
+for (const method of ["GET", "POST"] as const)
+  http.route({
+    path: "/claim-document",
+    method,
+    handler: httpAction(async (ctx, req) => {
+      const headers = {
+        "Access-Control-Allow-Origin":
+          process.env.SITE_URL ?? "https://takethewall.com",
+        Vary: "Origin",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "sandbox; default-src 'none'",
+        "X-Robots-Tag": "noindex, noarchive",
+      };
+      let stored: Id<"_storage"> | undefined;
+      try {
+        const id = new URL(req.url).searchParams.get(
+          "id",
+        ) as Id<"claimDocuments">;
+        const session = req.headers.get("x-claim-session") ?? undefined;
+        const access = await ctx.runMutation(internal.documents.access, {
+          id,
+          session,
+          write: method === "POST",
+        });
+        if (method === "GET") {
+          if (!access.storageId)
+            return new Response("Unavailable", { status: 404, headers });
+          const blob = await ctx.storage.get(access.storageId);
+          if (!blob)
+            return new Response("Unavailable", { status: 404, headers });
+          return new Response(blob, {
+            headers: {
+              ...headers,
+              "Content-Type": access.contentType,
+              "Content-Disposition": "attachment; filename=claim-document",
+            },
+          });
+        }
+        const reader = req.body?.getReader();
+        if (!reader) throw new Error("Missing body");
+        const chunks: Uint8Array[] = [];
+        let size = 0;
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          size += chunk.value.length;
+          if (size > 10 * 1024 * 1024) {
+            await reader.cancel();
+            throw new Error("Too large");
+          }
+          chunks.push(chunk.value);
+        }
+        const bytes = new Uint8Array(size);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.length;
+        }
+        const contentType = req.headers.get("content-type") ?? "";
+        validatePrivateDocument(bytes, contentType);
+        stored = await ctx.storage.store(
+          new Blob([bytes], { type: contentType }),
+        );
+        await ctx.runMutation(internal.documents.finish, {
+          id,
+          session,
+          storageId: stored,
+          contentType,
+          size,
+        });
+        return Response.json({ ok: true }, { headers });
+      } catch {
+        if (stored) await ctx.storage.delete(stored);
+        return new Response("Document unavailable", { status: 403, headers });
+      }
+    }),
+  });
+http.route({
+  path: "/claim-document",
+  method: "OPTIONS",
+  handler: httpAction(
+    async () =>
+      new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin":
+            process.env.SITE_URL ?? "https://takethewall.com",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers":
+            "Content-Type, Authorization, X-Claim-Session",
+          "Access-Control-Max-Age": "600",
+          Vary: "Origin",
+        },
+      }),
+  ),
 });
 export default http;

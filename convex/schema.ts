@@ -124,6 +124,9 @@ export default defineSchema({
     key: v.literal("wall"),
     currentTakeoverId: v.id("takeovers"),
     currentActivationSequence: v.number(),
+    auditMigrationCursor: v.optional(v.number()),
+    auditMigrationNumber: v.optional(v.number()),
+    auditMigrationHash: v.optional(v.string()),
     auditHash: v.optional(v.string()),
     totalVisitors: v.number(),
     totalTakeovers: v.number(),
@@ -135,6 +138,7 @@ export default defineSchema({
     impressions: v.number(),
     clicks: v.number(),
     takeovers: v.number(),
+    revenueCents: v.optional(v.number()),
   }).index("by_date", ["date"]),
   siteVisitors: defineTable({
     visitorHash: v.string(),

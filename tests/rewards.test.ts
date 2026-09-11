@@ -223,3 +223,390 @@ it("keeps session credentials hashed and expires access after twelve hours", asy
   vi.advanceTimersByTime(12 * 3600_000 + 1);
   await expect(t.query(api.rewards.portal, { session })).rejects.toThrow();
 });
+const adminIdentity = {
+  subject: "admin-1",
+  issuer: "https://auth.test",
+  email: "admin@example.com",
+  emailVerified: true,
+};
+it("rejects anonymous, non-admin and unverified admin-email access", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  await expect(t.query(api.admin.overview, {})).rejects.toThrow(
+    "Administrator",
+  );
+  await expect(
+    t
+      .withIdentity({ ...adminIdentity, email: "other@example.com" })
+      .query(api.admin.overview, {}),
+  ).rejects.toThrow();
+  await expect(
+    t
+      .withIdentity({ ...adminIdentity, emailVerified: false })
+      .query(api.admin.overview, {}),
+  ).rejects.toThrow();
+  expect(
+    await t.withIdentity(adminIdentity).query(api.admin.identity, {}),
+  ).toBe("admin-1");
+});
+it("requires separate payout send and confirmation and freezes the winning content", async () => {
+  const t = await setup();
+  await activate(t, 1);
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  const { c, token, code, session } = await login(t);
+  await t.mutation(internal.claimAuth.verify, {
+    token,
+    code,
+    session,
+    ipHash: "ip",
+  });
+  await t.mutation(api.rewards.submit, {
+    session,
+    legalName: "Private",
+    country: "US",
+    region: "CA",
+    dob: "1990-01-01",
+    declaration: "",
+    acceptRules: true,
+  });
+  await admin.mutation(api.admin.claimAction, {
+    claimId: c._id,
+    action: "approve",
+    expectedStatus: "under_review",
+    body: "Eligibility reviewed",
+    confirmed: true,
+  });
+  await expect(
+    admin.mutation(api.admin.claimAction, {
+      claimId: c._id,
+      action: "confirm",
+      expectedStatus: "approved",
+      confirmed: true,
+    }),
+  ).rejects.toThrow();
+  await t.run(async (ctx) => {
+    const s = (await ctx.db.query("rewardSettings").first())!;
+    await ctx.db.patch(s._id, { value: { ...s.value, payoutsEnabled: true } });
+  });
+  await admin.mutation(api.admin.claimAction, {
+    claimId: c._id,
+    action: "sent",
+    expectedStatus: "approved",
+    reference: "wire-reference",
+    confirmed: true,
+  });
+  expect(
+    (await t.query(api.rewards.overview, {})).milestones[0].snapshot,
+  ).toBeNull();
+  await admin.mutation(api.admin.claimAction, {
+    claimId: c._id,
+    action: "confirm",
+    expectedStatus: "approved",
+    confirmed: true,
+  });
+  let m = (await t.query(api.rewards.overview, {})).milestones[0];
+  expect(m).toMatchObject({
+    status: "paid",
+    snapshot: { displayName: "Person 1", statsFrozen: false },
+  });
+  await activate(t, 2);
+  vi.advanceTimersByTime(120_001);
+  await t.mutation(internal.rewards.maintain, {});
+  m = (await t.query(api.rewards.overview, {})).milestones[0];
+  expect(m.snapshot?.statsFrozen).toBe(true);
+  const snapshot = m.snapshot;
+  await t.run((ctx) =>
+    ctx.db.patch(c.takeoverId, {
+      impressions: 999,
+      displayName: "Changed record",
+    }),
+  );
+  expect(
+    (await t.query(api.rewards.overview, {})).milestones[0].snapshot,
+  ).toEqual(snapshot);
+});
+it("refund before payout cascades and repeated webhook processing is idempotent", async () => {
+  const t = await setup();
+  const p = await activate(t, 1);
+  await activate(t, 2);
+  const args = {
+    takeoverId: p.takeoverId,
+    paymentIntentId: p.paymentIntentId,
+    eventId: "refund-1",
+    reason: "refunded" as const,
+    livemode: false,
+  };
+  await t.mutation(internal.paymentIssues.record, args);
+  await t.mutation(internal.paymentIssues.record, args);
+  expect(
+    (await t.query(api.rewards.overview, {})).milestones[0].candidateNumber,
+  ).toBe(2);
+  expect((await firstClaim(t)).status).toBe("ineligible");
+});
+it("private chat requires the correct claim session and coalesces notifications", async () => {
+  const t = await setup();
+  await activate(t, 1);
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  const { c, token, code, session } = await login(t);
+  await t.mutation(internal.claimAuth.verify, {
+    token,
+    code,
+    session,
+    ipHash: "ip",
+  });
+  await expect(
+    t.mutation(api.rewards.send, { session: "wrong", body: "Hi" }),
+  ).rejects.toThrow();
+  await t.mutation(api.rewards.send, { session, body: "Question" });
+  await admin.mutation(api.admin.message, {
+    claimId: c._id,
+    body: "Reply one",
+  });
+  vi.advanceTimersByTime(1000);
+  await admin.mutation(api.admin.message, {
+    claimId: c._id,
+    body: "Reply two",
+  });
+  const state = await t.query(api.rewards.portal, { session });
+  expect(state.messages.filter((m) => m.sender === "admin")).toHaveLength(2);
+  await t.mutation(api.rewards.read, { session });
+  vi.advanceTimersByTime(600_001);
+  await t.mutation(internal.rewards.maintain, {});
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query("transactionalMail")
+        .withIndex("by_key", (q) => q.eq("key", `chat:${c._id}`))
+        .first(),
+    ),
+  ).toBeNull();
+  expect(JSON.stringify(await t.query(api.rewards.overview, {}))).not.toContain(
+    "Reply one",
+  );
+});
+it("support stores submissions, limits abuse and queues authenticated replies", async () => {
+  const t = await setup();
+  const args = {
+    name: "Visitor",
+    email: "visitor@example.com",
+    topic: "Payment issue",
+    message: "Please help",
+    ipHash: "ip",
+    honeypot: "",
+  };
+  await t.mutation(internal.support.submit, args);
+  const ticket = (await t.run((ctx) =>
+    ctx.db.query("supportTickets").first(),
+  ))!;
+  await expect(
+    t.mutation(api.admin.supportAction, { id: ticket._id, reply: "Hello" }),
+  ).rejects.toThrow();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  await t.withIdentity(adminIdentity).mutation(api.admin.supportAction, {
+    id: ticket._id,
+    status: "in_progress",
+    reply: "We can help",
+  });
+  expect(
+    (await t.run((ctx) => ctx.db.query("supportMessages").first()))?.body,
+  ).toBe("We can help");
+  for (let n = 0; n < 4; n++) await t.mutation(internal.support.submit, args);
+  await expect(t.mutation(internal.support.submit, args)).rejects.toThrow(
+    "Too many",
+  );
+});
+it("historical rules and milestone values cannot be changed", async () => {
+  const t = await setup();
+  await activate(t, 1);
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity),
+    value = await admin.query(api.admin.getSettings, {});
+  await expect(
+    admin.mutation(api.admin.saveSettings, {
+      value: { ...value, milestones: [{ takeoverNumber: 1, rewardUsd: 999 }] },
+    }),
+  ).rejects.toThrow();
+  await expect(
+    admin.mutation(api.admin.saveSettings, {
+      value: { ...value, rulesJson: '{"changed":true}' },
+    }),
+  ).rejects.toThrow("immutable");
+});
+
+it("detects content tampering and migrates historical paid numbers without counting house reigns", async () => {
+  const t = await setup();
+  const p = await activate(t, 1);
+  expect((await t.query(api.auditTrail.verify, {})).valid).toBe(true);
+  await t.run(async (ctx) => {
+    const row = (await ctx.db.query("takeoverAudit").first())!;
+    await ctx.db.delete(row._id);
+    const site = (await ctx.db.query("siteStats").first())!;
+    await ctx.db.patch(site._id, { auditHash: undefined });
+    await ctx.db.patch(p.takeoverId, {
+      takeoverNumber: undefined,
+      auditHash: undefined,
+      previousAuditHash: undefined,
+    });
+  });
+  expect(await t.mutation(internal.auditTrail.migrate, {})).toEqual({
+    done: true,
+    paidNumbers: 1,
+  });
+  expect((await t.query(api.auditTrail.verify, {})).valid).toBe(true);
+  await t.run((ctx) => ctx.db.patch(p.takeoverId, { description: "Tampered" }));
+  expect((await t.query(api.auditTrail.verify, {})).valid).toBe(false);
+});
+it("resending immediately revokes old sessions and OTPs before email delivery", async () => {
+  const t = await setup();
+  await activate(t, 1);
+  const { c, token, code, session } = await login(t);
+  expect(
+    await t.mutation(internal.claimAuth.verify, {
+      token,
+      code,
+      session,
+      ipHash: "ip",
+    }),
+  ).toBe(true);
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const updated = (await t.run((ctx) => ctx.db.get(c._id)))!;
+  await t
+    .withIdentity(adminIdentity)
+    .mutation(api.admin.claimAction, {
+      claimId: c._id,
+      action: "resend",
+      expectedStatus: updated.status,
+      confirmed: true,
+    });
+  expect(await t.mutation(internal.claimAuth.sessionValid, { session })).toBe(
+    false,
+  );
+  await expect(t.query(api.rewards.portal, { session })).rejects.toThrow();
+});
+it("protects private documents across claims and cleans finalized claims after retention", async () => {
+  const t = await setup();
+  await activate(t, 1);
+  await activate(t, 2);
+  const { c, token, code, session } = await login(t);
+  await t.mutation(internal.claimAuth.verify, {
+    token,
+    code,
+    session,
+    ipHash: "ip",
+  });
+  const { own, other, storage } = await t.run(async (ctx) => {
+    await ctx.db.patch(c._id, { status: "under_review" });
+    const second = (await ctx.db.query("rewardClaims").order("desc").first())!;
+    const storage = await ctx.storage.store(new Blob(["private"]));
+    const own = await ctx.db.insert("claimDocuments", {
+      claimId: c._id,
+      request: "Identity",
+      requestedAt: Date.now(),
+      storageId: storage,
+    });
+    const other = await ctx.db.insert("claimDocuments", {
+      claimId: second._id,
+      request: "Identity",
+      requestedAt: Date.now(),
+    });
+    return { own, other, storage };
+  });
+  expect(
+    (
+      await t.mutation(internal.documents.access, {
+        id: own,
+        session,
+        write: false,
+      })
+    ).storageId,
+  ).toBe(storage);
+  await expect(
+    t.mutation(internal.documents.access, { id: other, session, write: false }),
+  ).rejects.toThrow();
+  await expect(
+    t.mutation(api.documents.manage, {
+      id: own,
+      confirmed: true,
+      reason: "Delete",
+    }),
+  ).rejects.toThrow();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  await t
+    .withIdentity(adminIdentity)
+    .mutation(api.admin.claimAction, {
+      claimId: c._id,
+      action: "ineligible",
+      expectedStatus: "under_review",
+      body: "Not eligible",
+      confirmed: true,
+    });
+  expect((await t.run((ctx) => ctx.db.get(own)))!.deleteAt).toBe(
+    Date.now() + 90 * 86400_000,
+  );
+  vi.advanceTimersByTime(90 * 86400_000 + 1);
+  await t.mutation(internal.rewards.maintain, {});
+  expect((await t.run((ctx) => ctx.db.get(own)))!.deletedAt).toBeTruthy();
+  expect(await t.run((ctx) => ctx.storage.get(storage))).toBeNull();
+});
+it("admin removal preserves paid numbering and safe restoration", async () => {
+  const t = await setup();
+  const p = await activate(t, 1);
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  await t
+    .withIdentity(adminIdentity)
+    .mutation(api.admin.moderate, {
+      takeoverId: p.takeoverId,
+      removeLive: true,
+      reason: "Harmful content",
+      confirmed: true,
+    });
+  const site = (await t.run((ctx) => ctx.db.query("siteStats").first()))!;
+  expect(site.totalTakeovers).toBe(1);
+  expect(site.currentTakeoverId).not.toBe(p.takeoverId);
+  expect((await t.query(api.auditTrail.verify, {})).valid).toBe(true);
+});
+it("configuration publishes authoritative future values and paginates same-time records", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  const value = await admin.query(api.admin.getSettings, {});
+  await admin.mutation(api.admin.saveSettings, {
+    value: {
+      ...value,
+      rulesVersion: "test-v2",
+      milestones: [
+        ...value.milestones,
+        { takeoverNumber: 500, rewardUsd: 200 },
+      ],
+    },
+  });
+  const rules = JSON.parse((await t.query(api.rewards.rules, {})).json);
+  expect(rules.version).toBe("test-v2");
+  expect(rules.milestones.at(-1)).toEqual({
+    takeoverNumber: 500,
+    rewardUsd: 200,
+  });
+  await t.run(async (ctx) => {
+    for (let n = 0; n < 60; n++)
+      await ctx.db.insert("adminAudit", {
+        actor: "system",
+        action: "TEST",
+        target: "test",
+        metadata: "{}",
+        createdAt: Date.now(),
+      });
+  });
+  const first = JSON.parse(
+    await admin.query(api.admin.list, { section: "audit" }),
+  );
+  const next = JSON.parse(
+    await admin.query(api.admin.list, { section: "audit", cursor: first.next }),
+  );
+  expect(first.rows).toHaveLength(50);
+  expect(next.rows).toHaveLength(11);
+  expect(new Set([...first.rows, ...next.rows].map((r) => r._id)).size).toBe(
+    61,
+  );
+});

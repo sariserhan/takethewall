@@ -1,5 +1,4 @@
 import { validateWallContent } from "@/lib/content";
-import { TAKEOVER_PRICE_CENTS } from "@/lib/config";
 import {
   backend,
   clientHash,
@@ -15,7 +14,7 @@ import {
   statusToken,
 } from "@/lib/server";
 import { validateEmail } from "@/lib/validation";
-import { checkoutParameters, getStripe } from "@/lib/stripe";
+import { paymentProvider } from "@/lib/payment-provider";
 export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
@@ -31,7 +30,6 @@ export async function POST(req: Request) {
     if (content.contentType !== "personal")
       await publicDestination(content.websiteUrl);
     const buyerEmail = validateEmail(a.buyerEmail);
-    const stripe = getStripe();
     const environment =
       process.env.WALL_ENVIRONMENT === "production" ? "production" : "test";
     if (environment === "production" && process.env.VERCEL_ENV !== "production")
@@ -41,17 +39,6 @@ export async function POST(req: Request) {
       );
     const token = statusToken(a.requestKey),
       siteUrl = env("NEXT_PUBLIC_SITE_URL").replace(/\/$/, "");
-    if (process.env.STRIPE_PRICE_ID) {
-      const price = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID);
-      if (
-        !price.active ||
-        price.unit_amount !== TAKEOVER_PRICE_CENTS ||
-        price.currency !== "usd" ||
-        price.type !== "one_time" ||
-        price.livemode !== (environment === "production")
-      )
-        throw new HttpError("Checkout configuration unavailable", 503);
-    }
     const pending = await backend<{
       takeoverId: string;
       purchaseId: string;
@@ -72,8 +59,8 @@ export async function POST(req: Request) {
       environment,
     });
     if (pending.checkoutUrl) return Response.json({ url: pending.checkoutUrl });
-    const session = await stripe.checkout.sessions.create(
-      checkoutParameters({
+    const session = await paymentProvider.createCheckout(
+      {
         takeoverId: pending.takeoverId,
         email: buyerEmail,
         token,
@@ -81,8 +68,8 @@ export async function POST(req: Request) {
         siteUrl,
         priceId: process.env.STRIPE_PRICE_ID,
         environment,
-      }),
-      { idempotencyKey: "takeover:" + pending.purchaseId },
+      },
+      "takeover:" + pending.purchaseId,
     );
     if (!session.url) throw new HttpError("Checkout unavailable", 503);
     await backend("attach", {

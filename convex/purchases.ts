@@ -1,3 +1,4 @@
+import { internal } from "./_generated/api";
 import { onActivation } from "./rewardModel";
 import { auditHash } from "../lib/audit";
 import { validateWallContent } from "../lib/content";
@@ -190,6 +191,13 @@ export const activate = internalMutation({
       throw new Error("Takeover cannot activate");
     const site = await getSite(ctx),
       previous = (await ctx.db.get(site.currentTakeoverId))!;
+    if (
+      site.auditMigrationCursor !== undefined ||
+      (site.totalTakeovers > 0 && !site.auditHash)
+    )
+      throw new Error(
+        "Complete the paid-history migration before activating new payments",
+      );
     const now = Date.now(),
       sequence = site.currentActivationSequence + 1;
     const takeoverNumber = site.totalTakeovers + 1;
@@ -253,8 +261,13 @@ export const activate = internalMutation({
       updatedAt: now,
     });
     const d = await daily(ctx);
-    await ctx.db.patch(d._id, { takeovers: d.takeovers + 1 });
+    await ctx.db.patch(d._id, {
+      takeovers: d.takeovers + 1,
+      revenueCents: (d.revenueCents ?? 0) + a.amountCents,
+    });
     await onActivation(ctx, takeoverNumber);
+    if (takeoverNumber % 100 === 0)
+      await ctx.scheduler.runAfter(0, internal.auditTrail.checkpoint, {});
     await enqueue(ctx, "activation_email", t._id);
     if (previous.kind === "paid")
       await enqueue(ctx, "replacement_email", previous._id);

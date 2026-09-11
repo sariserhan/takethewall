@@ -26,4 +26,16 @@ crons.interval(
   internal.mail.dispatch,
   {},
 );
+crons.interval(
+  "audit checkpoints",
+  { minutes: 1 },
+  internal.auditTrail.checkpoint,
+  {},
+);
+crons.interval(
+  "external audit anchoring",
+  { minutes: 5 },
+  internal.anchoring.submit,
+  {},
+);
 export default crons;

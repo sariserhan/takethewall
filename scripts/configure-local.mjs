@@ -19,6 +19,9 @@ const config = {
     values.WALL_SERVER_SECRET ?? randomBytes(32).toString("hex"),
   WALL_TOKEN_SECRET:
     values.WALL_TOKEN_SECRET ?? randomBytes(32).toString("hex"),
+  BETTER_AUTH_SECRET: values.BETTER_AUTH_SECRET ?? randomBytes(32).toString("hex"),
+  CLAIM_TOKEN_SECRET: values.CLAIM_TOKEN_SECRET ?? randomBytes(32).toString("hex"),
+  SITE_URL: "http://localhost:3001",
   WALL_ENVIRONMENT: "test",
   PUBLIC_METRICS_ENABLED: "false",
 };
@@ -27,6 +30,9 @@ for (const [key, value] of Object.entries(config)) {
   if (
     [
       "WALL_SERVER_SECRET",
+      "BETTER_AUTH_SECRET",
+      "CLAIM_TOKEN_SECRET",
+      "SITE_URL",
       "WALL_ENVIRONMENT",
       "PUBLIC_METRICS_ENABLED",
     ].includes(key)

@@ -11,12 +11,20 @@ export const linkTypes = [
   "other",
 ] as const;
 export type LinkType = (typeof linkTypes)[number];
-export function plainText(value: unknown, max: number, required = true) {
+export function plainText(
+  value: unknown,
+  max: number,
+  required = true,
+  multiline = false,
+) {
   if (
     typeof value !== "string" ||
     (required && !value.trim()) ||
     [...value.trim()].length > max ||
-    /[\x00-\x1f]|<[^>]*>/.test(value)
+    (multiline
+      ? /[\x00-\x08\x0b\x0c\x0e-\x1f]|<[^>]*>/
+      : /[\x00-\x1f]|<[^>]*>/
+    ).test(value)
   )
     throw new Error(
       `Use ${required ? "1" : "0"}–${max} characters of plain text.`,

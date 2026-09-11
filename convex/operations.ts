@@ -50,95 +50,101 @@ export const disable = internalMutation({
     operatorReference: v.string(),
   },
   returns: v.id("takeovers"),
-  handler: async (ctx, a) => {
-    if (
-      !a.reason.trim() ||
-      a.reason.length > 1000 ||
-      !a.operatorReference.trim() ||
-      a.operatorReference.length > 200
-    )
-      throw new Error("A reason and operator reference are required");
-    const prior = await ctx.db
-      .query("moderation")
-      .withIndex("by_operatorReference", (q) =>
-        q.eq("operatorReference", a.operatorReference),
-      )
-      .unique();
-    if (prior) {
-      if (prior.removedId !== a.expectedCurrentId || prior.reason !== a.reason)
-        throw new Error("Operator reference already used");
-      return prior.restoredId;
-    }
-    const s = await getSite(ctx);
-    if (s.currentTakeoverId !== a.expectedCurrentId)
-      throw new Error("The owner changed; review the current owner first.");
-    const removed = (await ctx.db.get(s.currentTakeoverId))!;
-    const candidates = await ctx.db
-      .query("takeovers")
-      .withIndex("by_activationSequence", (q) =>
-        q.lt("activationSequence", s.currentActivationSequence),
-      )
-      .order("desc")
-      .take(100);
-    let source = candidates.find(
-      (t) =>
-        !t.blocked && t.status === "replaced" && t.domain !== removed.domain,
-    );
-    if (!source) {
-      const house = await ctx.db
-        .query("takeovers")
-        .withIndex("by_activationSequence", (q) =>
-          q.eq("activationSequence", 0),
-        )
-        .unique();
-      if (!house || house._id === removed._id)
-        throw new Error(
-          "Provide a safe house creative before removing this owner",
-        );
-      source = house;
-    }
-    const now = Date.now();
-    await ctx.db.patch(removed._id, {
-      status: "replaced",
-      blocked: true,
-      replacedAt: now,
-      endReason: "moderation",
-    });
-    const restoredId = await ctx.db.insert("takeovers", {
-      contentType: source.contentType,
-      linkType: source.linkType,
-      displayName: source.displayName,
-      websiteUrl: source.websiteUrl,
-      domain: source.domain,
-      description: source.description,
-      logoStorageId: source.logoStorageId,
-      kind: "moderation_restoration",
-      sourceTakeoverId: source._id,
-      status: "active",
-      blocked: false,
-      createdAt: now,
-      activatedAt: now,
-      activationSequence: s.currentActivationSequence + 1,
-      ...zeros,
-    });
-    await ctx.db.patch(s._id, {
-      currentTakeoverId: restoredId,
-      currentActivationSequence: s.currentActivationSequence + 1,
-      updatedAt: now,
-    });
-    await ctx.db.insert("moderation", {
-      removedId: removed._id,
-      restoredId,
-      sourceId: source._id,
-      reason: a.reason,
-      operatorReference: a.operatorReference,
-      timestamp: now,
-    });
-    if (removed.kind === "paid")
-      await enqueue(ctx, "replacement_email", removed._id);
-    return restoredId;
-  },
+  handler: disableCurrent,
 });
+export async function disableCurrent(
+  ctx: import("./_generated/server").MutationCtx,
+  a: {
+    expectedCurrentId: Id<"takeovers">;
+    reason: string;
+    operatorReference: string;
+  },
+) {
+  if (
+    !a.reason.trim() ||
+    a.reason.length > 1000 ||
+    !a.operatorReference.trim() ||
+    a.operatorReference.length > 200
+  )
+    throw new Error("A reason and operator reference are required");
+  const prior = await ctx.db
+    .query("moderation")
+    .withIndex("by_operatorReference", (q) =>
+      q.eq("operatorReference", a.operatorReference),
+    )
+    .unique();
+  if (prior) {
+    if (prior.removedId !== a.expectedCurrentId || prior.reason !== a.reason)
+      throw new Error("Operator reference already used");
+    return prior.restoredId;
+  }
+  const s = await getSite(ctx);
+  if (s.currentTakeoverId !== a.expectedCurrentId)
+    throw new Error("The owner changed; review the current owner first.");
+  const removed = (await ctx.db.get(s.currentTakeoverId))!;
+  const candidates = await ctx.db
+    .query("takeovers")
+    .withIndex("by_activationSequence", (q) =>
+      q.lt("activationSequence", s.currentActivationSequence),
+    )
+    .order("desc")
+    .take(100);
+  let source = candidates.find(
+    (t) => !t.blocked && t.status === "replaced" && t.domain !== removed.domain,
+  );
+  if (!source) {
+    const house = await ctx.db
+      .query("takeovers")
+      .withIndex("by_activationSequence", (q) => q.eq("activationSequence", 0))
+      .unique();
+    if (!house || house._id === removed._id)
+      throw new Error(
+        "Provide a safe house creative before removing this owner",
+      );
+    source = house;
+  }
+  const now = Date.now();
+  await ctx.db.patch(removed._id, {
+    status: "replaced",
+    blocked: true,
+    replacedAt: now,
+    endReason: "moderation",
+  });
+  const restoredId = await ctx.db.insert("takeovers", {
+    contentType: source.contentType,
+    linkType: source.linkType,
+    displayName: source.displayName,
+    websiteUrl: source.websiteUrl,
+    domain: source.domain,
+    description: source.description,
+    logoStorageId: source.logoStorageId,
+    kind: "moderation_restoration",
+    sourceTakeoverId: source._id,
+    status: "active",
+    blocked: false,
+    createdAt: now,
+    activatedAt: now,
+    activationSequence: s.currentActivationSequence + 1,
+    ...zeros,
+  });
+  await ctx.db.patch(s._id, {
+    currentTakeoverId: restoredId,
+    currentActivationSequence: s.currentActivationSequence + 1,
+    updatedAt: now,
+  });
+  await ctx.db.insert("moderation", {
+    removedId: removed._id,
+    restoredId,
+    sourceId: source._id,
+    reason: a.reason,
+    operatorReference: a.operatorReference,
+    timestamp: now,
+  });
+  if (removed.kind === "paid")
+    await enqueue(ctx, "replacement_email", removed._id);
+  return restoredId;
+}
+
 export const cleanup = internalMutation({
   args: {},
   returns: v.null(),

@@ -7,6 +7,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { linkToken, otpCode } from "../lib/claim-secrets";
 import { sha } from "../lib/audit";
+import { transactionalEmail } from "../lib/transactional-email";
 import { audit } from "./rewardModel";
 export const due = internalQuery({
   args: {},
@@ -156,27 +157,8 @@ export const dispatch = internalAction({
       try {
         const j = await ctx.runMutation(internal.mail.prepare, { id });
         if (!j) continue;
-        const r = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-            "Idempotency-Key": j.key,
-          },
-          body: JSON.stringify({
-            from: process.env.RESEND_FROM,
-            to: [j.to],
-            subject: j.subject,
-            text: j.body,
-            reply_to: process.env.SUPPORT_EMAIL ?? "support@takethewall.com",
-          }),
-          signal: AbortSignal.timeout(10_000),
-        });
-        await ctx.runMutation(internal.mail.finish, {
-          id,
-          ok: r.ok,
-          ...(!r.ok ? { error: `Email HTTP ${r.status}` } : {}),
-        });
+        await transactionalEmail.send(j);
+        await ctx.runMutation(internal.mail.finish, { id, ok: true });
       } catch {
         await ctx.runMutation(internal.mail.finish, {
           id,
