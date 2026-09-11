@@ -44,6 +44,7 @@ export async function wallEvent(
   event: WallEvent,
   isVisible?: () => boolean,
 ) {
+  if (window.location.pathname !== "/") return;
   if (event === "impression" && impressions.has(takeoverId)) return;
   if (event === "impression") impressions.add(takeoverId);
   const eventId = crypto.randomUUID();

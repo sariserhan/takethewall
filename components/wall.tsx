@@ -1,5 +1,7 @@
 "use client";
 import { contentCta } from "@/lib/content";
+import { HomepageMilestones } from "./milestones";
+import { PublicFooter } from "./public-footer";
 import Image from "next/image";
 import { Arrow } from "./arrow";
 import {
@@ -88,7 +90,11 @@ function WallView({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize browser storage or a verified network result after hydration.
     setReturnToken(state.token);
     setCancelled(state.cancelled);
-    if (state.cancelled) setOpen(true);
+    if (
+      state.cancelled ||
+      new URLSearchParams(window.location.search).has("take")
+    )
+      setOpen(true);
   }, []);
   async function checkStatus(token: string) {
     try {
@@ -351,6 +357,7 @@ function WallView({
           TAKE THE WALL — $3.99 <Arrow />
         </button>
       </section>
+      {data && <HomepageMilestones />}
       <footer>
         <a
           href="https://visitorping.com"
@@ -381,6 +388,7 @@ function WallView({
           ))}
         </div>
       </footer>
+      <PublicFooter />
       <PurchaseSheet
         key={
           confirmation?.state === "active" || confirmation?.state === "replaced"

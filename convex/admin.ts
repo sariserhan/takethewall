@@ -675,8 +675,15 @@ export const saveSettings = mutation({
     const rules = JSON.parse(value.rulesJson);
     if (!rules || typeof rules !== "object" || Array.isArray(rules))
       throw new Error("Rules must be a JSON object");
+    if (
+      value.initialDays !== old.initialDays ||
+      value.additionalDays !== old.additionalDays
+    ) {
+      rules.claims = `Submit an initial claim within ${value.initialDays} calendar days. Internal review does not consume a claimant deadline. Additional information has a separate ${value.additionalDays}-day deadline. Audited extensions are possible.`;
+    }
     value.rulesJson = canonical({
       ...rules,
+      currency: "USD",
       version: value.rulesVersion,
       milestones: value.milestones,
       initialClaimDays: value.initialDays,

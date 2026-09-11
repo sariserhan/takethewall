@@ -42,7 +42,7 @@ test("one wall, actual metrics, accessible sheet, preview, and legal dialogs", a
   await expect(sheet).not.toBeVisible();
   await page.getByRole("button", { name: "Privacy", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Privacy" })).toContainText(
-    "Your email is private",
+    "Private purchase and support information",
   );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Privacy" })).not.toBeVisible();
