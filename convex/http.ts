@@ -22,6 +22,18 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "claimStart":
+          result = await ctx.runMutation(internal.claimAuth.start, args);
+          break;
+        case "claimVerify":
+          result = await ctx.runMutation(internal.claimAuth.verify, args);
+          break;
+        case "claimSession":
+          result = await ctx.runMutation(internal.claimAuth.sessionValid, args);
+          break;
+        case "claimLogout":
+          result = await ctx.runMutation(internal.claimAuth.logout, args);
+          break;
         case "pending":
           result = await ctx.runMutation(internal.purchases.pending, args);
           break;

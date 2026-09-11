@@ -14,4 +14,16 @@ crons.interval(
   internal.visitorping.refresh,
   {},
 );
+crons.interval(
+  "reward maintenance",
+  { minutes: 1 },
+  internal.rewards.maintain,
+  {},
+);
+crons.interval(
+  "transactional email",
+  { minutes: 1 },
+  internal.mail.dispatch,
+  {},
+);
 export default crons;

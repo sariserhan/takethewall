@@ -1,3 +1,4 @@
+import { rewardTables } from "./rewardSchema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 export const kind = v.union(
@@ -31,6 +32,7 @@ export const visitorPingSnapshot = v.object({
   clicks: v.number(),
 });
 export default defineSchema({
+  ...rewardTables,
   takeoverAudit: defineTable({
     takeoverNumber: v.number(),
     publicTakeoverId: v.string(),

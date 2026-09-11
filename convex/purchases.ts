@@ -1,3 +1,4 @@
+import { onActivation } from "./rewardModel";
 import { auditHash } from "../lib/audit";
 import { validateWallContent } from "../lib/content";
 import { LEGAL_VERSION } from "../lib/config";
@@ -253,6 +254,7 @@ export const activate = internalMutation({
     });
     const d = await daily(ctx);
     await ctx.db.patch(d._id, { takeovers: d.takeovers + 1 });
+    await onActivation(ctx, takeoverNumber);
     await enqueue(ctx, "activation_email", t._id);
     if (previous.kind === "paid")
       await enqueue(ctx, "replacement_email", previous._id);
