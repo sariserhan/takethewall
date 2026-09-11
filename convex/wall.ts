@@ -56,8 +56,15 @@ export const seed = internalMutation({
       .unique();
     if (existing) {
       const owner = await ctx.db.get(existing.currentTakeoverId);
-      if (owner?.logoStorageId !== args.logoStorageId)
-        await ctx.storage.delete(args.logoStorageId);
+      if (owner?.logoStorageId !== args.logoStorageId) {
+        const reference = await ctx.db
+          .query("takeovers")
+          .withIndex("by_logoStorageId", (q) =>
+            q.eq("logoStorageId", args.logoStorageId),
+          )
+          .first();
+        if (!reference) await ctx.storage.delete(args.logoStorageId);
+      }
       return existing.currentTakeoverId;
     }
     const now = Date.now();
