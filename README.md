@@ -1,6 +1,6 @@
 # Take The Wall
 
-One public page. One owner. A verified $2.99 USD purchase replaces the current owner.
+One live wall. One owner. A verified $3.99 USD purchase replaces the current owner.
 
 ## Run locally
 
@@ -27,7 +27,7 @@ Copy the relevant variables from `.env.example` into Next.js and Convex configur
 - **Next.js:** Stripe secret key, webhook secret, optional existing Price ID, `WALL_TOKEN_SECRET`, `WALL_SERVER_SECRET`, `CONVEX_HTTP_URL`, `NEXT_PUBLIC_SITE_URL`, and `WALL_ENVIRONMENT`.
 - **Convex:** the same `WALL_SERVER_SECRET` and `WALL_ENVIRONMENT`, plus `RESEND_API_KEY`, `RESEND_FROM`, `VISITORPING_SITE_KEY`, `VISITORPING_API_KEY`, `VISITORPING_SITE_ID`, and `PUBLIC_METRICS_ENABLED`.
 - **Both:** set `PUBLIC_METRICS_ENABLED=true` only on a dedicated production deployment. Next.js additionally requires `VERCEL_ENV=production` to accept production traffic. All local/preview traffic remains excluded. Test and live payments must use separate Convex deployments.
-- Stripe keys are checked against `WALL_ENVIRONMENT` before Checkout creation. The price is server-owned: 299 cents, USD, one time. No promotional codes or adaptive pricing. Dynamic hosted Checkout methods permit supported wallets configured in Stripe.
+- Stripe keys are checked against `WALL_ENVIRONMENT` before Checkout creation. The price is server-owned: 399 cents, USD, one time. No promotional codes or adaptive pricing. Dynamic hosted Checkout methods permit supported wallets configured in Stripe.
 - Enable Stripe payment receipts in its Dashboard. The buyer email prefills Checkout; the final receipt email is kept separately. Resend activation/replacement messages go to the original purchase contact, never to a public profile.
 - Use a verified **TakeTheWall sender**, not another project's sender. Configure support@takethewall.com and privacy@takethewall.com before launch.
 
@@ -100,3 +100,10 @@ Playwright tests require the running, locally seeded app at port 3001 (override 
 The repository is prepared for Vercel and Convex production using [Convex's Vercel workflow](https://docs.convex.dev/production/hosting/vercel). `vercel.json` deploys Convex before the Next.js build. Configure `CONVEX_DEPLOY_KEY` for the intended production project in Vercel, scoped to Production; use a separate preview deployment key for Preview builds; never expose it to client code. Configure all provider variables and set `NEXT_PUBLIC_SITE_URL=https://takethewall.com`. Seed the production house once with the internal bootstrap action and the bundled logo (deployment-admin tooling only).
 
 Before enabling live payments: complete Stripe test-mode end-to-end tests, check HTTPS and domain assignment, verify the production webhook destination and mode, confirm wallet availability, sender verification, support mailboxes, VisitorPing site key, realtime updates in two browsers, and exclusion of development traffic. Deployment and live-service checks remain incomplete until those project credentials and targets are configured. See `IMPLEMENTATION_STATUS.md` for current evidence.
+
+
+## Milestones, claims, and administration
+
+The authorized delta adds website/app/social/personal content, $3.99 paid-only numbering, configuration-driven milestones, deterministic claim succession, immutable rule versions and public trophy pages. Administrator sign-in uses **Better Auth with the Convex component**, email OTP and a backend allowlist. Winner access remains account-free through protected claim links and fresh email codes.
+
+Visit `/admin` for operations; `/reward/portal` requires a verified claim session. Public pages include `/about`, `/support`, `/contact`, `/rewards`, `/terms`, `/privacy`, `/disclaimer`, `/disclosure`, and the five initial milestone routes. See [the consolidated spec](docs/IMPLEMENTATION_DELTA.md), [implementation status](IMPLEMENTATION_STATUS.md), and [deployment instructions](DEPLOYMENT.md) for configuration, historical migration, audit verification, reward activation and launch dependencies.

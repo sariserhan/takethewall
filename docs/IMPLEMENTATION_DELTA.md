@@ -17,6 +17,10 @@ Status: implementation authorized. This document supersedes conflicting wording 
 | `components/legal.tsx` | Dedicated public legal pages and linked disclosures |
 | `vercel.json`, `DEPLOYMENT.md` | Preserve Vercel + Cloudflare DNS-only deployment; document new provider settings |
 
+## Authentication decision update
+
+The user explicitly selected Better Auth during implementation. Use the Convex-maintained Better Auth component for administrator-only sign-in, replacing the original Clerk preference. Administrator allowlisting and independent backend authorization remain required.
+
 ## Additional required legal pages
 
 Create `/terms`, `/privacy`, `/disclaimer`, `/disclosure`, with page-specific metadata and footer links. `/rewards` remains the authoritative versioned reward rules; disclosure summarizes and links to those rules rather than creating competing eligibility rules.
