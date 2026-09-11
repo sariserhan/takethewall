@@ -8,6 +8,7 @@ import {
   settings,
   systemMessage,
 } from "./rewardModel";
+import { sha } from "../lib/audit";
 import { operatorEligibility } from "../lib/reward-rules";
 import { plainText } from "../lib/content";
 import { limit } from "./model";
@@ -146,7 +147,6 @@ export const rules = query({
       .unique();
     if (a.version && a.version !== s.rulesVersion && !r)
       throw new Error("Unknown rules version");
-    const { sha } = await import("../lib/audit");
     return r
       ? { version: r.version, hash: r.hash, json: r.json }
       : { version: s.rulesVersion, hash: sha(s.rulesJson), json: s.rulesJson };

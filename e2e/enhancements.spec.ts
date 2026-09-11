@@ -43,6 +43,16 @@ test("all legal and informational pages render with metadata and working milesto
     expect(response?.status()).toBe(200);
     await expect(page.locator("h1")).toBeVisible();
     await expect(page).toHaveTitle(/TakeTheWall/);
+    if (path === "rewards") {
+      await expect(
+        page
+          .locator("p")
+          .filter({
+            hasText: "Submit an initial claim within seven calendar days.",
+          }),
+      ).toBeVisible();
+      await expect(page.getByText("Loading Reward Rules…")).toHaveCount(0);
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
