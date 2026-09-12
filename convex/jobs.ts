@@ -88,6 +88,9 @@ export const data = internalQuery({
       unsubscribeUrl: v.optional(v.string()),
       oneClickUnsubscribeUrl: v.optional(v.string()),
       digest: v.optional(digestSnapshot),
+      adminNotice: v.optional(
+        v.object({ subject: v.string(), body: v.string() }),
+      ),
       digestAllowed: v.boolean(),
     }),
   ),
@@ -100,12 +103,13 @@ export const data = internalQuery({
       .query("purchases")
       .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
       .unique();
-    const access = j.kind.endsWith("_email")
-      ? await ctx.db
-          .query("ownerAccess")
-          .withIndex("by_takeover", (q) => q.eq("takeoverId", t._id))
-          .unique()
-      : null;
+    const access =
+      j.kind !== "admin_takeover_email" && j.kind.endsWith("_email")
+        ? await ctx.db
+            .query("ownerAccess")
+            .withIndex("by_takeover", (q) => q.eq("takeoverId", t._id))
+            .unique()
+        : null;
     const site =
       j.kind === "weekly_digest_email"
         ? await ctx.db
@@ -122,6 +126,7 @@ export const data = internalQuery({
           }
         : {}),
       ...(j.digest ? { digest: j.digest } : {}),
+      ...(j.adminNotice ? { adminNotice: j.adminNotice } : {}),
       digestAllowed:
         site?.currentTakeoverId === t._id &&
         t.status === "active" &&
@@ -146,7 +151,10 @@ export const data = internalQuery({
       activatedAt: t.activatedAt ?? 0,
       ...(t.replacedAt !== undefined ? { replacedAt: t.replacedAt } : {}),
       ...(t.endReason ? { endReason: t.endReason } : {}),
-      email: p?.buyerEmail ?? "",
+      email:
+        j.kind === "admin_takeover_email"
+          ? "serhan.sari@yahoo.com"
+          : (p?.buyerEmail ?? ""),
       environment: p?.environment ?? process.env.WALL_ENVIRONMENT ?? "test",
     };
   },
@@ -165,7 +173,7 @@ export const finish = internalMutation({
     await ctx.db.patch(
       j._id,
       a.ok
-        ? { state: "sent", sentAt: Date.now(), lastError: undefined }
+        ? { state: "sent", sentAt: Date.now(), lastError: undefined, adminNotice: undefined }
         : {
             state: a.permanent || j.attempts >= 12 ? "failed" : "pending",
             nextAt: Date.now() + retryDelay(j.attempts),
@@ -205,6 +213,7 @@ export const dispatch = internalAction({
         const raw = await ctx.runQuery(internal.jobs.data, { id });
         if (!raw) continue;
         if (
+          raw.kind !== "admin_takeover_email" &&
           raw.kind.endsWith("_email") &&
           (process.env.CLAIM_TOKEN_SECRET?.length ?? 0) >= 32
         )
@@ -219,6 +228,9 @@ export const dispatch = internalAction({
         if (j.kind.endsWith("_email")) {
           if (
             !j.email ||
+            (j.kind === "admin_takeover_email" &&
+              (j.environment !== "production" ||
+                process.env.WALL_ENVIRONMENT !== "production")) ||
             (j.kind === "weekly_digest_email" && !j.digestAllowed)
           ) {
             await ctx.runMutation(internal.jobs.finish, { id, ok: true });
@@ -245,21 +257,37 @@ export const dispatch = internalAction({
                   text: "Your private link shows your takeover performance and weekly email preferences. Keep this link private; use the share button inside the dashboard for a public link.",
                 }
               : emailMessage(j);
+          if (j.kind === "admin_takeover_email" && !j.adminNotice)
+            throw new Error("Missing activation snapshot");
           const rendered =
-            j.kind === "weekly_digest_email"
-              ? weeklyOwnerEmail(j.digest!, j.dashboardUrl!, j.unsubscribeUrl!)
-              : emailTemplate(
-                  message.subject,
-                  message.text,
-                  j.dashboardUrl
-                    ? {
-                        cta: {
-                          label: "Open your private dashboard",
-                          url: j.dashboardUrl,
-                        },
-                      }
-                    : {},
-                );
+            j.kind === "admin_takeover_email"
+              ? emailTemplate(j.adminNotice!.subject, j.adminNotice!.body, {
+                  eyebrow: "WALL TAKEOVER NOTIFICATION",
+                  cta: {
+                    label: "Open admin dashboard",
+                    url: ownerBaseUrl() + "/admin",
+                  },
+                  footnote:
+                    "Activation snapshot. Content and ownership may have changed since this notification.",
+                })
+              : j.kind === "weekly_digest_email"
+                ? weeklyOwnerEmail(
+                    j.digest!,
+                    j.dashboardUrl!,
+                    j.unsubscribeUrl!,
+                  )
+                : emailTemplate(
+                    message.subject,
+                    message.text,
+                    j.dashboardUrl
+                      ? {
+                          cta: {
+                            label: "Open your private dashboard",
+                            url: j.dashboardUrl,
+                          },
+                        }
+                      : {},
+                  );
           response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {

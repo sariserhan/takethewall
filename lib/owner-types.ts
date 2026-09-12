@@ -22,6 +22,7 @@ export interface SharedTakeover {
   publicId: string;
 }
 export interface OwnerDashboard extends SharedTakeover {
+  contentRevision: number;
   weeklyDigestEnabled: boolean;
   shareUrl: string;
   regions: { regionCode: string; impressions: number }[];

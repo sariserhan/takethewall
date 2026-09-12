@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as adminNotifications from "../adminNotifications.js";
 import type * as analytics from "../analytics.js";
 import type * as anchoring from "../anchoring.js";
 import type * as auditTrail from "../auditTrail.js";
@@ -47,6 +48,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  adminNotifications: typeof adminNotifications;
   analytics: typeof analytics;
   anchoring: typeof anchoring;
   auditTrail: typeof auditTrail;

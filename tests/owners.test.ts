@@ -289,3 +289,235 @@ it("reports remain attached to the reported owner and anonymous reports cannot t
     await t.run((ctx) => ctx.db.query("supportTickets").collect()),
   ).toHaveLength(1);
 });
+
+const edits = {
+  expectedRevision: 0,
+  contentType: "personal" as const,
+  websiteUrl: "",
+  displayName: "Corrected name",
+  description: "Typo fixed",
+  uploadKey: "",
+  ownerHash: "edit-ip",
+  removeImage: false,
+};
+it("owner edits preserve sealed history, numbering, stats and permanent snapshots", async () => {
+  const { t, id, token } = await setup();
+  await t.run((ctx) =>
+    ctx.db.patch(id, { impressions: 25, uniqueVisitors: 8, clicks: 3 }),
+  );
+  const before = await t.query(api.wall.current, {});
+  const sealed = await t.run((ctx) => ctx.db.query("takeoverAudit").collect());
+  const snapshot = {
+    displayName: "first",
+    contentType: "personal",
+    linkType: "other",
+    websiteUrl: "",
+    description: "A real placement",
+    activatedAt: Date.now(),
+    impressions: 25,
+    uniqueVisitors: 8,
+    clicks: 3,
+    statsFrozen: false,
+  };
+  const rewardId = await t.run((ctx) =>
+    ctx.db.insert("milestoneRewards", {
+      milestoneNumber: 100,
+      rewardUsd: 100,
+      originalCandidateNumber: 1,
+      candidateNumber: 1,
+      status: "paid",
+      rulesVersion: "test",
+      rulesHash: "hash",
+      initialDays: 7,
+      additionalDays: 7,
+      outboundLinkEnabled: false,
+      winnerTakeoverId: id,
+      snapshot,
+    }),
+  );
+  await t.mutation(internal.owners.edit, { token, ...edits });
+  const after = await t.query(api.wall.current, {});
+  expect(after).toMatchObject({
+    totalTakeovers: before!.totalTakeovers,
+    owner: {
+      id,
+      takeoverNumber: before!.owner.takeoverNumber,
+      activatedAt: before!.owner.activatedAt,
+      activationSequence: before!.owner.activationSequence,
+      impressions: 25,
+      uniqueVisitors: 8,
+      clicks: 3,
+      displayName: "Corrected name",
+    },
+  });
+  expect(await t.run((ctx) => ctx.db.query("takeoverAudit").collect())).toEqual(
+    sealed,
+  );
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({
+    valid: true,
+  });
+  expect((await t.run((ctx) => ctx.db.get(rewardId)))!.snapshot).toEqual(
+    snapshot,
+  );
+  expect(
+    (await t.run((ctx) => ctx.db.get(id)))!.originalContent?.displayName,
+  ).toBe("first");
+  await expect(
+    t.mutation(internal.owners.edit, { token, ...edits }),
+  ).rejects.toThrow("another tab");
+  await t.mutation(internal.owners.edit, {
+    token,
+    ...edits,
+    expectedRevision: 1,
+    description: "Another correction",
+  });
+  expect(
+    (await t.run((ctx) => ctx.db.get(id)))!.originalContent?.displayName,
+  ).toBe("first");
+  const log = await t.run((ctx) => ctx.db.query("adminAudit").collect());
+  expect(log.filter((a) => a.action === "OWNER_CONTENT_EDITED")).toHaveLength(
+    2,
+  );
+});
+it("invalid, replaced and blocked owners cannot edit or bypass moderation", async () => {
+  const { t, id, token, publish } = await setup();
+  await expect(
+    t.mutation(internal.owners.edit, { ...edits, token: "a".repeat(64) }),
+  ).rejects.toThrow("Invalid private link");
+  await expect(
+    t.mutation(internal.owners.edit, {
+      ...edits,
+      token,
+      displayName: "<script>",
+    }),
+  ).rejects.toThrow("plain text");
+  await expect(
+    t.mutation(internal.owners.edit, {
+      ...edits,
+      token,
+      contentType: "link",
+      websiteUrl: "http://localhost",
+    }),
+  ).rejects.toThrow();
+  await t.run((ctx) => ctx.db.patch(id, { outboundLinkEnabled: false }));
+  await t.mutation(internal.owners.edit, {
+    ...edits,
+    token,
+    contentType: "link",
+    websiteUrl: "https://example.com",
+  });
+  expect((await t.run((ctx) => ctx.db.get(id)))!.outboundLinkEnabled).toBe(
+    false,
+  );
+  await t.run((ctx) => ctx.db.patch(id, { blocked: true }));
+  await expect(
+    t.mutation(internal.owners.edit, { ...edits, token, expectedRevision: 1 }),
+  ).rejects.toThrow("current owner");
+  await t.run((ctx) => ctx.db.patch(id, { blocked: false }));
+  const newer = await publish("newer");
+  await expect(
+    t.mutation(internal.owners.edit, { ...edits, token, expectedRevision: 1 }),
+  ).rejects.toThrow("current owner");
+  expect((await t.run((ctx) => ctx.db.get(newer)))!.displayName).toBe("newer");
+});
+it("image edits claim only a fresh upload belonging to this request and preserve originals", async () => {
+  const { t, id, token } = await setup();
+  const storageId = await t.run((ctx) =>
+    ctx.storage.store(new Blob(["new image"])),
+  );
+  await t.mutation(internal.uploads.reserve, {
+    key: "edit-upload",
+    ownerHash: "edit-ip",
+  });
+  await t.mutation(internal.uploads.finish, { key: "edit-upload", storageId });
+  await expect(
+    t.mutation(internal.owners.edit, {
+      ...edits,
+      token,
+      uploadKey: "edit-upload",
+      ownerHash: "wrong-ip",
+    }),
+  ).rejects.toThrow("upload expired");
+  await t.mutation(internal.owners.edit, {
+    ...edits,
+    token,
+    uploadKey: "edit-upload",
+  });
+  expect((await t.run((ctx) => ctx.db.get(id)))!.logoStorageId).toBe(storageId);
+  await expect(
+    t.mutation(internal.owners.edit, {
+      ...edits,
+      token,
+      expectedRevision: 1,
+      uploadKey: "edit-upload",
+    }),
+  ).rejects.toThrow("upload expired");
+  await t.mutation(internal.owners.edit, {
+    ...edits,
+    token,
+    expectedRevision: 1,
+    removeImage: true,
+  });
+  expect((await t.run((ctx) => ctx.db.get(id)))!.logoStorageId).toBeUndefined();
+});
+it("admin notifications capture activation once and dispatch privately without owner access tokens", async () => {
+  const { t, publish } = await setup();
+  vi.stubEnv("WALL_ENVIRONMENT", "production");
+  const id = await publish("production");
+  const job = (await t.run((ctx) =>
+    ctx.db
+      .query("jobs")
+      .withIndex("by_key", (q) => q.eq("key", `admin_takeover_email:${id}:`))
+      .unique(),
+  ))!;
+  expect(job.adminNotice?.body).toContain("production@example.com");
+  expect(job.adminNotice?.body).toContain("Amount: 0.00 USD");
+  await publish("production"); // Same request key, idempotent activation.
+  await t.run(async (ctx) => {
+    await ctx.db.patch(id, { displayName: "Changed later" });
+    for (const j of await ctx.db.query("jobs").collect())
+      if (j._id !== job._id) await ctx.db.patch(j._id, { state: "sent" });
+  });
+  vi.stubEnv("RESEND_API_KEY", "fake");
+  vi.stubEnv("RESEND_FROM", "notification@takethewall.com");
+  const send = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+  vi.stubGlobal("fetch", send);
+  await t.action(internal.jobs.dispatch, {});
+  expect(send).toHaveBeenCalledTimes(1);
+  const message = JSON.parse(send.mock.calls[0][1].body);
+  expect(message.to).toEqual(["serhan.sari@yahoo.com"]);
+  expect(message.from).toBe("notification@takethewall.com");
+  expect(message.text).toContain("production@example.com");
+  expect(message.text).not.toContain("Changed later");
+  expect(message.html).toContain("WALL TAKEOVER NOTIFICATION");
+  expect(message.html).toContain("Open admin dashboard");
+  expect(message.text).not.toContain("#token=");
+  await t.action(internal.jobs.dispatch, {});
+  expect(send).toHaveBeenCalledTimes(1);
+});
+
+it("cleanup retains original winning images after an owner replaces them", async () => {
+  const { t, id, token } = await setup();
+  const original = await t.run((ctx) =>
+    ctx.storage.store(new Blob(["original"])),
+  );
+  await t.run(async (ctx) => {
+    await ctx.db.patch(id, { logoStorageId: original });
+    await ctx.db.insert("uploads", {
+      key: "old-image",
+      ownerHash: "edit-ip",
+      claimed: true,
+      storageId: original,
+      expiresAt: Date.now() - 1,
+    });
+  });
+  await t.mutation(internal.owners.edit, {
+    ...edits,
+    token,
+    removeImage: true,
+  });
+  await t.mutation(internal.operations.cleanup, {});
+  expect(
+    await t.run(async (ctx) => Boolean(await ctx.storage.get(original))),
+  ).toBe(true);
+});

@@ -174,7 +174,7 @@ test("private dashboard keeps access out of public links and saves digest prefer
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.evaluate(()=>window.scrollTo(0,0));
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: `/tmp/owner-dashboard-${info.project.name}.png`,
   });
@@ -197,4 +197,103 @@ test("unsubscribe requires a deliberate action after opening the email link", as
     .click();
   await expect(page.getByRole("status")).toContainText("You are unsubscribed");
   expect(calls).toBe(1);
+});
+
+test("current owner previews and saves a correction without checkout", async ({
+  page,
+}, info) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  let current = {
+    ...dashboard,
+    replacedAt: null as number | null,
+    contentRevision: 0,
+    owner: { ...owner },
+  };
+  let edits = 0,
+    payments = 0;
+  await page.route("**/api/checkout", (r) => {
+    payments++;
+    return r.fulfill({ status: 500, json: {} });
+  });
+  await page.route("**/api/owner", (r) => {
+    const a = r.request().method() === "POST" ? r.request().postDataJSON() : {};
+    if (a.action === "edit") {
+      edits++;
+      expect(a.expectedRevision).toBe(0);
+      expect(a.token).toBeUndefined();
+      current = {
+        ...current,
+        contentRevision: 1,
+        owner: {
+          ...current.owner,
+          displayName: a.displayName,
+          description: a.description,
+        },
+      };
+      return r.fulfill({ json: { ok: true } });
+    }
+    return r.fulfill({ json: { dashboard: current } });
+  });
+  await page.route("**/takeover/**/card*", (r) =>
+    r.fulfill({ status: 404, body: "" }),
+  );
+  await page.goto("/owner");
+  await expect(page).toHaveURL(/\/owner$/);
+  await expect(page).toHaveTitle(/Owner|Take The Wall/i);
+  await page
+    .getByRole("button", { name: "Edit your content", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Edit your content" });
+  await dialog
+    .getByLabel("Display name", { exact: true })
+    .fill("Raven Studio corrected");
+  await dialog
+    .getByLabel("Description or message")
+    .fill("Correct spelling, same takeover.");
+  await dialog
+    .getByRole("button", { name: "Preview changes", exact: true })
+    .click();
+  expect(edits).toBe(0);
+  await expect(
+    dialog.getByRole("heading", { name: "Raven Studio corrected" }),
+  ).toBeVisible();
+  await dialog
+    .getByRole("button", {
+      name: info.project.name === "mobile" ? "Mobile" : "Desktop",
+      exact: true,
+    })
+    .click();
+  await page.screenshot({
+    path: `/tmp/owner-edit-${info.project.name}.png`,
+    fullPage: true,
+  });
+  await dialog
+    .getByRole("button", { name: "Save changes to the wall" })
+    .click();
+  await expect(dialog).not.toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Raven Studio corrected", level: 1 }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Your content has been updated.", { exact: false }),
+  ).toBeVisible();
+  expect(pageErrors).toEqual([]);
+  expect(edits).toBe(1);
+  expect(payments).toBe(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  current = { ...current, active: false, replacedAt: Date.now() };
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Edit your content", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(
+      "Editing is closed because this takeover is no longer live.",
+    ),
+  ).toBeVisible();
 });

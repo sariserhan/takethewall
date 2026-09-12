@@ -34,6 +34,7 @@ export const migrate = internalMutation({
       number++;
       const publicTakeoverId =
         t.publicTakeoverId ?? "ttw_" + crypto.randomUUID().replaceAll("-", "");
+      const content = t.originalContent ?? t;
       const payload = {
         takeoverNumber: number,
         publicTakeoverId,
@@ -41,12 +42,12 @@ export const migrate = internalMutation({
         amountCents: p.amountCents!,
         currency: p.currency!,
         contentHash: auditHash({
-          type: t.contentType ?? "link",
-          linkType: t.linkType ?? "website",
-          destinationUrl: t.websiteUrl,
-          displayName: t.displayName ?? t.domain,
-          description: t.description,
-          imageStorageId: t.logoStorageId ?? null,
+          type: content.contentType ?? "link",
+          linkType: content.linkType ?? "website",
+          destinationUrl: content.websiteUrl,
+          displayName: content.displayName ?? content.domain,
+          description: content.description,
+          imageStorageId: content.logoStorageId ?? null,
         }),
         previousAuditHash: previous,
       };
@@ -159,6 +160,7 @@ export const verify = query({
       void _id;
       void _creationTime;
       const t = await ctx.db.get(takeoverId);
+      const content = t?.originalContent ?? t;
       if (
         r.takeoverNumber !== ++number ||
         r.previousAuditHash !== head ||
@@ -166,12 +168,12 @@ export const verify = query({
         t?.auditHash !== hash ||
         t.takeoverNumber !== r.takeoverNumber ||
         auditHash({
-          type: t.contentType ?? "link",
-          linkType: t.linkType ?? "website",
-          destinationUrl: t.websiteUrl,
-          displayName: t.displayName ?? t.domain,
-          description: t.description,
-          imageStorageId: t.logoStorageId ?? null,
+          type: content?.contentType ?? "link",
+          linkType: content?.linkType ?? "website",
+          destinationUrl: content?.websiteUrl,
+          displayName: content?.displayName ?? content?.domain,
+          description: content?.description,
+          imageStorageId: content?.logoStorageId ?? null,
         }) !== r.contentHash
       )
         return {

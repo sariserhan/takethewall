@@ -3,6 +3,8 @@ import { v } from "convex/values";
 import { ensureOwnerAccess, ownerAccess } from "./ownerModel";
 import { enqueue, getSite, limit, projectOwner, publicOwner } from "./model";
 import { ownerBaseUrl } from "../lib/owner-secrets";
+import { validateWallContent } from "../lib/content";
+import { audit } from "./rewardModel";
 import { validateEmail } from "../lib/validation";
 import { sha } from "../lib/audit";
 const shared = {
@@ -23,6 +25,7 @@ export const dashboard = internalQuery({
   args: { token: v.string() },
   returns: v.object({
     ...shared,
+    contentRevision: v.number(),
     weeklyDigestEnabled: v.boolean(),
     shareUrl: v.string(),
     regions: v.array(
@@ -39,6 +42,7 @@ export const dashboard = internalQuery({
       .withIndex("by_takeoverId_regionCode", (q) => q.eq("takeoverId", t._id))
       .take(300);
     return {
+      contentRevision: t.contentRevision ?? 0,
       owner: await projectOwner(ctx, t),
       active: site.currentTakeoverId === t._id && !t.blocked,
       replacedAt: t.replacedAt ?? null,
@@ -193,5 +197,81 @@ export const queueWeeklyDigest = internalMutation({
       },
     });
     return true;
+  },
+});
+
+export const edit = internalMutation({
+  args: {
+    token: v.string(),
+    expectedRevision: v.number(),
+    contentType: v.union(v.literal("link"), v.literal("personal")),
+    websiteUrl: v.string(),
+    displayName: v.string(),
+    description: v.string(),
+    uploadKey: v.string(),
+    ownerHash: v.string(),
+    removeImage: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    const access = await ownerAccess(ctx, a.token);
+    const t = await ctx.db.get(access.takeoverId),
+      site = await getSite(ctx);
+    if (
+      !t ||
+      site.currentTakeoverId !== t._id ||
+      t.status !== "active" ||
+      t.blocked ||
+      t.replacedAt !== undefined
+    )
+      throw new Error("Only the current owner can edit their live takeover.");
+    if ((t.contentRevision ?? 0) !== a.expectedRevision)
+      throw new Error(
+        "Your content changed in another tab. Refresh before editing again.",
+      );
+    if (site.auditMigrationCursor !== undefined)
+      throw new Error("History maintenance is in progress. Try again shortly.");
+    await limit(ctx, "owner-edit:" + t._id, 20, 3600_000);
+    const content = validateWallContent(a);
+    let logoStorageId = a.removeImage ? undefined : t.logoStorageId;
+    if (a.uploadKey) {
+      if (a.removeImage)
+        throw new Error("Choose either a new image or remove the image.");
+      const upload = await ctx.db
+        .query("uploads")
+        .withIndex("by_key", (q) => q.eq("key", a.uploadKey))
+        .unique();
+      if (
+        !upload?.storageId ||
+        upload.claimed ||
+        upload.ownerHash !== a.ownerHash ||
+        upload.expiresAt <= Date.now()
+      )
+        throw new Error("Image upload expired. Upload it again.");
+      logoStorageId = upload.storageId;
+      await ctx.db.patch(upload._id, { claimed: true });
+    }
+    const before = {
+      contentType: t.contentType ?? "link",
+      linkType: t.linkType ?? "website",
+      websiteUrl: t.websiteUrl,
+      domain: t.domain,
+      displayName: t.displayName ?? t.domain,
+      description: t.description,
+      ...(t.logoStorageId ? { logoStorageId: t.logoStorageId } : {}),
+    };
+    const after = { ...content, ...(logoStorageId ? { logoStorageId } : {}) };
+    await ctx.db.patch(t._id, {
+      ...content,
+      logoStorageId,
+      originalContent: t.originalContent ?? before,
+      contentRevision: (t.contentRevision ?? 0) + 1,
+    });
+    await audit(ctx, "owner:" + t._id, "OWNER_CONTENT_EDITED", t._id, {
+      revision: (t.contentRevision ?? 0) + 1,
+      before,
+      after,
+    });
+    return null;
   },
 });

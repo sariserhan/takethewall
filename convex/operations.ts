@@ -169,7 +169,8 @@ export const cleanup = internalMutation({
             q.eq("logoStorageId", u.storageId!),
           )
           .first();
-        if (!reference) await ctx.storage.delete(u.storageId);
+        const original = !reference ? await ctx.db.query("takeovers").withIndex("by_originalLogoStorageId",q=>q.eq("originalContent.logoStorageId",u.storageId)).first() : null;
+        if (!reference && !original) await ctx.storage.delete(u.storageId);
       }
       await ctx.db.delete(u._id);
     }
@@ -206,6 +207,8 @@ export const cleanup = internalMutation({
         await ctx.db.patch(p._id, { contactDeleteAt: now + 30 * 86400_000 });
         continue;
       }
+      const notice = await ctx.db.query("jobs").withIndex("by_key",q=>q.eq("key",`admin_takeover_email:${p.takeoverId}:`)).unique();
+      if (notice) await ctx.db.patch(notice._id,{adminNotice:undefined});
       await ctx.db.patch(p._id, {
         buyerEmail: "",
         receiptEmail: undefined,
@@ -229,6 +232,11 @@ export const deleteContact = internalMutation({
   args: { purchaseId: v.id("purchases") },
   returns: v.null(),
   handler: async (ctx, a) => {
+    const purchase = await ctx.db.get(a.purchaseId);
+    if (purchase) {
+      const notice = await ctx.db.query("jobs").withIndex("by_key",q=>q.eq("key",`admin_takeover_email:${purchase.takeoverId}:`)).unique();
+      if (notice) await ctx.db.patch(notice._id,{adminNotice:undefined});
+    }
     await ctx.db.patch(a.purchaseId, {
       buyerEmail: "",
       receiptEmail: undefined,

@@ -17,6 +17,7 @@ export const status = v.union(
 );
 export const jobKind = v.union(
   v.literal("activation_email"),
+  v.literal("admin_takeover_email"),
   v.literal("owner_access_email"),
   v.literal("weekly_digest_email"),
   v.literal("replacement_email"),
@@ -37,6 +38,7 @@ export const visitorPingSnapshot = v.object({
   clicks: v.number(),
 });
 export const digestSnapshot = v.object({displayName:v.string(),number:v.union(v.number(),v.null()),impressions:v.number(),uniqueVisitors:v.number(),clicks:v.number(),activatedAt:v.number(),snapshotAt:v.number()});
+export const editableContent = v.object({contentType:v.string(),linkType:v.string(),websiteUrl:v.string(),domain:v.string(),displayName:v.string(),description:v.string(),logoStorageId:v.optional(v.id("_storage"))});
 export default defineSchema({
   ownerAccess: defineTable({takeoverId:v.id("takeovers"),seed:v.string(),tokenHash:v.string(),unsubscribeHash:v.string(),weeklyDigestEnabled:v.boolean(),createdAt:v.number()}).index("by_takeover",["takeoverId"]).index("by_token",["tokenHash"]).index("by_unsubscribe",["unsubscribeHash"]),
   demoStats: defineTable({
@@ -69,6 +71,8 @@ export default defineSchema({
     snapshot: v.optional(visitorPingSnapshot),
   }).index("by_key", ["key"]),
   takeovers: defineTable({
+    originalContent: v.optional(editableContent),
+    contentRevision: v.optional(v.number()),
     websiteUrl: v.string(),
     domain: v.string(),
     description: v.string(),
@@ -104,7 +108,8 @@ export default defineSchema({
     .index("by_publicId", ["publicTakeoverId"])
     .index("by_status", ["status"])
     .index("by_activationSequence", ["activationSequence"])
-    .index("by_logoStorageId", ["logoStorageId"]),
+    .index("by_logoStorageId", ["logoStorageId"])
+    .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
   purchases: defineTable({
     weeklyDigestEnabled: v.optional(v.boolean()),
     takeoverId: v.id("takeovers"),
@@ -206,6 +211,7 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_expiresAt", ["expiresAt"]),
   jobs: defineTable({
+    adminNotice: v.optional(v.object({subject:v.string(),body:v.string()})),
     digest:v.optional(digestSnapshot),
     key: v.string(),
     kind: jobKind,

@@ -5,7 +5,9 @@ import { contentCta, detectLinkType } from "@/lib/content";
 import { Arrow } from "./arrow";
 export function TakeoverPreview({
   draft,
+  editing = false,
 }: {
+  editing?: boolean;
   draft: {
     displayName: string;
     description: string;
@@ -62,8 +64,9 @@ export function TakeoverPreview({
         <div className="preview-bottom">ONE WALL. YOUR MOMENT.</div>
       </div>
       <p className="field-note">
-        Content preview at {device} proportions. Your number and start time are
-        assigned after payment; this preview does not reserve the wall.
+        {editing
+          ? `Content preview at ${device} proportions. Saving updates your live content without starting a new takeover.`
+          : `Content preview at ${device} proportions. Your number and start time are assigned after payment; this preview does not reserve the wall.`}
       </p>
     </section>
   );

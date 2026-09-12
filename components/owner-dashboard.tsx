@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { OwnerDashboard } from "@/lib/owner-types";
 import { ctr, duration } from "@/lib/validation";
+import { OwnerEditor } from "./owner-editor";
 import { StatHelp } from "./stat-help";
 export function OwnerDashboardView() {
   const [data, setData] = useState<OwnerDashboard | null>(null),
@@ -220,6 +221,16 @@ export function OwnerDashboardView() {
               unoptimized
             />
           )}
+          <OwnerEditor
+            data={data}
+            onSaved={async () => {
+              await refresh();
+              setNotice(
+                "Your content has been updated. Your takeover and stats are unchanged.",
+              );
+              setError("");
+            }}
+          />
           <h3>{owner.displayName}</h3>
           <p>{owner.description}</p>
           <p>
@@ -267,7 +278,7 @@ export function OwnerDashboardView() {
             dashboard access key.
           </p>
           <Image
-            src={`/takeover/${data.publicId}/card`}
+            src={`/takeover/${data.publicId}/card?v=${data.contentRevision ?? 0}`}
             alt={`Share card for takeover ${owner.takeoverNumber}`}
             width={1200}
             height={630}

@@ -26,6 +26,7 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "ownerEdit": result = await ctx.runMutation(internal.owners.edit,args); break;
         case "ownerDashboard": result = await ctx.runQuery(internal.owners.dashboard,args); break;
         case "ownerPreferences": result = await ctx.runMutation(internal.owners.preferences,args); break;
         case "ownerRequestLink": result = await ctx.runMutation(internal.owners.requestLink,args); break;

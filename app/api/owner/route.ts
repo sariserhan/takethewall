@@ -7,6 +7,7 @@ import {
   jsonBody,
   rate,
   sameOrigin,
+  publicDestination,
 } from "@/lib/server";
 import type { OwnerDashboard } from "@/lib/owner-types";
 export const dynamic = "force-dynamic";
@@ -65,6 +66,32 @@ export async function POST(req: Request) {
         maxAge: 30 * 86400,
       });
       return Response.json({ dashboard });
+    }
+    if (a.action === "edit") {
+      const token = jar.get("ttw-owner")?.value;
+      if (!token)
+        throw new HttpError("Open your private email link first.", 401);
+      if (a.contentType !== "personal" && a.contentType !== "link")
+        throw new HttpError("Choose a content type.");
+      if (
+        !Number.isSafeInteger(a.expectedRevision) ||
+        typeof a.removeImage !== "boolean"
+      )
+        throw new HttpError("Invalid edit request.");
+      const websiteUrl = String(a.websiteUrl ?? "");
+      if (a.contentType === "link") await publicDestination(websiteUrl);
+      await backend("ownerEdit", {
+        token,
+        expectedRevision: a.expectedRevision,
+        contentType: a.contentType,
+        websiteUrl,
+        displayName: String(a.displayName ?? ""),
+        description: String(a.description ?? ""),
+        uploadKey: String(a.uploadKey ?? ""),
+        ownerHash: clientHash(req),
+        removeImage: a.removeImage,
+      });
+      return Response.json({ ok: true });
     }
     if (a.action === "preferences") {
       const token = jar.get("ttw-owner")?.value;

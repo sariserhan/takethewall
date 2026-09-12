@@ -1,3 +1,4 @@
+import { queueAdminTakeoverEmail } from "./adminNotifications";
 import { numberingOffset } from "./numbering";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -445,6 +446,7 @@ export const claimAction = mutation({
         if (p?.paymentIssue)
           throw new Error("Resolve the payment issue before confirming payout");
         const t = (await ctx.db.get(c.takeoverId))!;
+        const content = t.originalContent ?? t;
         const frozen = !!t.replacedAt && Date.now() >= t.replacedAt + 120_000;
         await ctx.db.patch(r._id, {
           status: "paid",
@@ -453,12 +455,12 @@ export const claimAction = mutation({
           payoutAdminId: actor,
           winnerTakeoverId: t._id,
           snapshot: {
-            displayName: t.displayName ?? t.domain,
-            contentType: t.contentType ?? "link",
-            linkType: t.linkType ?? "website",
-            websiteUrl: t.websiteUrl,
-            description: t.description,
-            ...(t.logoStorageId ? { logoStorageId: t.logoStorageId } : {}),
+            displayName: content.displayName ?? content.domain,
+            contentType: content.contentType ?? "link",
+            linkType: content.linkType ?? "website",
+            websiteUrl: content.websiteUrl,
+            description: content.description,
+            ...(content.logoStorageId ? { logoStorageId: content.logoStorageId } : {}),
             activatedAt: t.activatedAt!,
             ...(t.replacedAt ? { replacedAt: t.replacedAt } : {}),
             impressions: t.impressions,
@@ -881,6 +883,7 @@ export const publish = mutation({
       await enqueue(ctx, "activation_email", id);
       await enqueue(ctx, "takeover_activated", id);
     }
+    await queueAdminTakeoverEmail(ctx,id);
     await audit(
       ctx,
       actor,

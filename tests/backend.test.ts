@@ -524,3 +524,32 @@ it.each([
     }),
   ).rejects.toThrow("Upload expired");
 });
+
+it("production Stripe activation queues one admin notification with payment details", async () => {
+  const t = make(),
+    p = await pending(t);
+  await t.run(async (ctx) => {
+    const purchase = (await ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", p.takeoverId))
+      .unique())!;
+    await ctx.db.patch(purchase._id, { environment: "production" });
+  });
+  vi.stubEnv("WALL_ENVIRONMENT", "production");
+  const args = {
+    ...payment(p.takeoverId, "prod-notification"),
+    livemode: true,
+  };
+  await t.mutation(internal.purchases.activate, args);
+  await t.mutation(internal.purchases.activate, {
+    ...args,
+    eventId: "evt_prod-retry",
+  });
+  const jobs = await t.run((ctx) => ctx.db.query("jobs").collect());
+  const notices = jobs.filter((j) => j.kind === "admin_takeover_email");
+  expect(notices).toHaveLength(1);
+  expect(notices[0].adminNotice?.body).toContain("Amount: 3.99 USD");
+  expect(notices[0].adminNotice?.body).toContain("pi_prod-notification");
+  expect(notices[0].adminNotice?.body).toContain(p.args.buyerEmail);
+  expect(notices[0].adminNotice?.body).toContain("receipt@example.com");
+});

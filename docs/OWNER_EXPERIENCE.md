@@ -21,3 +21,17 @@ Private owner pages are not indexed or tracked by VisitorPing. Access tokens arr
 ## Validation
 
 Backend tests cover token scope, key rotation, email recovery, digest deduplication and suppression, unsubscribe, and reports. Desktop/mobile browser tests cover preview-before-payment, embedded checkout, reports, private dashboard, and unsubscribe. Email rendering was checked at desktop and mobile widths; the real image endpoint was checked for PNG dimensions and removed-content 404 behavior. Email provider calls were mocked; no test emails were sent.
+
+## Editing a live takeover
+
+The private owner dashboard now includes **Edit your content** while that takeover is current. Owners can change the display name, description, destination/content type, and image; they preview before saving and pay nothing extra. Each save checks the current takeover and expected content revision atomically. Replaced, blocked, stale-tab, and unauthenticated edits are rejected. Edits cannot re-enable a link disabled by moderation.
+
+Edits leave the takeover number, activation timestamp, counters, payment, and prize progression untouched. The first edit preserves original content for activation-hash verification and permanent milestone snapshots; original winning images remain stored. Before/after changes appear as `OWNER_CONTENT_EDITED` in the admin audit tab. Public share pages reflect the edited content.
+
+## Administrator takeover notifications
+
+Every new production paid takeover or admin publication queues a branded email to `serhan.sari@yahoo.com`, using the existing `RESEND_FROM` sender (`notification@takethewall.com`). It includes owner and buyer/receipt email, public takeover number, destination, description, image availability, UTC activation time, source, amount/currency, available Stripe references, record ID, activation hash, published-content link, and an admin dashboard button. It never includes owner login tokens or card details.
+
+The snapshot is captured in the activation transaction, with one job per takeover. Retries reuse the same idempotency key; edits and repeated payment webhooks do not produce additional takeover notifications. Delivery uses the existing outbox dispatcher. Development/test activations are suppressed. There is no backfill for past takeovers and no new required environment variable or webhook. Temporary notification snapshots are removed after successful delivery and follow contact deletion when undelivered.
+
+Validation for this update: 130 unit/backend tests and 12 desktop/mobile browser flows passed; lint, typecheck, production build, and development Convex sync passed. Mail was rendered at 390px and 900px with the logo loaded and no horizontal overflow. Provider calls were mocked; no live test email was sent.
