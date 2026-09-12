@@ -172,10 +172,6 @@ export const publicCopy: Record<
         body: "Each real paid takeover costs $3.99 USD. The seeded VisitorPing placement is a house placement and has no paid takeover number. Moderation restorations are recorded separately and do not increase paid takeover numbers. A paid placement is not an endorsement by TakeTheWall.",
       },
       {
-        title: "Documented starting offset",
-        body: "When the starting offset of 15 is enabled, the first actual counted takeover is public #16 and the next is #17. The offset represents no completed placements, owners, or payments. Public milestone #100 then corresponds to the 85th recorded counted takeover. The count and milestone pages disclose the offset; original audit sequence numbers and hashes remain unchanged.",
-      },
-      {
         title: "No reservation at Checkout",
         body: "A permanent number is allocated only when the verified payment activates atomically in Convex. Two people can open Checkout at the same time; whichever activation commits first receives the earlier number. Neither browser timing nor Checkout creation reserves a milestone.",
       },
