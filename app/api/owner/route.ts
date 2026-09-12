@@ -51,11 +51,8 @@ export async function POST(req: Request) {
         { takeoverId: string; sessionId: string | null; paid: boolean }[]
       >("recoveryFind", { email, ipHash: clientHash(req) });
       for (const p of matches) {
-        if (
-          p.paid ||
-          (p.sessionId && (await recoverPayment(p.sessionId, p.takeoverId)))
-        )
-          await backend("recoverySend", { takeoverId: p.takeoverId, email });
+        if (!p.paid && p.sessionId) await recoverPayment(p.sessionId, p.takeoverId);
+        await backend("recoverySend", { takeoverId: p.takeoverId, email });
       }
       return Response.json(
         { ok: true },

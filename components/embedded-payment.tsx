@@ -20,6 +20,10 @@ export default function EmbeddedPayment({
   session: CheckoutSession;
   onClose: (verified: boolean) => void;
 }) {
+  const [resumeEmail, setResumeEmail] = useState<"ready" | "sending" | "sent">(
+    "ready",
+  );
+  const [resumeError, setResumeError] = useState("");
   const [complete, setComplete] = useState(false);
   const [status, setStatus] = useState("pending");
   const [previousOwnerName, setPreviousOwnerName] = useState<string | null>(
@@ -141,6 +145,50 @@ export default function EmbeddedPayment({
         <EmbeddedCheckoutProvider stripe={stripe} options={options}>
           <EmbeddedCheckout />
         </EmbeddedCheckoutProvider>
+      )}
+      {!complete && (
+        <div className="resume-checkout-email">
+          <p>Need to finish later or on another device?</p>
+          <button
+            type="button"
+            disabled={resumeEmail !== "ready"}
+            onClick={async () => {
+              setResumeEmail("sending");
+              setResumeError("");
+              try {
+                const response = await fetch("/api/checkout/resume", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "email",
+                    token: session.token,
+                  }),
+                });
+                if (!response.ok)
+                  throw Error("Could not request the link. Please try again.");
+                setResumeEmail("sent");
+              } catch (e) {
+                setResumeEmail("ready");
+                setResumeError(
+                  e instanceof Error ? e.message : "Request failed.",
+                );
+              }
+            }}
+          >
+            {resumeEmail === "sending"
+              ? "Requesting link…"
+              : resumeEmail === "sent"
+                ? "Resume link requested"
+                : "Email me a resume link"}
+          </button>
+          {resumeEmail === "sent" && (
+            <p role="status">
+              If this checkout is still open, we’ll email its private link to
+              your checkout email. Check your inbox and spam folder.
+            </p>
+          )}
+          {resumeError && <p role="alert">{resumeError}</p>}
+        </div>
       )}
       {error && <p role="alert">{error}</p>}
     </section>

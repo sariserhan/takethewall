@@ -1,6 +1,7 @@
 "use client";
 import {trackVerifiedTakeover} from "@/lib/visitorping-client";
 import {RegionLabel} from "./region-label";
+import { ResumeCheckout } from "./resume-checkout";
 import { PublishedShare } from "./takeover-share";
 import { WallSubscription } from "./wall-subscription";
 import { MilestoneAlerts } from "./milestone-alerts";
@@ -487,6 +488,7 @@ function WallView({
       <WallSubscription />
       <MilestoneAlerts />
       <PublicFooter home />
+      <ResumeCheckout />
       <PurchaseSheet
         key={
           confirmation?.state === "active" || confirmation?.state === "replaced"

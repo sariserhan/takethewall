@@ -5,3 +5,5 @@ export const ownerUnsubscribeToken = (seed: string) =>
   claimSecret("owner-unsubscribe:" + seed);
 export const ownerBaseUrl = () =>
   (process.env.SITE_URL ?? "https://takethewall.com").replace(/\/$/, "");
+
+export const checkoutResumeToken = (seed: string) => claimSecret("checkout-resume:" + seed);

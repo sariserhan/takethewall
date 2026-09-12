@@ -1,3 +1,5 @@
+import { checkoutResumeToken } from "../lib/owner-secrets";
+import { policyFor } from "./emailPolicy";
 import { emailAllowed } from "./emailPolicy";
 import { senderForMail, legacyEmailSender } from "../lib/email-routing";
 import { emailSenderFields } from "./rewardSchema";
@@ -132,6 +134,8 @@ export const data = internalQuery({
       endReason: v.optional(v.string()),
       email: v.string(),
       environment: v.string(),
+      resumeUrl: v.optional(v.string()),
+      resumeExpiresAt: v.optional(v.number()),
       dashboardUrl: v.optional(v.string()),
       unsubscribeUrl: v.optional(v.string()),
       oneClickUnsubscribeUrl: v.optional(v.string()),
@@ -177,10 +181,28 @@ export const data = internalQuery({
         : j.recoveryToReceipt
           ? (p?.receiptEmail ?? "")
           : (p?.buyerEmail ?? "");
+    const resumeAllowed =
+      j.kind !== "checkout_resume_email" ||
+      (!!p?.resumeSeed &&
+        !p.paidAt &&
+        !p.paymentIssue &&
+        !t.blocked &&
+        t.status === "pending" &&
+        p.checkoutExpiresAt > Date.now() &&
+        p.environment === (process.env.WALL_ENVIRONMENT ?? "test") &&
+        !(await policyFor(ctx, destination))?.reason);
     const deliveryAllowed =
-      !!destination && (await emailAllowed(ctx, destination, j.kind));
+      !!destination &&
+      resumeAllowed &&
+      (await emailAllowed(ctx, destination, j.kind));
     return {
       deliveryAllowed,
+      ...(j.kind === "checkout_resume_email" && p?.resumeSeed
+        ? {
+            resumeUrl: `${ownerBaseUrl()}/#resume=${checkoutResumeToken(p.resumeSeed)}`,
+            resumeExpiresAt: p.checkoutExpiresAt,
+          }
+        : {}),
       adminNotificationEnabled: notifications?.enabled ?? false,
       ...(j.finalReport ? { finalReport: j.finalReport } : {}),
       ...(access && j.kind.endsWith("_email")
@@ -361,36 +383,47 @@ export const dispatch = internalAction({
           if (j.kind === "admin_takeover_email" && !j.adminNotice)
             throw new Error("Missing activation snapshot");
           const rendered =
-            j.kind === "admin_takeover_email"
-              ? emailTemplate(j.adminNotice!.subject, j.adminNotice!.body, {
-                  eyebrow: "WALL TAKEOVER NOTIFICATION",
-                  cta: {
-                    label: "Open admin dashboard",
-                    url: ownerBaseUrl() + "/admin",
+            j.kind === "checkout_resume_email"
+              ? emailTemplate(
+                  `${j.environment === "production" ? "" : "[TEST] "}Resume your Take The Wall checkout`,
+                  `You requested a link to continue your $3.99 checkout. Your saved content is ready. Payment has not been confirmed. Nothing is reserved or published until payment is verified. This checkout expires ${new Date(j.resumeExpiresAt!).toUTCString()}.`,
+                  {
+                    eyebrow: "YOUR SAVED CHECKOUT",
+                    cta: { label: "Resume checkout", url: j.resumeUrl! },
+                    footnote:
+                      "Keep this link private. It opens your saved checkout. If you already paid, we’ll check your payment instead of asking you to pay again.",
                   },
-                  footnote:
-                    "Activation snapshot. Content and ownership may have changed since this notification.",
-                })
-              : j.kind === "replacement_email"
-                ? finalOwnerEmail(j.finalReport!, j.dashboardUrl)
-                : j.kind === "weekly_digest_email"
-                  ? weeklyOwnerEmail(
-                      j.digest!,
-                      j.dashboardUrl!,
-                      j.unsubscribeUrl!,
-                    )
-                  : emailTemplate(
-                      message.subject,
-                      message.text,
-                      j.dashboardUrl
-                        ? {
-                            cta: {
-                              label: "Open your private dashboard",
-                              url: j.dashboardUrl,
-                            },
-                          }
-                        : {},
-                    );
+                )
+              : j.kind === "admin_takeover_email"
+                ? emailTemplate(j.adminNotice!.subject, j.adminNotice!.body, {
+                    eyebrow: "WALL TAKEOVER NOTIFICATION",
+                    cta: {
+                      label: "Open admin dashboard",
+                      url: ownerBaseUrl() + "/admin",
+                    },
+                    footnote:
+                      "Activation snapshot. Content and ownership may have changed since this notification.",
+                  })
+                : j.kind === "replacement_email"
+                  ? finalOwnerEmail(j.finalReport!, j.dashboardUrl)
+                  : j.kind === "weekly_digest_email"
+                    ? weeklyOwnerEmail(
+                        j.digest!,
+                        j.dashboardUrl!,
+                        j.unsubscribeUrl!,
+                      )
+                    : emailTemplate(
+                        message.subject,
+                        message.text,
+                        j.dashboardUrl
+                          ? {
+                              cta: {
+                                label: "Open your private dashboard",
+                                url: j.dashboardUrl,
+                              },
+                            }
+                          : {},
+                      );
           emailSubject = rendered.subject;
           await ctx.runMutation(internal.emailDirectory.track, {
             key: j.key,

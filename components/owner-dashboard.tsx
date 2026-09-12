@@ -115,7 +115,7 @@ export function OwnerDashboardView() {
         </h1>
         <p>
           Use the private link in your activation email, or request it again
-          below. Paid and closed the browser? Leave the number blank to recover
+          below. Closed the browser before or after paying? Leave the number blank to recover
           your latest purchases. No account needed.
         </p>
         {error && <p role="alert">{error}</p>}
@@ -130,7 +130,7 @@ export function OwnerDashboardView() {
                 ...(number ? { number: Number(number) } : {}),
               });
               setNotice(
-                "If we find a completed purchase, we’ll email a private link. Pending payments are checked with Stripe. Check your inbox and spam folder; no need to pay again.",
+                "If we find your purchase, we’ll email its private dashboard or a resume link for an open unpaid checkout. Payments are checked with Stripe first. Check your inbox and spam folder.",
               );
             } catch (e) {
               setError(e instanceof Error ? e.message : "Request failed.");

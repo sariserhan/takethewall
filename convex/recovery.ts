@@ -1,3 +1,8 @@
+import { internalQuery } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { checkoutResumeToken } from "../lib/owner-secrets";
+import { emailAllowed, policyFor } from "./emailPolicy";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { sha } from "../lib/audit";
@@ -82,6 +87,16 @@ export const sendLink = internalMutation({
       .unique();
     const t = await ctx.db.get(a.takeoverId);
     if (
+      p &&
+      t &&
+      !p.paidAt &&
+      !p.issuedAt &&
+      p.buyerEmail.toLowerCase() === email
+    ) {
+      await queueResume(ctx, p);
+      return null;
+    }
+    if (
       !p ||
       !t ||
       t.blocked ||
@@ -103,7 +118,95 @@ export const sendLink = internalMutation({
         q.eq("key", `owner_access_email:${t._id}:${suffix}`),
       )
       .unique();
-    if (job) await ctx.db.patch(job._id, { recoveryToReceipt: p.buyerEmail.toLowerCase() !== email });
+    if (job)
+      await ctx.db.patch(job._id, {
+        recoveryToReceipt: p.buyerEmail.toLowerCase() !== email,
+      });
     return null;
+  },
+});
+
+async function queueResume(ctx: MutationCtx, p: Doc<"purchases">) {
+  const takeover = await ctx.db.get(p.takeoverId);
+  if (
+    !takeover ||
+    takeover.blocked ||
+    takeover.status !== "pending" ||
+    p.paidAt ||
+    p.issuedAt ||
+    p.paymentIssue ||
+    !p.sessionId ||
+    p.checkoutExpiresAt <= Date.now() ||
+    !p.buyerEmail ||
+    p.environment !== (process.env.WALL_ENVIRONMENT ?? "test")
+  )
+    return;
+  if (
+    !(await emailAllowed(ctx, p.buyerEmail, "checkout_resume_email")) ||
+    (await policyFor(ctx, p.buyerEmail))?.reason
+  )
+    return;
+  const seed = p.resumeSeed ?? crypto.randomUUID() + crypto.randomUUID();
+  await ctx.db.patch(p._id, {
+    resumeSeed: seed,
+    resumeHash: sha(checkoutResumeToken(seed)),
+  });
+  // One requested email per checkout, including across tabs and retries.
+  await enqueue(ctx, "checkout_resume_email", p.takeoverId);
+}
+export const requestResume = internalMutation({
+  args: { tokenHash: v.string() },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    const p = await ctx.db
+      .query("purchases")
+      .withIndex("by_tokenHash", (q) => q.eq("tokenHash", a.tokenHash))
+      .unique();
+    if (!p || p.tokenExpiresAt <= Date.now()) return null;
+    await limit(ctx, "resume:" + p._id, 3, 3600_000);
+    await queueResume(ctx, p);
+    return null;
+  },
+});
+export const resume = internalQuery({
+  args: { tokenHash: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      takeoverId: v.id("takeovers"),
+      sessionId: v.string(),
+      requestKey: v.string(),
+      name: v.string(),
+      description: v.string(),
+      environment: v.string(),
+    }),
+  ),
+  handler: async (ctx, a) => {
+    if (!/^[a-f0-9]{64}$/.test(a.tokenHash)) return null;
+    const p = await ctx.db
+      .query("purchases")
+      .withIndex("by_resumeHash", (q) => q.eq("resumeHash", a.tokenHash))
+      .unique();
+    if (
+      !p ||
+      !p.resumeSeed ||
+      p.tokenExpiresAt <= Date.now() ||
+      !p.sessionId ||
+      p.environment !== (process.env.WALL_ENVIRONMENT ?? "test") ||
+      p.paymentIssue ||
+      !p.buyerEmail
+    )
+      return null;
+    const takeover = await ctx.db.get(p.takeoverId);
+    if (!takeover || takeover.blocked || takeover.status === "rejected")
+      return null;
+    return {
+      takeoverId: p.takeoverId,
+      sessionId: p.sessionId,
+      requestKey: p.requestKey,
+      name: takeover.displayName || takeover.domain,
+      description: takeover.description,
+      environment: p.environment,
+    };
   },
 });

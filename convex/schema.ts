@@ -20,6 +20,7 @@ export const jobKind = v.union(
   v.literal("activation_email"),
   v.literal("admin_takeover_email"),
   v.literal("owner_access_email"),
+  v.literal("checkout_resume_email"),
   v.literal("weekly_digest_email"),
   v.literal("replacement_email"),
   v.literal("checkout_completed"),
@@ -265,6 +266,8 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_source_visitor", ["takeoverId", "visitorHash"]),
   purchases: defineTable({
+    resumeSeed: v.optional(v.string()),
+    resumeHash: v.optional(v.string()),
     referralSource: v.optional(v.id("takeovers")),
     buyerEmailKey: v.optional(v.string()),
     receiptEmailKey: v.optional(v.string()),
@@ -299,6 +302,7 @@ export default defineSchema({
     .index("by_takeoverId", ["takeoverId"])
     .index("by_requestKey", ["requestKey"])
     .index("by_tokenHash", ["tokenHash"])
+    .index("by_resumeHash", ["resumeHash"])
     .index("by_sessionId", ["sessionId"])
     .index("by_paymentIntentId", ["paymentIntentId"])
     .index("by_contactDeleteAt", ["contactDeleteAt"])

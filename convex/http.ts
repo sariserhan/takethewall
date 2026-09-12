@@ -26,6 +26,12 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "checkoutResumeEmail":
+          result = await ctx.runMutation(internal.recovery.requestResume, args);
+          break;
+        case "checkoutResume":
+          result = await ctx.runQuery(internal.recovery.resume, args);
+          break;
         case "recoveryFind":
           result = await ctx.runMutation(internal.recovery.find, args);
           break;

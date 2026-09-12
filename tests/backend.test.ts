@@ -768,3 +768,27 @@ it("legacy recovery contact indexing is bounded and preserves records", async ()
     }),
   ).toHaveLength(1);
 });
+
+it("resume links are private, deduplicated and suppressed after payment or expiry", async () => {
+  vi.stubEnv("CLAIM_TOKEN_SECRET", "resume-test-secret-at-least-32-characters");
+  vi.stubEnv("WALL_ENVIRONMENT", "test");
+  const { checkoutResumeToken } = await import("../lib/owner-secrets");
+  const { sha } = await import("../lib/audit");
+  const t = make(), p = await pending(t);
+  await t.mutation(internal.purchases.attach, { purchaseId: p.purchaseId, sessionId: "cs_saved", checkoutUrl: "" });
+  await t.mutation(internal.recovery.requestResume, { tokenHash: "wrong" });
+  expect(await t.run(ctx => ctx.db.query("jobs").collect())).toHaveLength(0);
+  await t.mutation(internal.recovery.requestResume, { tokenHash: p.args.tokenHash });
+  await t.mutation(internal.recovery.requestResume, { tokenHash: p.args.tokenHash });
+  const jobs = await t.run(ctx => ctx.db.query("jobs").collect());
+  expect(jobs).toHaveLength(1); expect(jobs[0].kind).toBe("checkout_resume_email");
+  const purchase = (await t.run(ctx => ctx.db.get(p.purchaseId)))!;
+  const tokenHash = sha(checkoutResumeToken(purchase.resumeSeed!));
+  expect((await t.query(internal.recovery.resume, { tokenHash }))?.sessionId).toBe("cs_saved");
+  expect(await t.query(internal.recovery.resume, { tokenHash: "b".repeat(64) })).toBeNull();
+  expect((await t.query(internal.jobs.data, { id: jobs[0]._id }))?.deliveryAllowed).toBe(true);
+  await t.run(ctx => ctx.db.patch(p.purchaseId, { paidAt: Date.now() }));
+  expect((await t.query(internal.jobs.data, { id: jobs[0]._id }))?.deliveryAllowed).toBe(false);
+  await t.run(ctx => ctx.db.patch(p.purchaseId, { tokenExpiresAt: Date.now() - 1 }));
+  expect(await t.query(internal.recovery.resume, { tokenHash })).toBeNull();
+});

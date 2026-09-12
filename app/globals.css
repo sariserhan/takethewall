@@ -1030,3 +1030,5 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .replacement-story{font-size:18px;line-height:1.5;overflow-wrap:anywhere}
 @media(max-width:600px){.preview-toolbar{align-items:flex-start;flex-wrap:wrap}.review-actions{align-items:stretch;flex-direction:column}.purchase-contact{padding:14px}}
 .preview-device .preview-creative{justify-content:center}
+
+.resume-checkout-email{margin:20px 0;padding:16px;border:1px solid var(--rule);font-size:14px}.resume-checkout-email button{padding:12px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font:inherit;cursor:pointer}
