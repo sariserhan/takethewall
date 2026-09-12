@@ -191,7 +191,7 @@ function WallView({
       <header className="masthead">
         <h1>TAKE THE WALL</h1>
         <div className="strap">
-          <p>One wall. One owner. $3.99.</p>
+          <p>Your content takes over this page for $3.99.</p>
           <span className="connection">
             <i className={connected ? "online" : ""} />
             {connected ? "LIVE" : "CONNECTING"}
@@ -350,15 +350,15 @@ function WallView({
       <section className="purchase-band">
         <strong className="price">$3.99</strong>
         <p>
-          It could be yours for 1 second or 100 days.
+          Your website, social profile, app, or message.
           <br />
-          Someone else pays $3.99, they take it.
+          It stays until the next takeover replaces it.
         </p>
         <button className="button primary" onClick={takeWall}>
           TAKE THE WALL — $3.99 <Arrow />
         </button>
       </section>
-      {data && <HomepageMilestones />}
+      <HomepageMilestones />
       <PublicFooter home />
       <PurchaseSheet
         key={

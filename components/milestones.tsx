@@ -1,4 +1,5 @@
 "use client";
+import { PrizeExplainer } from "./prize-explainer";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "convex/react";
@@ -75,24 +76,10 @@ export function HomepageMilestones() {
   );
   const active =
     unresolved.find((m) => m.number === selected) ?? unresolved.at(-1);
-  const next = data.milestones.find((m) => m.number > data.currentNumber);
   const show = active && !dismissed.includes(active.number);
   return (
     <>
-      {next && data.promotionEnabled && (
-        <section className="milestone-progress">
-          <span>NEXT MILESTONE #{next.number.toLocaleString("en-US")}</span>
-          <strong>${next.rewardUsd.toLocaleString("en-US")} REWARD*</strong>
-          <p>
-            {(next.number - data.currentNumber).toLocaleString("en-US")}{" "}
-            takeovers to go
-          </p>
-          <small>
-            *Subject to eligibility and{" "}
-            <Link href="/rewards">Reward Rules</Link>.
-          </small>
-        </section>
-      )}
+      <PrizeExplainer data={data} />
       {active && (
         <>
           <button

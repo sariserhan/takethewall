@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AdminDashboard } from "@/components/admin-dashboard";
 export default async function Page({
   params,
@@ -21,5 +21,6 @@ export default async function Page({
     ].includes(section[0] ?? "")
   )
     notFound();
-  return <AdminDashboard section={section[0] ?? "overview"} />;
+  if (section.length) redirect("/admin");
+  return <AdminDashboard />;
 }

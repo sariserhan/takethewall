@@ -298,8 +298,11 @@ export function PurchaseSheet({
                 <Arrow />
               </button>
               <p className="field-note">
-                Checkout does not reserve a takeover number. By paying, you
-                accept the <Link href="/terms">Terms</Link> and{" "}
+                Checkout does not reserve a takeover number. Your number is
+                assigned when payment activates your wall, in successful
+                activation order. Reaching a milestone starts a claim, subject
+                to availability and eligibility; it does not guarantee a payout.
+                By paying, you accept the <Link href="/terms">Terms</Link> and{" "}
                 <Link href="/rewards">Reward Rules</Link>. No guaranteed
                 duration, audience, impressions or clicks. No refunds for a
                 short reign or low traffic.

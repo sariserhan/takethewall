@@ -4,6 +4,7 @@ import { MILESTONES } from "@/lib/config";
 import { InfoOverlay } from "./info-overlay";
 export const infoLinks = [
   ["How it works", "how-it-works"],
+  ["How prizes work", "how-prizes-work"],
   ["About", "about"],
   ["Support", "support"],
   ["Contact", "contact"],

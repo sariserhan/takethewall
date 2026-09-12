@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
 import { publicCopy, legalVersion } from "@/lib/public-copy";
 import { ContactForm } from "./contact-form";
+import { PrizeGuide } from "./prize-explainer";
 import { RewardRules } from "./milestones";
 const titles: Record<string, string> = {
   "how-it-works": "How it works",
+  "how-prizes-work": "How prizes work",
   about: "About",
   support: "Support",
   contact: "Contact",
@@ -81,7 +83,9 @@ export function InfoOverlay() {
       onClose={close}
     >
       <div className="info-copy">
-        {page === "how-it-works" ? (
+        {page === "how-prizes-work" ? (
+          <PrizeGuide />
+        ) : page === "how-it-works" ? (
           <>
             <p>
               One wall. One owner. Your moment starts with a $3.99 purchase.

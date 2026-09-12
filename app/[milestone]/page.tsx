@@ -44,6 +44,9 @@ export async function generateMetadata({
         alternates: { canonical: `/${m.takeoverNumber}` },
         openGraph: {
           title: `${m.title} | TakeTheWall`,
+          description: `Follow the progress, verification, and permanent trophy for TakeTheWall milestone #${m.takeoverNumber}.`,
+          url: `/${m.takeoverNumber}`,
+          type: "website" as const,
         },
       }
     : {};

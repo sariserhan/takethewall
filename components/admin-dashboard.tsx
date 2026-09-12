@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { LoadingSkeleton } from "./loading-skeleton";
 import { AdminPublish } from "./admin-publish";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
@@ -16,7 +17,8 @@ const sections = [
   "audit",
   "settings",
 ];
-export function AdminDashboard({ section }: { section: string }) {
+export function AdminDashboard() {
+  const [section, setSection] = useState("overview");
   const identity = useQuery(api.admin.identity);
   const overview = useQuery(
     api.admin.overview,
@@ -32,7 +34,8 @@ export function AdminDashboard({ section }: { section: string }) {
   const [selected, setSelected] = useState("");
   const [error, setError] = useState("");
   const moderate = useMutation(api.admin.moderate);
-  if (identity === undefined) return <p>Checking administrator access…</p>;
+  if (identity === undefined)
+    return <LoadingSkeleton label="Checking administrator access" />;
   const page = raw ? JSON.parse(raw) : null;
   const stats = overview ? JSON.parse(overview) : null;
   return (
@@ -41,18 +44,30 @@ export function AdminDashboard({ section }: { section: string }) {
         <Link href="/">TAKE THE WALL</Link>
         <h1>ADMIN / {section.toUpperCase()}</h1>
       </header>
-      <nav className="admin-nav">
+      <nav className="admin-nav" aria-label="Admin sections">
         {sections.map((s) => (
-          <a
+          <button
             key={s}
-            aria-current={s === section ? "page" : undefined}
-            href={s === "overview" ? "/admin" : "/admin/" + s}
+            type="button"
+            aria-pressed={s === section}
+            onClick={() => {
+              if (s === section) return;
+              setBefore(undefined);
+              setSelected("");
+              setError("");
+              setSection(s);
+            }}
           >
             {s.replaceAll("_", " ")}
-          </a>
+          </button>
         ))}
       </nav>
       {error && <p role="alert">{error}</p>}
+      {((section === "overview" && overview === undefined) ||
+        (!["overview", "settings", "publish"].includes(section) &&
+          raw === undefined)) && (
+        <LoadingSkeleton label={`Loading ${section}`} />
+      )}
       {stats && (
         <>
           <div className="admin-cards">

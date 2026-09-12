@@ -1,20 +1,21 @@
 "use client";
-export default function ErrorPage({ reset }: { reset: () => void }) {
+import { SystemScreen } from "@/components/system-screen";
+export default function ErrorPage({
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
   return (
-    <main>
-      <header className="masthead">
-        <h1>TAKE THE WALL</h1>
-      </header>
-      <section className="owner-section">
-        <h2>The wall is reconnecting.</h2>
-        <p>
-          We couldn’t load the current owner. If you just paid, please don’t pay
-          again.
-        </p>
-        <button className="button" onClick={reset}>
-          TRY AGAIN
-        </button>
-      </section>
-    </main>
+    <SystemScreen code="SOMETHING WENT WRONG" title="THE WALL HIT A SNAG.">
+      <p>We couldn’t load this page. Please try again in a moment.</p>
+      <p>
+        If you just paid, don’t submit another payment. Your confirmation may
+        still be processing.
+      </p>
+      <button className="button" onClick={() => retry()}>
+        TRY AGAIN
+      </button>
+    </SystemScreen>
   );
 }
