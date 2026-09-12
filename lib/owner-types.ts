@@ -20,11 +20,15 @@ export interface SharedTakeover {
   active: boolean;
   replacedAt: number | null;
   publicId: string;
+  searchIndexable?: boolean;
+  editorial?: string;
 }
 export interface OwnerDashboard extends SharedTakeover {
   contentRevision: number;
   weeklyDigestEnabled: boolean;
   milestoneAlerts?: "on" | "pending" | "off";
   shareUrl: string;
+  shareVisitors?: number;
+  shareTakeovers?: number;
   regions: { regionCode: string; impressions: number }[];
 }

@@ -1,3 +1,4 @@
+import { indexable } from "./growth";
 import { emailAllowed } from "./emailPolicy";
 import { requestSubscription } from "./milestoneAlerts";
 import { internalMutation, internalQuery } from "./_generated/server";
@@ -14,6 +15,8 @@ const shared = {
   active: v.boolean(),
   replacedAt: v.union(v.number(), v.null()),
   publicId: v.string(),
+  searchIndexable: v.boolean(),
+  editorial: v.string(),
 };
 export const ensureAccess = internalMutation({
   args: { takeoverId: v.id("takeovers") },
@@ -35,6 +38,8 @@ export const dashboard = internalQuery({
       v.literal("off"),
     ),
     shareUrl: v.string(),
+    shareVisitors: v.number(),
+    shareTakeovers: v.number(),
     regions: v.array(
       v.object({ regionCode: v.string(), impressions: v.number() }),
     ),
@@ -71,11 +76,15 @@ export const dashboard = internalQuery({
       active: site.currentTakeoverId === t._id && !t.blocked,
       replacedAt: t.replacedAt ?? null,
       publicId: t.publicTakeoverId,
+      searchIndexable: indexable(t),
+      editorial: indexable(t) ? t.seoSummary! : "",
       weeklyDigestEnabled:
         access.weeklyDigestEnabled &&
         !!purchase?.buyerEmail &&
         (await emailAllowed(ctx, purchase.buyerEmail, "weekly_digest_email")),
-      shareUrl: `${ownerBaseUrl()}/takeover/${t.publicTakeoverId}`,
+      shareUrl: `${ownerBaseUrl()}/takeover/${t.publicTakeoverId}?via=share`,
+      shareVisitors: t.shareVisitors ?? 0,
+      shareTakeovers: t.shareTakeovers ?? 0,
       regions: regions.map((r) => ({
         regionCode: r.regionCode,
         impressions: r.impressions,
@@ -220,6 +229,8 @@ export const sharedTakeover = internalQuery({
       active: site.currentTakeoverId === t._id,
       replacedAt: t.replacedAt ?? null,
       publicId: a.publicId,
+      searchIndexable: indexable(t),
+      editorial: indexable(t) ? t.seoSummary! : "",
     };
   },
 });

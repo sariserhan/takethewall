@@ -216,6 +216,12 @@ export default defineSchema({
     displayName: v.optional(v.string()),
     takeoverNumber: v.optional(v.number()),
     publicTakeoverId: v.optional(v.string()),
+    shareVisitors: v.optional(v.number()),
+    shareTakeovers: v.optional(v.number()),
+    seoApproved: v.optional(v.boolean()),
+    seoRevision: v.optional(v.number()),
+    seoSummary: v.optional(v.string()),
+    seoReviewedAt: v.optional(v.number()),
     previousAuditHash: v.optional(v.string()),
     auditHash: v.optional(v.string()),
     outboundLinkEnabled: v.optional(v.boolean()),
@@ -240,11 +246,22 @@ export default defineSchema({
   })
     .index("by_takeoverNumber", ["takeoverNumber"])
     .index("by_publicId", ["publicTakeoverId"])
+    .index("by_seo_sequence", ["seoApproved", "activationSequence"])
     .index("by_status", ["status"])
     .index("by_activationSequence", ["activationSequence"])
     .index("by_logoStorageId", ["logoStorageId"])
     .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
+  growthSettings: defineTable({
+    key: v.literal("current"),
+    historyEnabled: v.boolean(),
+  }).index("by_key", ["key"]),
+  referralVisits: defineTable({
+    takeoverId: v.id("takeovers"),
+    visitorHash: v.string(),
+    createdAt: v.number(),
+  }).index("by_source_visitor", ["takeoverId", "visitorHash"]),
   purchases: defineTable({
+    referralSource: v.optional(v.id("takeovers")),
     buyerEmailKey: v.optional(v.string()),
     receiptEmailKey: v.optional(v.string()),
     funnelCheckoutTracked: v.optional(v.boolean()),

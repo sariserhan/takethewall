@@ -50,7 +50,7 @@ it.each([
     expect(await sharp(png).metadata()).toMatchObject({ width, height });
     const raw = await sharp(png).ensureAlpha().raw().toBuffer();
     const decoded = jsQR(new Uint8ClampedArray(raw), width, height);
-    expect(decoded?.data).toBe(`https://takethewall.com/takeover/${id}`);
+    expect(decoded?.data).toBe(`https://takethewall.com/takeover/${id}?via=share`);
   },
 );
 it("removed content is not rendered and unknown formats are rejected", async () => {

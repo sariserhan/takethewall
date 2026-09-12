@@ -25,6 +25,7 @@ import type * as emailDelivery from "../emailDelivery.js";
 import type * as emailDirectory from "../emailDirectory.js";
 import type * as emailPolicy from "../emailPolicy.js";
 import type * as funnel from "../funnel.js";
+import type * as growth from "../growth.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   emailDirectory: typeof emailDirectory;
   emailPolicy: typeof emailPolicy;
   funnel: typeof funnel;
+  growth: typeof growth;
   health: typeof health;
   http: typeof http;
   jobs: typeof jobs;

@@ -4,6 +4,7 @@ import {
   EmbeddedCheckoutProvider,
 } from "@stripe/react-stripe-js";
 import Link from "next/link";
+import { TakeoverShare } from "./takeover-share";
 import { loadStripe } from "@stripe/stripe-js/pure";
 import { useEffect, useMemo, useState } from "react";
 export interface CheckoutSession {
@@ -20,6 +21,7 @@ export default function EmbeddedPayment({
 }) {
   const [complete, setComplete] = useState(false);
   const [status, setStatus] = useState("pending");
+  const [publicId, setPublicId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const stripe = useMemo(
@@ -58,6 +60,7 @@ export default function EmbeddedPayment({
         setError("");
         if (["expired", "invalid"].includes(result.state)) return;
         if (["active", "replaced"].includes(result.state)) {
+          if (typeof result.publicId === "string") setPublicId(result.publicId);
           try {
             sessionStorage.removeItem("ttw-draft");
             sessionStorage.removeItem("ttw-confirmation");
@@ -112,6 +115,7 @@ export default function EmbeddedPayment({
               Check payment status
             </button>
           )}
+          {publicId && <TakeoverShare publicId={publicId} />}
           <Link href="/?info=support">Need help? Contact support</Link>
           <button
             type="button"

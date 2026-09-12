@@ -3,7 +3,7 @@ import { validatePrivateDocument } from "../lib/private-document";
 import type { Id } from "./_generated/dataModel";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 const http = httpRouter();
 authComponent.registerRoutes(http, createAuth);
 http.route({
@@ -70,6 +70,21 @@ http.route({
           break;
         case "ownerUnsubscribe":
           result = await ctx.runMutation(internal.owners.unsubscribe, args);
+          break;
+        case "growthVisibility":
+          result = await ctx.runQuery(api.growth.visibility, {});
+          break;
+        case "growthHistory":
+          result = await ctx.runQuery(internal.growth.history, args);
+          break;
+        case "referralVisit":
+          result = await ctx.runMutation(internal.growth.visit, args);
+          break;
+        case "growthSitemap":
+          result = await ctx.runQuery(internal.growth.sitemap, args);
+          break;
+        case "growthSitemapCount":
+          result = await ctx.runQuery(internal.growth.sitemapCount, args);
           break;
         case "ownerShared":
           result = await ctx.runQuery(internal.owners.sharedTakeover, args);

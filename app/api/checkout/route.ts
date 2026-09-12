@@ -1,3 +1,5 @@
+import { NextRequest } from "next/server";
+import { readReferral, REFERRAL_COOKIE } from "@/lib/referral";
 import { validateWallContent } from "@/lib/content";
 import {
   backend,
@@ -54,8 +56,20 @@ export async function POST(req: Request) {
       checkoutUrl: string | null;
       checkoutExpiresAt: number;
     }>("pending", {
+      referralPublicId: readReferral(
+        new NextRequest(req.url, { headers: req.headers }).cookies.get(
+          REFERRAL_COOKIE,
+        )?.value,
+      ),
       requestKey: "embedded:" + a.requestKey,
-      fingerprint: hash(JSON.stringify([content, buyerEmail, a.uploadKey, a.weeklyDigestEnabled !== false])),
+      fingerprint: hash(
+        JSON.stringify([
+          content,
+          buyerEmail,
+          a.uploadKey,
+          a.weeklyDigestEnabled !== false,
+        ]),
+      ),
       tokenHash: hash(token),
       ownerHash: clientHash(req),
       uploadKey: a.uploadKey ?? "",
@@ -65,7 +79,7 @@ export async function POST(req: Request) {
       contentType: content.contentType,
       linkType: content.linkType,
       buyerEmail,
-      weeklyDigestEnabled:a.weeklyDigestEnabled !== false,
+      weeklyDigestEnabled: a.weeklyDigestEnabled !== false,
       environment,
     });
     const session = await paymentProvider.createCheckout(

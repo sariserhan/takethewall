@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
+  async rewrites() {
+    return [
+      {
+        source: "/takeover-sitemap-:id([0-9]+).xml",
+        destination: "/takeover/sitemap/:id.xml",
+      },
+    ];
+  },
   devIndicators: false,
   async headers() {
     return [
@@ -18,10 +26,19 @@ const config: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
-      {source:"/alerts",headers:[{key:"X-Robots-Tag",value:"noindex, noarchive"},{key:"Cache-Control",value:"private, no-store"}]},
+      {
+        source: "/alerts",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, noarchive" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       {
         source: "/owner/:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex, noarchive" }, { key: "Cache-Control", value: "private, no-store" }],
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, noarchive" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
       },
       {
         source: "/reward/:path*",

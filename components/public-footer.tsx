@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HistoryLink } from "./history-link";
 import Script from "next/script";
 import { MILESTONES } from "@/lib/config";
 import { InfoOverlay } from "./info-overlay";
@@ -22,6 +23,7 @@ export function PublicFooter({ home = false }: { home?: boolean }) {
       <footer className="public-footer">
         <nav aria-label="Information">
           <Link href="/owner">Owner dashboard</Link>
+          <HistoryLink />
           {infoLinks.map(([label, key]) => (
             <Link key={key} href={`/?info=${key}`}>
               {label}

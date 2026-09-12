@@ -1,3 +1,5 @@
+import { HistoryLink } from "@/components/history-link";
+import { ReferralVisit } from "@/components/referral-visit";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -5,7 +7,10 @@ import { notFound } from "next/navigation";
 import { getSharedTakeover } from "@/lib/shared-takeover";
 import { siteUrl } from "@/lib/site-url";
 export const dynamic = "force-dynamic";
-type Props = { params: Promise<{ publicId: string }> };
+type Props = {
+  params: Promise<{ publicId: string }>;
+  searchParams: Promise<{ via?: string }>;
+};
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { publicId } = await params;
   const data = await getSharedTakeover(publicId);
@@ -15,7 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description:
       data.owner.description || "One wall. One owner. See this takeover.",
-    robots: { index: false, follow: true },
+    robots: { index: data.searchIndexable === true, follow: true },
+    alternates: { canonical: new URL(`/takeover/${publicId}`, siteUrl()).href },
     openGraph: {
       title,
       images: [
@@ -33,13 +39,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
   };
 }
-export default async function SharedPage({ params }: Props) {
+export default async function SharedPage({ params, searchParams }: Props) {
   const { publicId } = await params;
   const data = await getSharedTakeover(publicId);
   if (!data) notFound();
   const owner = data.owner;
+  const via = (await searchParams).via;
   return (
     <main className="owner-page public-takeover">
+      {via === "share" && <ReferralVisit publicId={publicId} />}
       <header className="owner-page-header">
         <Link href="/">TAKE THE WALL</Link>
         <span>{data.active ? "LIVE NOW" : "WALL HISTORY"}</span>
@@ -60,6 +68,12 @@ export default async function SharedPage({ params }: Props) {
         )}
         <h2>{owner.displayName || owner.domain}</h2>
         <p>{owner.description}</p>
+        {data.editorial && (
+          <section className="editorial-overview">
+            <h2>About this takeover</h2>
+            <p>{data.editorial}</p>
+          </section>
+        )}
         <p className="field-note">
           Activated{" "}
           {new Date(owner.activatedAt)
@@ -75,7 +89,7 @@ export default async function SharedPage({ params }: Props) {
           <a
             href={owner.websiteUrl}
             target="_blank"
-            rel="noopener noreferrer nofollow"
+            rel="noopener noreferrer nofollow sponsored"
           >
             Visit their link ↗
           </a>
@@ -105,6 +119,7 @@ export default async function SharedPage({ params }: Props) {
         </Link>
       </section>
       <footer className="owner-page-footer">
+        <HistoryLink>Browse wall history</HistoryLink>
         <Link href="/?info=how-it-works">How it works</Link>
         <Link href="/?info=content-policy">Content policy</Link>
       </footer>

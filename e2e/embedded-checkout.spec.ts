@@ -23,7 +23,11 @@ test("embedded checkout stays in the overlay and waits for server activation", a
   let confirmed = false;
   await page.route("**/api/status", (route) =>
     route.fulfill({
-      json: { state: confirmed ? "active" : "pending", durationMs: null },
+      json: {
+        state: confirmed ? "active" : "pending",
+        durationMs: null,
+        ...(confirmed ? { publicId: "ttw_" + "a".repeat(32) } : {}),
+      },
     }),
   );
   await page.goto("/?take=1");
@@ -32,16 +36,26 @@ test("embedded checkout stays in the overlay and waits for server activation", a
   await dialog.getByLabel("Display name").fill("EMBEDDED CHECKOUT TEST");
   await dialog.getByLabel("Buyer email").fill("test@example.com");
   await dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
-  await dialog.getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" }).click();
+  await dialog
+    .getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" })
+    .click();
   await dialog
     .getByRole("button", { name: "Complete simulated payment" })
     .click();
-  await expect(dialog.getByText("Checkout complete. Verifying payment…")).toBeVisible();
+  await expect(
+    dialog.getByText("Checkout complete. Verifying payment…"),
+  ).toBeVisible();
   await expect(dialog.getByText("Your wall is live.")).toHaveCount(0);
   confirmed = true;
   await expect(dialog.getByText("Your wall is live.")).toBeVisible({
     timeout: 10000,
   });
+  await expect(
+    dialog.getByRole("button", { name: "Copy caption" }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("link", { name: "Open public page" }),
+  ).toHaveAttribute("href", "/takeover/ttw_" + "a".repeat(32) + "?via=share");
   expect(new URL(page.url()).pathname).toBe("/");
   expect(errors).toEqual([]);
   await dialog.getByRole("button", { name: "Back to the wall" }).click();

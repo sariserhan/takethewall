@@ -1,6 +1,7 @@
 "use client";
-import {WallSubscription} from "./wall-subscription";
-import {MilestoneAlerts} from "./milestone-alerts";
+import { PublishedShare } from "./takeover-share";
+import { WallSubscription } from "./wall-subscription";
+import { MilestoneAlerts } from "./milestone-alerts";
 import { ReportContent } from "./report-content";
 import { StatHelp } from "./stat-help";
 import { contentCta } from "@/lib/content";
@@ -56,13 +57,7 @@ function Clock({ since }: { since: number }) {
   }, []);
   return <>{since && now ? duration(now - since) : "00:00:00"}</>;
 }
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="metric">
       <span>
@@ -73,6 +68,7 @@ function Metric({
   );
 }
 interface Confirmation {
+  publicId?: string;
   state: "pending" | "active" | "replaced" | "invalid" | "expired";
   durationMs: number | null;
 }
@@ -91,8 +87,10 @@ function WallView({
     [changed, setChanged] = useState(false);
   const sample = data?.demoStats;
   const presentation = data?.demoPresentation;
-  const demoPreviousOwner = sample?.previousOwnerName ?? presentation?.previousOwnerName;
-  const demoTakeoverCount = sample?.takeoverCount ?? presentation?.takeoverCount;
+  const demoPreviousOwner =
+    sample?.previousOwnerName ?? presentation?.previousOwnerName;
+  const demoTakeoverCount =
+    sample?.takeoverCount ?? presentation?.takeoverCount;
   const since = presentation?.ownerSince ?? data?.owner.activatedAt ?? 0;
   const owner = data?.owner,
     adRef = useRef<HTMLAnchorElement>(null),
@@ -123,6 +121,7 @@ function WallView({
       setConfirmation(result);
       setStatusError(false);
       if (result.state === "active" || result.state === "replaced") {
+        setOpen(false);
         try {
           sessionStorage.removeItem("ttw-draft");
         } catch {}
@@ -230,6 +229,12 @@ function WallView({
         {returnToken && (
           <div className="notice" role="status">
             <p>{statusCopy}</p>
+            {confirmation?.publicId && (
+              <PublishedShare
+                key={confirmation.publicId}
+                publicId={confirmation.publicId}
+              />
+            )}
             {(!confirmation ||
               confirmation.state === "pending" ||
               statusError) && (
@@ -271,9 +276,7 @@ function WallView({
           <Metric
             label="COUNTED TAKEOVERS"
             value={
-              <>
-                {numbers(combined(data?.totalTakeovers, demoTakeoverCount))}
-              </>
+              <>{numbers(combined(data?.totalTakeovers, demoTakeoverCount))}</>
             }
           />
           <div className="metric previous-owner-stat">
@@ -281,7 +284,8 @@ function WallView({
               <StatHelp label="PREVIOUS OWNER" />
             </span>
             <strong>
-              {demoPreviousOwner || (data ? (data.previousOwnerName ?? "None yet") : "—")}
+              {demoPreviousOwner ||
+                (data ? (data.previousOwnerName ?? "None yet") : "—")}
             </strong>
           </div>
         </section>
@@ -371,7 +375,14 @@ function WallView({
             </div>
           )}
         </section>
-        {owner && <div className="wall-owner-tools"><ReportContent takeoverId={owner.id} name={owner.displayName || owner.domain} /></div>}
+        {owner && (
+          <div className="wall-owner-tools">
+            <ReportContent
+              takeoverId={owner.id}
+              name={owner.displayName || owner.domain}
+            />
+          </div>
+        )}
         <section className="reign-metrics" aria-label="Current reign analytics">
           <Metric
             label="CURRENT REIGN"
@@ -422,7 +433,9 @@ function WallView({
             }
           />
           <div className="regions">
-            <span className="eyebrow"><StatHelp label="TOP REGIONS" /></span>
+            <span className="eyebrow">
+              <StatHelp label="TOP REGIONS" />
+            </span>
             {regions.length ? (
               <ul>
                 {regions.map((r) => (
@@ -460,8 +473,8 @@ function WallView({
         </section>
       </div>
       <HomepageMilestones />
-      <WallSubscription/>
-      <MilestoneAlerts/>
+      <WallSubscription />
+      <MilestoneAlerts />
       <PublicFooter home />
       <PurchaseSheet
         key={

@@ -1,5 +1,5 @@
 import { sha } from "../lib/audit";
-import {incrementFunnel} from "./funnel";
+import { incrementFunnel } from "./funnel";
 import { queueAdminTakeoverEmail } from "./adminNotifications";
 import { internal } from "./_generated/api";
 import { onActivation } from "./rewardModel";
@@ -21,7 +21,8 @@ import {
 import { validateEmail } from "../lib/validation";
 export const pending = internalMutation({
   args: {
-    weeklyDigestEnabled:v.optional(v.boolean()),
+    referralPublicId: v.optional(v.string()),
+    weeklyDigestEnabled: v.optional(v.boolean()),
     requestKey: v.string(),
     fingerprint: v.string(),
     tokenHash: v.string(),
@@ -90,11 +91,24 @@ export const pending = internalMutation({
     });
     const checkoutExpiresAt =
       Math.floor(Date.now() / 1000) * 1000 + 24 * 3600_000;
+    const referral = a.referralPublicId
+      ? await ctx.db
+          .query("takeovers")
+          .withIndex("by_publicId", (q) =>
+            q.eq("publicTakeoverId", a.referralPublicId),
+          )
+          .unique()
+      : null;
     const purchaseId = await ctx.db.insert("purchases", {
+      ...(referral &&
+      !referral.blocked &&
+      ["active", "replaced"].includes(referral.status)
+        ? { referralSource: referral._id }
+        : {}),
       takeoverId: id,
       buyerEmail,
-      buyerEmailKey:sha(buyerEmail.toLowerCase()),
-      weeklyDigestEnabled:a.weeklyDigestEnabled ?? true,
+      buyerEmailKey: sha(buyerEmail.toLowerCase()),
+      weeklyDigestEnabled: a.weeklyDigestEnabled ?? true,
       legalVersion: LEGAL_VERSION,
       requestKey: a.requestKey,
       fingerprint: a.fingerprint,
@@ -122,9 +136,10 @@ export const attach = internalMutation({
     if (!p) throw new Error("Unknown purchase");
     if (p.sessionId && p.sessionId !== a.sessionId)
       throw new Error("Conflicting Checkout Session");
-    if(!p.funnelCheckoutTracked && p.environment === "production") await incrementFunnel(ctx,"checkoutStarts");
+    if (!p.funnelCheckoutTracked && p.environment === "production")
+      await incrementFunnel(ctx, "checkoutStarts");
     await ctx.db.patch(p._id, {
-      funnelCheckoutTracked:true,
+      funnelCheckoutTracked: true,
       sessionId: a.sessionId,
       cleanupAt: undefined,
       checkoutUrl: a.checkoutUrl,
@@ -194,6 +209,24 @@ export const activate = internalMutation({
       createdAt: Date.now(),
     });
     if (p.paidAt) return { activated: false, takeoverId: a.takeoverId };
+    if (p.referralSource && p.environment === "production" && a.livemode) {
+      const source = await ctx.db.get(p.referralSource);
+      const sourcePurchase = await ctx.db
+        .query("purchases")
+        .withIndex("by_takeoverId", (q) =>
+          q.eq("takeoverId", p.referralSource!),
+        )
+        .unique();
+      const self =
+        sourcePurchase &&
+        (sourcePurchase.buyerEmailKey ??
+          sha(sourcePurchase.buyerEmail.toLowerCase())) ===
+          (p.buyerEmailKey ?? sha(p.buyerEmail.toLowerCase()));
+      if (source && !source.blocked && !self)
+        await ctx.db.patch(source._id, {
+          shareTakeovers: (source.shareTakeovers ?? 0) + 1,
+        });
+    }
     const t = await ctx.db.get(a.takeoverId);
     if (!t || t.status !== "pending" || t.blocked)
       throw new Error("Takeover cannot activate");
@@ -257,7 +290,10 @@ export const activate = internalMutation({
       sessionId: a.sessionId,
       paymentIntentId: a.paymentIntentId,
       ...(a.receiptEmail
-        ? { receiptEmail: a.receiptEmail.trim().slice(0, 800), receiptEmailKey:sha(a.receiptEmail.trim().toLowerCase()) }
+        ? {
+            receiptEmail: a.receiptEmail.trim().slice(0, 800),
+            receiptEmailKey: sha(a.receiptEmail.trim().toLowerCase()),
+          }
         : {}),
       contactDeleteAt: now + 365 * 86400_000,
     });
@@ -277,8 +313,9 @@ export const activate = internalMutation({
     if (takeoverNumber % 100 === 0)
       await ctx.scheduler.runAfter(0, internal.auditTrail.checkpoint, {});
     await enqueue(ctx, "activation_email", t._id);
-    await queueAdminTakeoverEmail(ctx,t._id);
-    if(p.environment === "production") await incrementFunnel(ctx,"paidActivations");
+    await queueAdminTakeoverEmail(ctx, t._id);
+    if (p.environment === "production")
+      await incrementFunnel(ctx, "paidActivations");
     if (previous.kind === "paid" || previous.kind === "admin_counted")
       await enqueue(ctx, "replacement_email", previous._id);
     await enqueue(ctx, "checkout_completed", t._id);
@@ -298,6 +335,7 @@ export const confirmation = internalMutation({
     ),
     owner: v.union(publicOwner, v.null()),
     durationMs: v.union(v.number(), v.null()),
+    publicId: v.optional(v.string()),
   }),
   handler: async (ctx, a) => {
     const p = await ctx.db
@@ -313,6 +351,7 @@ export const confirmation = internalMutation({
     return {
       state:
         t.status === "active" ? ("active" as const) : ("replaced" as const),
+      publicId: !t.blocked ? t.publicTakeoverId : undefined,
       owner: await projectOwner(ctx, t),
       durationMs:
         t.replacedAt !== undefined ? t.replacedAt - t.activatedAt! : null,

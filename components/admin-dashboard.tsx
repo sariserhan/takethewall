@@ -1,7 +1,8 @@
 "use client";
+import { AdminGrowth } from "./admin-growth";
 import { AdminEmails } from "./admin-emails";
 import { AdminDelivery } from "./admin-delivery";
-import {AdminFunnel} from "./admin-funnel";
+import { AdminFunnel } from "./admin-funnel";
 import { AdminNotifications } from "./admin-notifications";
 import { AdminDemoStats } from "./admin-demo-stats";
 import { AdminHealth } from "./admin-health";
@@ -14,6 +15,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 const sections = [
   "overview",
+  "growth",
   "funnel",
   "delivery",
   "emails",
@@ -37,7 +39,16 @@ export function AdminDashboard() {
   const [before, setBefore] = useState<string | undefined>();
   const raw = useQuery(
     api.admin.list,
-    !["overview", "emails", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section)
+    ![
+      "overview",
+      "growth",
+      "emails",
+      "delivery",
+      "funnel",
+      "settings",
+      "publish",
+      "demo stats",
+    ].includes(section)
       ? { section, cursor: before }
       : "skip",
   );
@@ -74,11 +85,21 @@ export function AdminDashboard() {
       </nav>
       {error && <p role="alert">{error}</p>}
       {((section === "overview" && overview === undefined) ||
-        (!["overview", "emails", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section) &&
+        (![
+          "overview",
+          "growth",
+          "emails",
+          "delivery",
+          "funnel",
+          "settings",
+          "publish",
+          "demo stats",
+        ].includes(section) &&
           raw === undefined)) && (
         <LoadingSkeleton label={`Loading ${section}`} />
       )}
       {section === "overview" && <AdminHealth />}
+      {section === "growth" && <AdminGrowth />}
       {stats && (
         <>
           {!!stats.site?.numberingOffset && (
@@ -117,12 +138,17 @@ export function AdminDashboard() {
           )}
         </>
       )}
-      {section === "emails" && <AdminEmails/>}
-      {section === "delivery" && <AdminDelivery/>}
-      {section === "funnel" && <AdminFunnel/>}
+      {section === "emails" && <AdminEmails />}
+      {section === "delivery" && <AdminDelivery />}
+      {section === "funnel" && <AdminFunnel />}
       {section === "publish" && <AdminPublish />}
       {section === "demo stats" && <AdminDemoStats />}
-      {section === "settings" && <><AdminNotifications/><Settings /></>}
+      {section === "settings" && (
+        <>
+          <AdminNotifications />
+          <Settings />
+        </>
+      )}
       {page && (
         <>
           <div className="admin-table-wrap">

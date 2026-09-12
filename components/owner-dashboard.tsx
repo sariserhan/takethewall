@@ -345,6 +345,19 @@ export function OwnerDashboardView() {
             <button className="button" onClick={() => void share()}>
               Share takeover ↗
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(
+                    `I took the wall! One wall. One owner. $3.99 to take over until the next owner replaces you. ${data.shareUrl}`,
+                  );
+                } catch {
+                  /* The public link remains selectable below. */
+                }
+              }}
+            >
+              Copy caption
+            </button>
             <a
               href={`/takeover/${data.publicId}/card?download=1&format=${cardFormat}`}
               download
@@ -362,6 +375,16 @@ export function OwnerDashboardView() {
           </label>
         </section>
         <section className="owner-preferences">
+          <h2>Your shared link results</h2>
+          <p>
+            <strong>{data.shareVisitors ?? 0}</strong> unique referred browsers
+            · <strong>{data.shareTakeovers ?? 0}</strong> paid takeovers
+          </p>
+          <p className="field-note">
+            Measured separately from clicks to your website. Last shared link
+            visited within 30 days receives credit. Test payments and
+            identifiable self-referrals are excluded.
+          </p>
           <h2>Email preferences</h2>
           <p>
             A branded stats summary every Monday at 09:00 UTC, only while this

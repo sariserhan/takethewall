@@ -27,7 +27,7 @@ export async function GET(
       status: 404,
       headers: { "Cache-Control": "no-store" },
     });
-  const qr = await QRCode.toDataURL(`${ownerBaseUrl()}/takeover/${publicId}`, {
+  const qr = await QRCode.toDataURL(`${ownerBaseUrl()}/takeover/${publicId}?via=share`, {
     errorCorrectionLevel: "M",
     margin: 4,
     width: tall ? 220 : 160,
