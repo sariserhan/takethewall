@@ -18,7 +18,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { jobKind, digestSnapshot, finalReportSnapshot } from "./schema";
 import { limit } from "./model";
-import { emailMessage, retryDelay, visitorPingPayload } from "../lib/delivery";
+import { emailMessage, retryDelay } from "../lib/delivery";
 export const claim = internalMutation({
   args: { id: v.id("jobs") },
   returns: v.boolean(),
@@ -31,6 +31,11 @@ export const claim = internalMutation({
       j.nextAt > Date.now()
     )
       return false;
+    // Drain obsolete analytics jobs without making server-origin tracker requests.
+    if (!j.kind.endsWith("_email")) {
+      await ctx.db.patch(j._id, { state: "sent", lastError: undefined });
+      return false;
+    }
     if (j.kind === "replacement_email" && !j.finalReport) {
       const takeover = await ctx.db.get(j.takeoverId);
       if (!takeover?.activatedAt || takeover.replacedAt === undefined)
@@ -418,28 +423,8 @@ export const dispatch = internalAction({
             signal: AbortSignal.timeout(10_000),
           });
         } else {
-          if (
-            j.environment !== "production" ||
-            process.env.PUBLIC_METRICS_ENABLED !== "true"
-          ) {
-            await ctx.runMutation(internal.jobs.finish, { id, ok: true });
-            continue;
-          }
-          const siteKey = process.env.VISITORPING_SITE_KEY;
-          if (!siteKey || !/^vp_[A-HJ-NP-Z2-9]{8}$/.test(siteKey))
-            throw new Error("VisitorPing site key is not configured");
-          response = await fetch("https://ingest.visitorping.com/e", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Origin: "https://takethewall.com",
-              "User-Agent": "TakeTheWall/1.0",
-            },
-            body: JSON.stringify(
-              visitorPingPayload({ siteKey, ...j, event: j.kind }),
-            ),
-            signal: AbortSignal.timeout(10_000),
-          });
+          await ctx.runMutation(internal.jobs.finish, { id, ok: true });
+          continue;
         }
         if (j.kind.endsWith("_email")) {
           const result = response.ok

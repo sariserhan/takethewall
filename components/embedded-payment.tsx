@@ -1,4 +1,5 @@
 "use client";
+import {trackVerifiedTakeover} from "@/lib/visitorping-client";
 import {
   EmbeddedCheckout,
   EmbeddedCheckoutProvider,
@@ -60,6 +61,7 @@ export default function EmbeddedPayment({
         setError("");
         if (["expired", "invalid"].includes(result.state)) return;
         if (["active", "replaced"].includes(result.state)) {
+          trackVerifiedTakeover(result.visitorPing);
           if (typeof result.publicId === "string") setPublicId(result.publicId);
           try {
             sessionStorage.removeItem("ttw-draft");

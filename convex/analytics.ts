@@ -1,7 +1,7 @@
-import {incrementFunnel} from "./funnel";
+import { incrementFunnel } from "./funnel";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { daily, enqueue, getSite, limit, receipt } from "./model";
+import { daily, getSite, limit, receipt } from "./model";
 export const rate = internalMutation({
   args: { key: v.string(), max: v.number(), windowMs: v.number() },
   returns: v.null(),
@@ -46,7 +46,11 @@ export const record = internalMutation({
         (a.issuedAt > t.replacedAt || now > t.replacedAt + 120_000))
     )
       throw new Error("Invalid reign attribution");
-    if (a.event === "click" && (t.contentType === "personal" || t.outboundLinkEnabled === false)) return false;
+    if (
+      a.event === "click" &&
+      (t.contentType === "personal" || t.outboundLinkEnabled === false)
+    )
+      return false;
     await limit(ctx, "events:" + a.visitorHash, 90);
     if (a.event === "click") await limit(ctx, "clicks:" + a.visitorHash, 20);
     const eventKey =
@@ -55,18 +59,14 @@ export const record = internalMutation({
         : `event:${a.visitorHash}:${a.eventId}`;
     if (!(await receipt(ctx, eventKey))) return false;
     if (a.event === "take_wall_clicked" || a.event === "checkout_started") {
-      await enqueue(ctx, a.event, t._id, a.eventId, {
-        visitorHash: a.visitorHash,
-        pageId: a.pageId,
-        region: a.region,
-      });
       return true;
     }
     const site = await getSite(ctx),
       d = await daily(ctx);
     const region = /^[A-Z]{2}$/.test(a.region) ? a.region : "ZZ";
     if (a.event === "impression") {
-      if(await receipt(ctx,"funnel-visit:"+a.pageId)) await incrementFunnel(ctx,"funnelVisits");
+      if (await receipt(ctx, "funnel-visit:" + a.pageId))
+        await incrementFunnel(ctx, "funnelVisits");
       const seen = await ctx.db
         .query("takeoverVisitors")
         .withIndex("by_takeoverId_visitorHash", (q) =>
@@ -130,19 +130,9 @@ export const record = internalMutation({
           impressions: 1,
           uniqueVisitors: seen ? 0 : 1,
         });
-      await enqueue(ctx, "wall_impression", t._id, a.pageId, {
-        visitorHash: a.visitorHash,
-        pageId: a.pageId,
-        region,
-      });
     } else {
       await ctx.db.patch(t._id, { clicks: t.clicks + 1 });
       await ctx.db.patch(d._id, { clicks: d.clicks + 1 });
-      await enqueue(ctx, "wall_owner_link_click", t._id, a.eventId, {
-        visitorHash: a.visitorHash,
-        pageId: a.pageId,
-        region,
-      });
     }
     return true;
   },

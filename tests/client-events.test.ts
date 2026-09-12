@@ -101,3 +101,47 @@ it("never collects events on private admin or claim routes", async () => {
   }
   expect(fetcher).not.toHaveBeenCalled();
 });
+
+it("tracks browser events once per visible impression or click intent, independent of internal retries", async () => {
+  const track = vi.fn();
+  vi.stubGlobal("window", {
+    location: { pathname: "/" },
+    VisitorPing: { track },
+  });
+  const metadata = {
+    takeoverId: "ownerA",
+    ownerDomain: "example.com",
+    destination: "https://example.com/",
+    country: "US",
+  };
+  let sends = 0;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url) =>
+      url === "/api/context"
+        ? Response.json({
+            token: "signed",
+            expiresAt: Date.now() + 300000,
+            visitorPing: metadata,
+          })
+        : new Response(null, { status: ++sends === 1 ? 503 : 204 }),
+    ),
+  );
+  const { wallEvent } = await import("../lib/client-events");
+  await wallEvent("ownerA", "impression", () => false);
+  expect(track).not.toHaveBeenCalled();
+  await wallEvent("ownerA", "impression", () => true);
+  await wallEvent("ownerA", "impression", () => true);
+  await wallEvent("ownerA", "click");
+  await wallEvent("ownerA", "take_wall_clicked");
+  expect(track.mock.calls.map((c) => c[0])).toEqual([
+    "wall_impression",
+    "wall_owner_link_click",
+    "take_wall_clicked",
+  ]);
+  expect(
+    track.mock.calls.every(
+      (c) => JSON.stringify(c[1]) === JSON.stringify(metadata),
+    ),
+  ).toBe(true);
+});

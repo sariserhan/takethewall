@@ -318,8 +318,6 @@ export const activate = internalMutation({
       await incrementFunnel(ctx, "paidActivations");
     if (previous.kind === "paid" || previous.kind === "admin_counted")
       await enqueue(ctx, "replacement_email", previous._id);
-    await enqueue(ctx, "checkout_completed", t._id);
-    await enqueue(ctx, "takeover_activated", t._id);
     return { activated: true, takeoverId: t._id };
   },
 });
@@ -336,6 +334,7 @@ export const confirmation = internalMutation({
     owner: v.union(publicOwner, v.null()),
     durationMs: v.union(v.number(), v.null()),
     publicId: v.optional(v.string()),
+    analyticsAllowed: v.optional(v.boolean()),
   }),
   handler: async (ctx, a) => {
     const p = await ctx.db
@@ -351,6 +350,7 @@ export const confirmation = internalMutation({
     return {
       state:
         t.status === "active" ? ("active" as const) : ("replaced" as const),
+      analyticsAllowed: p.environment === "production" && !t.blocked,
       publicId: !t.blocked ? t.publicTakeoverId : undefined,
       owner: await projectOwner(ctx, t),
       durationMs:

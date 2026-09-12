@@ -23,8 +23,8 @@ export async function readVisitorPingTotals(args: {
     from: args.from,
     to: args.to,
     interval: "hour",
-    // These custom events are relayed by Convex after application traffic checks.
-    // Provider bot classification describes the relay server, not the visitor.
+    // Include legacy relay events in historical reports. New custom events use
+    // the browser tracker session; this preserves existing reporting totals.
     traffic: "all",
     event: args.event,
     property: "takeoverId",

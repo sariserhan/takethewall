@@ -1,4 +1,5 @@
 "use client";
+import {trackVerifiedTakeover} from "@/lib/visitorping-client";
 import {RegionLabel} from "./region-label";
 import { PublishedShare } from "./takeover-share";
 import { WallSubscription } from "./wall-subscription";
@@ -122,6 +123,7 @@ function WallView({
       setConfirmation(result);
       setStatusError(false);
       if (result.state === "active" || result.state === "replaced") {
+        trackVerifiedTakeover(result.visitorPing);
         setOpen(false);
         try {
           sessionStorage.removeItem("ttw-draft");

@@ -39,7 +39,6 @@ export const overview = query({
       analyticsMissing: missing([
         "VISITORPING_API_KEY",
         "VISITORPING_SITE_ID",
-        "VISITORPING_SITE_KEY",
       ]),
       metricsEnabled: process.env.PUBLIC_METRICS_ENABLED === "true",
       environment: process.env.WALL_ENVIRONMENT ?? "unset",

@@ -9,7 +9,7 @@ import {
   signContext,
   publicDestination,
 } from "../lib/server";
-import { visitorPingPayload, emailMessage } from "../lib/delivery";
+import { visitorPingProperties, emailMessage } from "../lib/delivery";
 import { POST as webhook } from "../app/api/webhook/route";
 vi.mock("node:dns/promises", () => ({ lookup: vi.fn() }));
 import { lookup } from "node:dns/promises";
@@ -156,19 +156,17 @@ describe("privacy and tokens", () => {
     ).toThrow();
   });
   it("uses the actual VisitorPing payload without private fields or query strings", () => {
-    const payload = visitorPingPayload({
-      siteKey: "vp_ABCD2345",
-      deliveryId: "123",
-      timestamp: 123,
-      event: "checkout_completed",
+    const payload = visitorPingProperties({
       takeoverId: "t",
       domain: "example.com",
       websiteUrl: "https://example.com/?email=secret#token",
+      region: "US",
     });
-    expect(payload).toMatchObject({
-      siteId: "vp_ABCD2345",
-      deliveryId: "123",
-      data: { destination: "https://example.com/" },
+    expect(payload).toEqual({
+      takeoverId: "t",
+      ownerDomain: "example.com",
+      destination: "https://example.com/",
+      country: "US",
     });
     expect(JSON.stringify(payload)).not.toMatch(/email|payment|token/);
   });

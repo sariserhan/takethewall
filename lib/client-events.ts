@@ -1,10 +1,25 @@
+import {
+  trackVisitorPing,
+  type VisitorPingProperties,
+} from "./visitorping-client";
 export type WallEvent =
   "impression" | "click" | "take_wall_clicked" | "checkout_started";
 let visitorId: string, pageId: string;
-const contexts = new Map<string, { token: string; expiresAt: number }>();
+const contexts = new Map<
+  string,
+  {
+    token: string;
+    expiresAt: number;
+    visitorPing?: VisitorPingProperties | null;
+  }
+>();
 const requests = new Map<
   string,
-  Promise<{ token: string; expiresAt: number }>
+  Promise<{
+    token: string;
+    expiresAt: number;
+    visitorPing?: VisitorPingProperties | null;
+  }>
 >();
 const impressions = new Set<string>();
 export function browserIdentity() {
@@ -54,6 +69,16 @@ export async function wallEvent(
       impressions.delete(takeoverId);
       return;
     }
+    if (c.visitorPing)
+      trackVisitorPing(
+        event === "impression"
+          ? "wall_impression"
+          : event === "click"
+            ? "wall_owner_link_click"
+            : event,
+        c.visitorPing,
+        { once: event === "impression" },
+      );
     const body = JSON.stringify({ token: c.token, eventId, event });
     if (event === "click" && navigator.sendBeacon) {
       const accepted = navigator.sendBeacon(

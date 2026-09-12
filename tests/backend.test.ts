@@ -152,9 +152,7 @@ describe("ownership and payments", () => {
     expect(await t.query(api.wall.current, {})).toMatchObject({
       totalTakeovers: 1,
     });
-    expect(await t.run((ctx) => ctx.db.query("jobs").collect())).toHaveLength(
-      3,
-    );
+    expect((await t.run((ctx) => ctx.db.query("jobs").collect())).map(j=>j.kind)).toEqual(["activation_email"]);
   });
   it("rejects failed/wrong amount/currency/environment and payment conflicts", async () => {
     const t = make(),
@@ -449,17 +447,40 @@ describe("moderation and delivery", () => {
     await t.action(internal.jobs.dispatch, {});
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it("persists failed VisitorPing jobs independently of payments", async () => {
+  it("retires legacy VisitorPing jobs without sending while email retries and payment counts remain intact", async () => {
     const t = make(),
       p = await active(t);
     await t.run(async (ctx) => {
       await ctx.db.patch(p.purchaseId, { environment: "production" });
     });
+    await t.run((ctx) =>
+      ctx.db.insert("jobs", {
+        key: "legacy-vp",
+        kind: "takeover_activated",
+        takeoverId: p.takeoverId,
+        deliveryId: "legacy",
+        timestamp: Date.now(),
+        state: "pending",
+        attempts: 0,
+        nextAt: 0,
+      }),
+    );
     vi.stubEnv("VISITORPING_SITE_KEY", "vp_ABCD2345");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     await t.action(internal.jobs.dispatch, {});
     const jobs = await t.run((ctx) => ctx.db.query("jobs").collect());
     expect(jobs.find((j) => j.kind === "takeover_activated")).toMatchObject({
+      state: "sent",
+      attempts: 0,
+    });
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.every(
+          ([url]) => !String(url).includes("ingest.visitorping.com"),
+        ),
+    ).toBe(true);
+    expect(jobs.find((j) => j.kind === "activation_email")).toMatchObject({
       state: "pending",
       attempts: 1,
     });
@@ -623,37 +644,127 @@ it("funnel counts measured page loads, unique checkout creation and paid activat
   });
 });
 
-it("delivery controls require admin and preserve email idempotency and retry windows",async()=>{
- const t=make();const p=await pending(t);vi.stubEnv("ADMIN_EMAILS","admin@example.com");const admin=t.withIdentity({subject:"admin",email:"admin@example.com",emailVerified:true});
- await expect(t.query(api.deliveryAdmin.overview,{})).rejects.toThrow("Administrator");
- const id=await t.run(ctx=>ctx.db.insert("jobs",{key:"retry-test",kind:"activation_email",takeoverId:p.takeoverId,deliveryId:"stable",timestamp:Date.now(),state:"failed",attempts:12,nextAt:Date.now()}));
- await expect(t.mutation(api.deliveryAdmin.retry,{queue:"jobs",id})).rejects.toThrow("Administrator");
- await admin.mutation(api.deliveryAdmin.retry,{queue:"jobs",id});
- expect(await t.run(ctx=>ctx.db.get(id))).toMatchObject({key:"retry-test",deliveryId:"stable",state:"pending",attempts:0});
- await expect(admin.mutation(api.deliveryAdmin.retry,{queue:"jobs",id})).rejects.toThrow("Only failed");
- await t.run(ctx=>ctx.db.patch(id,{state:"failed",timestamp:Date.now()-24*3600_000}));
- await expect(admin.mutation(api.deliveryAdmin.retry,{queue:"jobs",id})).rejects.toThrow("safe retry window");
- const raw=JSON.parse(await admin.query(api.deliveryAdmin.overview,{}));expect(raw.emails[0].retryBefore).toBeLessThan(Date.now());expect(raw.activations[0].id).toBe(p.takeoverId);
+it("delivery controls require admin and preserve email idempotency and retry windows", async () => {
+  const t = make();
+  const p = await pending(t);
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity({
+    subject: "admin",
+    email: "admin@example.com",
+    emailVerified: true,
+  });
+  await expect(t.query(api.deliveryAdmin.overview, {})).rejects.toThrow(
+    "Administrator",
+  );
+  const id = await t.run((ctx) =>
+    ctx.db.insert("jobs", {
+      key: "retry-test",
+      kind: "activation_email",
+      takeoverId: p.takeoverId,
+      deliveryId: "stable",
+      timestamp: Date.now(),
+      state: "failed",
+      attempts: 12,
+      nextAt: Date.now(),
+    }),
+  );
+  await expect(
+    t.mutation(api.deliveryAdmin.retry, { queue: "jobs", id }),
+  ).rejects.toThrow("Administrator");
+  await admin.mutation(api.deliveryAdmin.retry, { queue: "jobs", id });
+  expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({
+    key: "retry-test",
+    deliveryId: "stable",
+    state: "pending",
+    attempts: 0,
+  });
+  await expect(
+    admin.mutation(api.deliveryAdmin.retry, { queue: "jobs", id }),
+  ).rejects.toThrow("Only failed");
+  await t.run((ctx) =>
+    ctx.db.patch(id, {
+      state: "failed",
+      timestamp: Date.now() - 24 * 3600_000,
+    }),
+  );
+  await expect(
+    admin.mutation(api.deliveryAdmin.retry, { queue: "jobs", id }),
+  ).rejects.toThrow("safe retry window");
+  const raw = JSON.parse(await admin.query(api.deliveryAdmin.overview, {}));
+  expect(raw.emails[0].retryBefore).toBeLessThan(Date.now());
+  expect(raw.activations[0].id).toBe(p.takeoverId);
 });
-it("email recovery finds case-insensitive purchases without publishing unpaid drafts and sends only to matching contacts",async()=>{
- vi.stubEnv("CLAIM_TOKEN_SECRET","recovery-secret-at-least-thirty-two-characters");
- const t=make(),p=await pending(t);
- expect(await t.mutation(internal.recovery.find,{email:p.args.buyerEmail.toUpperCase(),ipHash:"a"})).toEqual([{takeoverId:p.takeoverId,sessionId:null,paid:false}]);
- await t.mutation(internal.recovery.sendLink,{takeoverId:p.takeoverId,email:p.args.buyerEmail});
- expect(await t.run(ctx=>ctx.db.query("ownerAccess").collect())).toHaveLength(0);
- await t.mutation(internal.purchases.activate,payment(p.takeoverId,"recovery"));
- await t.mutation(internal.recovery.sendLink,{takeoverId:p.takeoverId,email:"intruder@example.com"});
- await t.mutation(internal.recovery.sendLink,{takeoverId:p.takeoverId,email:"receipt@example.com"});
- await t.mutation(internal.recovery.sendLink,{takeoverId:p.takeoverId,email:"receipt@example.com"});
- const jobs=await t.run(ctx=>ctx.db.query("jobs").collect());const recovery=jobs.filter(j=>j.key.includes("recovery:"));expect(recovery).toHaveLength(1);expect(recovery[0].recoveryToReceipt).toBe(true);
- expect((await t.query(internal.jobs.data,{id:recovery[0]._id}))?.email).toBe("receipt@example.com");
- await t.mutation(internal.operations.deleteContact,{purchaseId:p.purchaseId});
- expect(await t.mutation(internal.recovery.find,{email:p.args.buyerEmail,ipHash:"b"})).toEqual([]);
- expect((await t.query(internal.jobs.data,{id:recovery[0]._id}))?.email).toBe("");
+it("email recovery finds case-insensitive purchases without publishing unpaid drafts and sends only to matching contacts", async () => {
+  vi.stubEnv(
+    "CLAIM_TOKEN_SECRET",
+    "recovery-secret-at-least-thirty-two-characters",
+  );
+  const t = make(),
+    p = await pending(t);
+  expect(
+    await t.mutation(internal.recovery.find, {
+      email: p.args.buyerEmail.toUpperCase(),
+      ipHash: "a",
+    }),
+  ).toEqual([{ takeoverId: p.takeoverId, sessionId: null, paid: false }]);
+  await t.mutation(internal.recovery.sendLink, {
+    takeoverId: p.takeoverId,
+    email: p.args.buyerEmail,
+  });
+  expect(
+    await t.run((ctx) => ctx.db.query("ownerAccess").collect()),
+  ).toHaveLength(0);
+  await t.mutation(
+    internal.purchases.activate,
+    payment(p.takeoverId, "recovery"),
+  );
+  await t.mutation(internal.recovery.sendLink, {
+    takeoverId: p.takeoverId,
+    email: "intruder@example.com",
+  });
+  await t.mutation(internal.recovery.sendLink, {
+    takeoverId: p.takeoverId,
+    email: "receipt@example.com",
+  });
+  await t.mutation(internal.recovery.sendLink, {
+    takeoverId: p.takeoverId,
+    email: "receipt@example.com",
+  });
+  const jobs = await t.run((ctx) => ctx.db.query("jobs").collect());
+  const recovery = jobs.filter((j) => j.key.includes("recovery:"));
+  expect(recovery).toHaveLength(1);
+  expect(recovery[0].recoveryToReceipt).toBe(true);
+  expect(
+    (await t.query(internal.jobs.data, { id: recovery[0]._id }))?.email,
+  ).toBe("receipt@example.com");
+  await t.mutation(internal.operations.deleteContact, {
+    purchaseId: p.purchaseId,
+  });
+  expect(
+    await t.mutation(internal.recovery.find, {
+      email: p.args.buyerEmail,
+      ipHash: "b",
+    }),
+  ).toEqual([]);
+  expect(
+    (await t.query(internal.jobs.data, { id: recovery[0]._id }))?.email,
+  ).toBe("");
 });
-it("legacy recovery contact indexing is bounded and preserves records",async()=>{
- const t=make(),p=await pending(t);await t.run(ctx=>ctx.db.patch(p.purchaseId,{buyerEmailKey:undefined,receiptEmail:"RECEIPT@example.com"}));
- expect(await t.mutation(internal.recovery.indexContacts,{})).toBe(1);
- expect(await t.mutation(internal.recovery.indexContacts,{})).toBe(0);
- expect(await t.mutation(internal.recovery.find,{email:"receipt@example.com",ipHash:"legacy"})).toHaveLength(1);
+it("legacy recovery contact indexing is bounded and preserves records", async () => {
+  const t = make(),
+    p = await pending(t);
+  await t.run((ctx) =>
+    ctx.db.patch(p.purchaseId, {
+      buyerEmailKey: undefined,
+      receiptEmail: "RECEIPT@example.com",
+    }),
+  );
+  expect(await t.mutation(internal.recovery.indexContacts, {})).toBe(1);
+  expect(await t.mutation(internal.recovery.indexContacts, {})).toBe(0);
+  expect(
+    await t.mutation(internal.recovery.find, {
+      email: "receipt@example.com",
+      ipHash: "legacy",
+    }),
+  ).toHaveLength(1);
 });

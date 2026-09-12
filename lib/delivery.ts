@@ -1,31 +1,15 @@
-export function visitorPingPayload(a: {
-  siteKey: string;
-  deliveryId: string;
-  timestamp: number;
-  event: string;
+export function visitorPingProperties(a: {
   takeoverId: string;
   domain: string;
   websiteUrl: string;
-  visitorHash?: string;
-  pageId?: string;
   region?: string;
 }) {
   const u = a.websiteUrl ? new URL(a.websiteUrl) : null;
   return {
-    siteId: a.siteKey,
-    deliveryId: a.deliveryId,
-    visitorId: a.visitorHash ?? "ttw-system-events",
-    sessionId: a.pageId ?? "ttw-system:" + a.takeoverId,
-    event: a.event,
-    path: "/",
-    referrer: "",
-    timestamp: a.timestamp,
-    data: {
-      takeoverId: a.takeoverId,
-      ownerDomain: a.domain,
-      destination: u ? u.origin + u.pathname : "",
-      ...(a.region ? { country: a.region } : {}),
-    },
+    takeoverId: a.takeoverId,
+    ownerDomain: a.domain,
+    destination: u ? u.origin + u.pathname : "",
+    ...(a.region ? { country: a.region } : {}),
   };
 }
 export function emailMessage(a: {
