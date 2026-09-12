@@ -21,6 +21,7 @@ import type * as demoStats from "../demoStats.js";
 import type * as demoValues from "../demoValues.js";
 import type * as documents from "../documents.js";
 import type * as emailDelivery from "../emailDelivery.js";
+import type * as emailDirectory from "../emailDirectory.js";
 import type * as funnel from "../funnel.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
@@ -43,6 +44,7 @@ import type * as support from "../support.js";
 import type * as uploads from "../uploads.js";
 import type * as visitorping from "../visitorping.js";
 import type * as wall from "../wall.js";
+import type * as wallSubscriptions from "../wallSubscriptions.js";
 
 import type {
   ApiFromModules,
@@ -64,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   demoValues: typeof demoValues;
   documents: typeof documents;
   emailDelivery: typeof emailDelivery;
+  emailDirectory: typeof emailDirectory;
   funnel: typeof funnel;
   health: typeof health;
   http: typeof http;
@@ -86,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   uploads: typeof uploads;
   visitorping: typeof visitorping;
   wall: typeof wall;
+  wallSubscriptions: typeof wallSubscriptions;
 }>;
 
 /**

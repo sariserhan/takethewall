@@ -21,6 +21,7 @@ function bodyHtml(body: string) {
     .join("");
 }
 export interface EmailPresentation {
+  imageUrl?: string;
   eyebrow?: string;
   metrics?: { label: string; value: string }[];
   cta?: { label: string; url: string };
@@ -82,7 +83,7 @@ export function emailTemplate(
 <p style="margin:0 0 18px;font-size:11px;letter-spacing:2px;color:#68685f;">${escapeHtml(presentation.eyebrow ?? "ONE WALL. ONE OWNER.")}</p>
 <h1 class="title" style="margin:0 0 24px;font-size:30px;line-height:1.2;font-weight:900;overflow-wrap:anywhere;">${title}</h1>
 <div style="font-size:16px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;">${bodyHtml(body)}</div>
-${metrics}${cta}
+${presentation.imageUrl ? `<img src="${safeLink(presentation.imageUrl)}" width="536" alt="Takeover share card" style="display:block;width:100%;height:auto;margin:24px 0;border:0;">` : ""}${metrics}${cta}
 ${presentation.footnote ? `<p style="font-size:12px;line-height:1.6;color:#68685f;">${escapeHtml(presentation.footnote)}</p>` : ""}
 </td></tr>
 <tr><td class="inner" style="padding:22px 32px;border-top:1px solid #babbb0;font-size:12px;line-height:1.6;color:#68685f;">

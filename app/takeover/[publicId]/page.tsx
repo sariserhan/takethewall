@@ -80,6 +80,26 @@ export default async function SharedPage({ params }: Props) {
             Visit their link ↗
           </a>
         )}
+        <div className="owner-share-actions">
+          <a
+            href={`/takeover/${publicId}/card?download=1&format=landscape`}
+            download
+          >
+            Download share card
+          </a>
+          <a
+            href={`/takeover/${publicId}/card?download=1&format=square`}
+            download
+          >
+            Square card
+          </a>
+          <a
+            href={`/takeover/${publicId}/card?download=1&format=portrait`}
+            download
+          >
+            Portrait card
+          </a>
+        </div>
         <Link className="button" href="/">
           See the live wall ↗
         </Link>

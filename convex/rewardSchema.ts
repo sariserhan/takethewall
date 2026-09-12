@@ -1,6 +1,9 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-export const emailSenderFields = v.object({from:v.string(),reply_to:v.optional(v.string())});
+export const emailSenderFields = v.object({
+  from: v.string(),
+  reply_to: v.optional(v.string()),
+});
 export const claimStatus = v.union(
   ...(
     [
@@ -180,9 +183,12 @@ export const rewardTables = {
     createdAt: v.number(),
   }).index("by_ticket", ["ticketId"]),
   transactionalMail: defineTable({
-    sender:v.optional(emailSenderFields),
-    subscriberId:v.optional(v.id("milestoneSubscribers")),
-    milestoneNumber:v.optional(v.number()),
+    sender: v.optional(emailSenderFields),
+    wallSubscriberId: v.optional(v.id("wallSubscribers")),
+    wallTakeoverId: v.optional(v.id("takeovers")),
+    wallTakeoverIds: v.optional(v.array(v.id("takeovers"))),
+    subscriberId: v.optional(v.id("milestoneSubscribers")),
+    milestoneNumber: v.optional(v.number()),
     key: v.string(),
     kind: v.string(),
     claimId: v.optional(v.id("rewardClaims")),

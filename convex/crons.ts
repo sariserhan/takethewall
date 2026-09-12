@@ -44,7 +44,34 @@ crons.weekly(
   internal.owners.queueWeeklyDigest,
   {},
 );
-crons.interval("milestone subscriber alerts",{minutes:1},internal.milestoneAlerts.queue,{});
-crons.daily("expired milestone signups",{hourUTC:3,minuteUTC:0},internal.milestoneAlerts.cleanup,{});
-crons.interval("index recovery contacts",{minutes:1},internal.recovery.indexContacts,{});
+crons.interval(
+  "milestone subscriber alerts",
+  { minutes: 1 },
+  internal.milestoneAlerts.queue,
+  {},
+);
+crons.daily(
+  "expired milestone signups",
+  { hourUTC: 3, minuteUTC: 0 },
+  internal.milestoneAlerts.cleanup,
+  {},
+);
+crons.interval(
+  "index recovery contacts",
+  { minutes: 1 },
+  internal.recovery.indexContacts,
+  {},
+);
+crons.interval(
+  "wall subscriber notifications",
+  { minutes: 1 },
+  internal.wallSubscriptions.queue,
+  {},
+);
+crons.interval(
+  "email directory reconciliation",
+  { minutes: 5 },
+  internal.emailDirectory.reconcile,
+  {},
+);
 export default crons;

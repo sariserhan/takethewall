@@ -237,6 +237,23 @@ export const finish = internalMutation({
             lastError: a.error ?? "Provider delivery failed",
           },
     );
+    if (j.kind.endsWith("_email")) {
+      const history = await ctx.db
+        .query("emailHistory")
+        .withIndex("by_key", (q) => q.eq("key", j.key))
+        .unique();
+      if (history)
+        await ctx.db.patch(history._id, {
+          state: a.ok
+            ? history.state === "accepted"
+              ? "accepted"
+              : "skipped"
+            : a.permanent || j.attempts >= 12
+              ? "failed"
+              : "pending",
+          updatedAt: Date.now(),
+        });
+    }
     return null;
   },
 });
@@ -290,6 +307,7 @@ export const dispatch = internalAction({
           : raw;
         if (!j) continue;
         let response: Response;
+        let emailSubject = "";
         if (j.kind.endsWith("_email")) {
           if (
             !j.email ||
@@ -356,6 +374,15 @@ export const dispatch = internalAction({
                           }
                         : {},
                     );
+          emailSubject = rendered.subject;
+          await ctx.runMutation(internal.emailDirectory.track, {
+            key: j.key,
+            email: j.email,
+            kind: j.kind,
+            subject: rendered.subject,
+            state: "sending",
+            createdAt: j.timestamp,
+          });
           response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -400,6 +427,25 @@ export const dispatch = internalAction({
               visitorPingPayload({ siteKey, ...j, event: j.kind }),
             ),
             signal: AbortSignal.timeout(10_000),
+          });
+        }
+        if (j.kind.endsWith("_email")) {
+          const result = response.ok
+            ? await response
+                .clone()
+                .json()
+                .catch(() => null)
+            : null;
+          await ctx.runMutation(internal.emailDirectory.track, {
+            key: j.key,
+            email: j.email,
+            kind: j.kind,
+            subject: emailSubject,
+            state: response.ok ? "accepted" : "failed",
+            createdAt: j.timestamp,
+            ...(typeof result?.id === "string"
+              ? { providerId: result.id }
+              : {}),
           });
         }
         if (!response.ok) {

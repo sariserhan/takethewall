@@ -61,60 +61,103 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     let version = { querySet: 0, identity: 0, ts: timestamp() };
     const queries = new Map<number, string>();
     const value = (path: string): unknown =>
-      path === "deliveryAdmin:overview"
+      path === "emailDirectory:list"
         ? JSON.stringify({
-            emails: [
+            rows: [
               {
-                id: "job-fixture",
-                queue: "jobs",
-                kind: "activation_email",
-                state: "failed",
-                attempts: 12,
-                createdAt: Date.now(),
-                nextAt: Date.now(),
-                error: "Provider unavailable",
-                retryBefore: Date.now()+23*3600_000,
+                id: "contact-1",
+                email: "reader@example.com",
+                sources: ["wall subscriber"],
+                createdAt: 1789200000000,
+                wall: "Confirmed · daily",
+                milestone: "Not subscribed",
+                last: {
+                  kind: "wall_daily",
+                  state: "accepted",
+                  at: 1789200000000,
+                },
               },
             ],
-            activations: [
-              {
-                id: "owner-fixture",
-                name: "Pending Studio",
-                createdAt: Date.now(),
-                sessionId: "cs_test_fixture",
-                environment: "test",
-                expired: false,
-                blocked: false,
-              },
-            ],
-            limit: 50,
+            cursor: "",
+            done: true,
           })
-        : path === "funnel:report"
-          ? {
-              visits: 100,
-              checkoutStarts: 20,
-              paidActivations: 10,
-              startedAt: 1789200000000,
-              daysTracked: 2,
-            }
-          : path === "admin:identity"
-            ? "admin@example.com"
-            : path === "admin:overview"
-              ? JSON.stringify({ milestones: [] })
-              : path === "admin:getNotificationSettings"
-                ? settings
-                : path === "admin:getSettings"
-                  ? {
-                      milestones: [],
-                      initialDays: 7,
-                      additionalDays: 7,
-                      rulesVersion: "test",
-                      rulesJson: "{}",
-                      rewardsEnabled: false,
-                      payoutsEnabled: false,
-                      promotionEnabled: false,
-                    }
-                  : null;
+        : path === "emailDirectory:history"
+          ? JSON.stringify({
+              rows: [
+                {
+                  id: "mail-1",
+                  kind: "wall_daily",
+                  subject: "Your daily wall update",
+                  state: "accepted",
+                  createdAt: 1789200000000,
+                  updatedAt: 1789200001000,
+                  sentAt: 1789200001000,
+                  events: [
+                    {
+                      eventId: "event-1",
+                      type: "email.delivered",
+                      occurredAt: 1789200002000,
+                    },
+                  ],
+                },
+              ],
+              cursor: "",
+              done: true,
+            })
+          : path === "deliveryAdmin:overview"
+            ? JSON.stringify({
+                emails: [
+                  {
+                    id: "job-fixture",
+                    queue: "jobs",
+                    kind: "activation_email",
+                    state: "failed",
+                    attempts: 12,
+                    createdAt: Date.now(),
+                    nextAt: Date.now(),
+                    error: "Provider unavailable",
+                    retryBefore: Date.now() + 23 * 3600_000,
+                  },
+                ],
+                activations: [
+                  {
+                    id: "owner-fixture",
+                    name: "Pending Studio",
+                    createdAt: Date.now(),
+                    sessionId: "cs_test_fixture",
+                    environment: "test",
+                    expired: false,
+                    blocked: false,
+                  },
+                ],
+                limit: 50,
+              })
+            : path === "funnel:report"
+              ? {
+                  visits: 100,
+                  checkoutStarts: 20,
+                  paidActivations: 10,
+                  startedAt: 1789200000000,
+                  daysTracked: 2,
+                }
+              : path === "admin:identity"
+                ? "admin@example.com"
+                : path === "admin:overview"
+                  ? JSON.stringify({ milestones: [] })
+                  : path === "admin:getNotificationSettings"
+                    ? settings
+                    : path === "admin:getSettings"
+                      ? {
+                          milestones: [],
+                          initialDays: 7,
+                          additionalDays: 7,
+                          rulesVersion: "test",
+                          rulesJson: "{}",
+                          rewardsEnabled: false,
+                          payoutsEnabled: false,
+                          promotionEnabled: false,
+                        }
+                      : null;
     function transition(
       changes: unknown[],
       patch: Partial<typeof version> = {},
@@ -205,6 +248,30 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     });
   });
   await page.goto("/admin");
+  await page.getByRole("button", { name: "emails", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Email directory" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "Confirmed · daily", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "View emails" }).click();
+  const history = page.getByRole("dialog");
+  await expect(
+    history.getByRole("heading", { name: "Your daily wall update" }),
+  ).toBeVisible();
+  await expect(history.getByText(/delivered ·/)).toBeVisible();
+  await expect(page).toHaveURL(/\/admin$/);
+  expect(
+    (await new AxeBuilder({ page }).include("dialog[open]").analyze())
+      .violations,
+  ).toEqual([]);
+  await page.screenshot({
+    path: `/tmp/admin-email-directory-${info.project.name}.png`,
+    fullPage: false,
+  });
+  await page.keyboard.press("Escape");
+
   await page.getByRole("button", { name: "settings", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Takeover notifications" }),

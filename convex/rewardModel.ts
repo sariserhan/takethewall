@@ -1,3 +1,4 @@
+import { trackEmail } from "./emailDirectory";
 import { numberingOffset } from "./numbering";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -52,8 +53,11 @@ export async function mail(
     claimId?: Id<"rewardClaims">;
     ticketId?: Id<"supportTickets">;
     generation?: number;
+    wallSubscriberId?: Id<"wallSubscribers">;
+    wallTakeoverId?: Id<"takeovers">;
+    wallTakeoverIds?: Id<"takeovers">[];
     subscriberId?: Id<"milestoneSubscribers">;
-    milestoneNumber?:number;
+    milestoneNumber?: number;
   },
 ) {
   if (
@@ -63,6 +67,13 @@ export async function mail(
       .unique()
   )
     return;
+  await trackEmail(ctx, {
+    key: a.key,
+    email: a.to,
+    kind: a.kind,
+    subject: a.subject,
+    state: "pending",
+  });
   await ctx.db.insert("transactionalMail", {
     ...a,
     state: "pending",
@@ -92,7 +103,9 @@ export async function createCandidate(
   const offset = await numberingOffset(ctx);
   const takeover = await ctx.db
     .query("takeovers")
-    .withIndex("by_takeoverNumber", (q) => q.eq("takeoverNumber", number - offset))
+    .withIndex("by_takeoverNumber", (q) =>
+      q.eq("takeoverNumber", number - offset),
+    )
     .unique();
   if (!takeover) {
     await ctx.db.patch(rewardId, {

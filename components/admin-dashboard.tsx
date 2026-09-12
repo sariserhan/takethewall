@@ -1,4 +1,5 @@
 "use client";
+import { AdminEmails } from "./admin-emails";
 import { AdminDelivery } from "./admin-delivery";
 import {AdminFunnel} from "./admin-funnel";
 import { AdminNotifications } from "./admin-notifications";
@@ -15,6 +16,7 @@ const sections = [
   "overview",
   "funnel",
   "delivery",
+  "emails",
   "publish",
   "demo stats",
   "takeovers",
@@ -35,7 +37,7 @@ export function AdminDashboard() {
   const [before, setBefore] = useState<string | undefined>();
   const raw = useQuery(
     api.admin.list,
-    !["overview", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section)
+    !["overview", "emails", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section)
       ? { section, cursor: before }
       : "skip",
   );
@@ -72,7 +74,7 @@ export function AdminDashboard() {
       </nav>
       {error && <p role="alert">{error}</p>}
       {((section === "overview" && overview === undefined) ||
-        (!["overview", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section) &&
+        (!["overview", "emails", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section) &&
           raw === undefined)) && (
         <LoadingSkeleton label={`Loading ${section}`} />
       )}
@@ -115,6 +117,7 @@ export function AdminDashboard() {
           )}
         </>
       )}
+      {section === "emails" && <AdminEmails/>}
       {section === "delivery" && <AdminDelivery/>}
       {section === "funnel" && <AdminFunnel/>}
       {section === "publish" && <AdminPublish />}

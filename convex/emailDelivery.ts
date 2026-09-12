@@ -19,6 +19,17 @@ export const record = internalMutation({
       !Number.isFinite(a.occurredAt)
     )
       throw new Error("Invalid delivery event");
+    const existing = await ctx.db
+      .query("emailEvents")
+      .withIndex("by_event", (q) => q.eq("eventId", a.eventId))
+      .unique();
+    if (!existing)
+      await ctx.db.insert("emailEvents", {
+        eventId: a.eventId,
+        providerId: a.emailId,
+        type: a.type,
+        occurredAt: a.occurredAt,
+      });
     const target = "resend:" + a.eventId;
     if (
       await ctx.db

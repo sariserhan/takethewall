@@ -1,3 +1,8 @@
+import { trackEmail } from "./emailDirectory";
+import {
+  wallConfirmation,
+  wallUnsubscribe,
+} from "../lib/wall-subscription-secrets";
 import { senderForMail, legacyEmailSender } from "../lib/email-routing";
 import { emailSenderFields } from "./rewardSchema";
 import { alertConfirmation, alertUnsubscribe } from "../lib/alert-secrets";
@@ -40,6 +45,7 @@ export const prepare = internalMutation({
   returns: v.union(
     v.null(),
     v.object({
+      oneClickUnsubscribeUrl: v.optional(v.string()),
       sender: emailSenderFields,
       to: v.string(),
       subject: v.string(),
@@ -47,6 +53,7 @@ export const prepare = internalMutation({
       key: v.string(),
       presentation: v.optional(
         v.object({
+          imageUrl: v.optional(v.string()),
           eyebrow: v.string(),
           cta: v.object({ label: v.string(), url: v.string() }),
           unsubscribeUrl: v.optional(v.string()),
@@ -63,21 +70,102 @@ export const prepare = internalMutation({
       j.nextAt > Date.now()
     )
       return null;
+    const skip = async () => {
+      await ctx.db.patch(j._id, { state: "sent", body: "" });
+      await trackEmail(ctx, {
+        key: j.key,
+        email: j.to,
+        kind: j.kind,
+        subject: j.subject,
+        state: "skipped",
+        createdAt: j.createdAt,
+      });
+    };
     if (j.attempts >= 10 || Date.now() - j.createdAt > 23 * 3600_000) {
       await ctx.db.patch(j._id, {
         state: "failed",
         lastError: "Delivery window expired; reconcile before resending",
       });
+      await trackEmail(ctx, {
+        key: j.key,
+        email: j.to,
+        kind: j.kind,
+        subject: j.subject,
+        state: "failed",
+        createdAt: j.createdAt,
+      });
       return null;
     }
     let presentation:
       | {
+          imageUrl?: string;
           eyebrow: string;
           cta: { label: string; url: string };
           unsubscribeUrl?: string;
           unsubscribeLabel?: string;
         }
       | undefined;
+    let oneClickUnsubscribeUrl: string | undefined;
+    if (j.wallSubscriberId) {
+      const subscriber = await ctx.db.get(j.wallSubscriberId);
+      const takeover = j.wallTakeoverId
+        ? await ctx.db.get(j.wallTakeoverId)
+        : null;
+      const included = await Promise.all(
+        (j.wallTakeoverIds ?? []).map((id) => ctx.db.get(id)),
+      );
+      const allowed =
+        included.every((t) => t && !t.blocked && t.status !== "rejected") &&
+        !!subscriber?.email &&
+        subscriber.generation === j.generation &&
+        (j.kind === "wall_confirm"
+          ? !subscriber.active && subscriber.expiresAt > Date.now()
+          : subscriber.active &&
+            process.env.WALL_ENVIRONMENT === "production" &&
+            !!takeover &&
+            !takeover.blocked &&
+            takeover.status !== "rejected");
+      if (!allowed) {
+        await skip();
+        return null;
+      }
+      const base = ownerBaseUrl();
+      presentation =
+        j.kind === "wall_confirm"
+          ? {
+              eyebrow: "CONFIRM YOUR SUBSCRIPTION",
+              cta: {
+                label: "Confirm wall-change emails",
+                url:
+                  base +
+                  "/wall-emails#confirm=" +
+                  wallConfirmation(subscriber!.seed),
+              },
+            }
+          : {
+              eyebrow:
+                j.kind === "wall_daily"
+                  ? "YOUR DAILY WALL UPDATE"
+                  : "A NEW OWNER TOOK THE WALL",
+              cta: { label: "Visit the live wall", url: base },
+              ...(takeover?.publicTakeoverId
+                ? {
+                    imageUrl:
+                      base + "/takeover/" + takeover.publicTakeoverId + "/card",
+                  }
+                : {}),
+              unsubscribeUrl:
+                base +
+                "/wall-emails#unsubscribe=" +
+                wallUnsubscribe(subscriber!.seed),
+              unsubscribeLabel: "Manage or unsubscribe from wall-change emails",
+            };
+      if (j.kind !== "wall_confirm")
+        oneClickUnsubscribeUrl =
+          base +
+          "/api/wall-subscriptions/unsubscribe?token=" +
+          wallUnsubscribe(subscriber!.seed);
+    }
     if (j.subscriberId) {
       const subscriber = await ctx.db.get(j.subscriberId);
       let allowed =
@@ -102,7 +190,7 @@ export const prepare = internalMutation({
             j.milestoneNumber!;
       }
       if (!allowed) {
-        await ctx.db.patch(j._id, { state: "sent", body: "" });
+        await skip();
         return null;
       }
       presentation =
@@ -131,12 +219,12 @@ export const prepare = internalMutation({
     if (j.claimId) {
       const c = await ctx.db.get(j.claimId);
       if (!c) {
-        await ctx.db.patch(j._id, { state: "sent" });
+        await skip();
         return null;
       }
       if (j.kind === "claim_link") {
         if (["ineligible", "expired"].includes(c.status)) {
-          await ctx.db.patch(j._id, { state: "sent" });
+          await skip();
           return null;
         }
         let seed = c.tokenSeed;
@@ -154,7 +242,7 @@ export const prepare = internalMutation({
           });
           await ctx.db.patch(j._id, { generation });
         } else if (j.generation !== c.tokenVersion) {
-          await ctx.db.patch(j._id, { state: "sent" });
+          await skip();
           return null;
         }
         if (!seed) throw new Error("Claim link unavailable");
@@ -168,13 +256,13 @@ export const prepare = internalMutation({
           c.otpExpiresAt <= Date.now() ||
           j.key !== "otp:" + c.otpSeed
         ) {
-          await ctx.db.patch(j._id, { state: "sent" });
+          await skip();
           return null;
         }
         body = `Verification code: ${otpCode(c.otpSeed)}\n\n` + body;
       } else {
         if (j.kind === "chat" && c.lastWinnerReadAt >= c.lastAdminMessageAt) {
-          await ctx.db.patch(j._id, { state: "sent" });
+          await skip();
           return null;
         }
         body += `\n\nOpen your existing protected claim link to sign in. If you need a replacement link, contact support@takethewall.com.`;
@@ -190,7 +278,16 @@ export const prepare = internalMutation({
       attempts: j.attempts + 1,
       nextAt: Date.now() + 60_000,
     });
+    await trackEmail(ctx, {
+      key: j.key,
+      email: j.to,
+      kind: j.kind,
+      subject: j.subject,
+      state: "sending",
+      createdAt: j.createdAt,
+    });
     return {
+      ...(oneClickUnsubscribeUrl ? { oneClickUnsubscribeUrl } : {}),
       sender,
       to: j.to,
       subject: j.subject,
@@ -204,6 +301,7 @@ export const finish = internalMutation({
   args: {
     id: v.id("transactionalMail"),
     ok: v.boolean(),
+    providerId: v.optional(v.string()),
     error: v.optional(v.string()),
   },
   returns: v.null(),
@@ -220,6 +318,15 @@ export const finish = internalMutation({
             lastError: a.error ?? "Email unavailable",
           },
     );
+    await trackEmail(ctx, {
+      key: j.key,
+      email: j.to,
+      kind: j.kind,
+      subject: j.subject,
+      state: a.ok ? "accepted" : j.attempts >= 10 ? "failed" : "pending",
+      createdAt: j.createdAt,
+      providerId: a.providerId,
+    });
     if (a.ok && j.claimId)
       await audit(
         ctx,
@@ -241,8 +348,12 @@ export const dispatch = internalAction({
       try {
         const j = await ctx.runMutation(internal.mail.prepare, { id });
         if (!j) continue;
-        await transactionalEmail.send(j);
-        await ctx.runMutation(internal.mail.finish, { id, ok: true });
+        const providerId = await transactionalEmail.send(j);
+        await ctx.runMutation(internal.mail.finish, {
+          id,
+          ok: true,
+          providerId,
+        });
       } catch {
         await ctx.runMutation(internal.mail.finish, {
           id,

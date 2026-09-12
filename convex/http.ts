@@ -26,17 +26,54 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
-        case "recoveryFind": result=await ctx.runMutation(internal.recovery.find,args);break;
-        case "recoverySend": result=await ctx.runMutation(internal.recovery.sendLink,args);break;
-        case "alertSubscribe": result=await ctx.runMutation(internal.milestoneAlerts.subscribe,args);break;
-        case "alertManage": result=await ctx.runMutation(internal.milestoneAlerts.manage,args);break;
-        case "ownerRepeat": result = await ctx.runMutation(internal.owners.repeat,args); break;
-        case "ownerEdit": result = await ctx.runMutation(internal.owners.edit,args); break;
-        case "ownerDashboard": result = await ctx.runQuery(internal.owners.dashboard,args); break;
-        case "ownerPreferences": result = await ctx.runMutation(internal.owners.preferences,args); break;
-        case "ownerRequestLink": result = await ctx.runMutation(internal.owners.requestLink,args); break;
-        case "ownerUnsubscribe": result = await ctx.runMutation(internal.owners.unsubscribe,args); break;
-        case "ownerShared": result = await ctx.runQuery(internal.owners.sharedTakeover,args); break;
+        case "recoveryFind":
+          result = await ctx.runMutation(internal.recovery.find, args);
+          break;
+        case "recoverySend":
+          result = await ctx.runMutation(internal.recovery.sendLink, args);
+          break;
+        case "wallSubscribe":
+          result = await ctx.runMutation(
+            internal.wallSubscriptions.subscribe,
+            args,
+          );
+          break;
+        case "wallSubscriptionManage":
+          result = await ctx.runMutation(
+            internal.wallSubscriptions.manage,
+            args,
+          );
+          break;
+        case "alertSubscribe":
+          result = await ctx.runMutation(
+            internal.milestoneAlerts.subscribe,
+            args,
+          );
+          break;
+        case "alertManage":
+          result = await ctx.runMutation(internal.milestoneAlerts.manage, args);
+          break;
+        case "ownerRepeat":
+          result = await ctx.runMutation(internal.owners.repeat, args);
+          break;
+        case "ownerEdit":
+          result = await ctx.runMutation(internal.owners.edit, args);
+          break;
+        case "ownerDashboard":
+          result = await ctx.runQuery(internal.owners.dashboard, args);
+          break;
+        case "ownerPreferences":
+          result = await ctx.runMutation(internal.owners.preferences, args);
+          break;
+        case "ownerRequestLink":
+          result = await ctx.runMutation(internal.owners.requestLink, args);
+          break;
+        case "ownerUnsubscribe":
+          result = await ctx.runMutation(internal.owners.unsubscribe, args);
+          break;
+        case "ownerShared":
+          result = await ctx.runQuery(internal.owners.sharedTakeover, args);
+          break;
         case "emailDelivery":
           result = await ctx.runMutation(internal.emailDelivery.record, args);
           break;

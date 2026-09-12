@@ -8,7 +8,8 @@ export interface TransactionalEmailProvider {
     body: string;
     key: string;
     presentation?: EmailPresentation;
-  }): Promise<void>;
+    oneClickUnsubscribeUrl?: string;
+  }): Promise<string | undefined>;
 }
 export const transactionalEmail: TransactionalEmailProvider = {
   async send(message) {
@@ -24,10 +25,20 @@ export const transactionalEmail: TransactionalEmailProvider = {
       body: JSON.stringify({
         ...message.sender,
         to: [message.to],
+        ...(message.oneClickUnsubscribeUrl
+          ? {
+              headers: {
+                "List-Unsubscribe": `<${message.oneClickUnsubscribeUrl}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
+            }
+          : {}),
         ...emailTemplate(message.subject, message.body, message.presentation),
       }),
       signal: AbortSignal.timeout(10000),
     });
     if (!r.ok) throw new Error(`Email HTTP ${r.status}`);
+    const result = await r.json().catch(() => null);
+    return typeof result?.id === "string" ? result.id : undefined;
   },
 };

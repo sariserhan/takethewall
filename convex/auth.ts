@@ -4,7 +4,7 @@ import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth/minimal";
 import { emailOTP } from "better-auth/plugins";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import authConfig from "./auth.config";
 export const authComponent = createClient<DataModel>(components.betterAuth);
@@ -43,6 +43,16 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
           if (type !== "sign-in" || !allowed(email)) return;
           if (!process.env.RESEND_API_KEY)
             throw new Error("Admin email delivery is not configured");
+          if (!("runMutation" in ctx))
+            throw new Error("Email requires an action context");
+          const historyKey = "admin-signin:" + crypto.randomUUID();
+          await ctx.runMutation(internal.emailDirectory.track, {
+            key: historyKey,
+            email,
+            kind: "admin_otp",
+            subject: "Your administrator sign-in code",
+            state: "sending",
+          });
           const r = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -58,6 +68,26 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
               ),
             }),
             signal: AbortSignal.timeout(10000),
+          }).catch(async (error) => {
+            await ctx.runMutation(internal.emailDirectory.track, {
+              key: historyKey,
+              email,
+              kind: "admin_otp",
+              subject: "Your administrator sign-in code",
+              state: "failed",
+            });
+            throw error;
+          });
+          const result = r.ok ? await r.json().catch(() => null) : null;
+          await ctx.runMutation(internal.emailDirectory.track, {
+            key: historyKey,
+            email,
+            kind: "admin_otp",
+            subject: "Your administrator sign-in code",
+            state: r.ok ? "accepted" : "failed",
+            ...(typeof result?.id === "string"
+              ? { providerId: result.id }
+              : {}),
           });
           if (!r.ok) throw new Error("Admin email delivery failed");
         },

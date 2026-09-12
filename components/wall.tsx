@@ -1,4 +1,5 @@
 "use client";
+import {WallSubscription} from "./wall-subscription";
 import {MilestoneAlerts} from "./milestone-alerts";
 import { ReportContent } from "./report-content";
 import { StatHelp } from "./stat-help";
@@ -459,6 +460,7 @@ function WallView({
         </section>
       </div>
       <HomepageMilestones />
+      <WallSubscription/>
       <MilestoneAlerts/>
       <PublicFooter home />
       <PurchaseSheet

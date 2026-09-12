@@ -37,13 +37,120 @@ export const visitorPingSnapshot = v.object({
   uniqueVisitors: v.number(),
   clicks: v.number(),
 });
-export const digestSnapshot = v.object({displayName:v.string(),number:v.union(v.number(),v.null()),impressions:v.number(),uniqueVisitors:v.number(),clicks:v.number(),activatedAt:v.number(),snapshotAt:v.number()});
-export const editableContent = v.object({contentType:v.string(),linkType:v.string(),websiteUrl:v.string(),domain:v.string(),displayName:v.string(),description:v.string(),logoStorageId:v.optional(v.id("_storage"))});
-export const finalReportSnapshot = v.object({...digestSnapshot.fields,replacedAt:v.number(),endReason:v.string()});
+export const digestSnapshot = v.object({
+  displayName: v.string(),
+  number: v.union(v.number(), v.null()),
+  impressions: v.number(),
+  uniqueVisitors: v.number(),
+  clicks: v.number(),
+  activatedAt: v.number(),
+  snapshotAt: v.number(),
+});
+export const editableContent = v.object({
+  contentType: v.string(),
+  linkType: v.string(),
+  websiteUrl: v.string(),
+  domain: v.string(),
+  displayName: v.string(),
+  description: v.string(),
+  logoStorageId: v.optional(v.id("_storage")),
+});
+export const finalReportSnapshot = v.object({
+  ...digestSnapshot.fields,
+  replacedAt: v.number(),
+  endReason: v.string(),
+});
 export default defineSchema({
-  milestoneSubscribers:defineTable({email:v.string(),emailHash:v.string(),seed:v.string(),confirmHash:v.string(),unsubscribeHash:v.string(),active:v.boolean(),generation:v.number(),expiresAt:v.number(),lastNotified:v.number(),createdAt:v.number()}).index("by_email",["emailHash"]).index("by_confirm",["confirmHash"]).index("by_unsubscribe",["unsubscribeHash"]).index("by_active_milestone",["active","lastNotified"]).index("by_active_expiry",["active","expiresAt"]),
-  notificationSettings: defineTable({key:v.literal("current"),enabled:v.boolean(),recipient:v.string(),revision:v.number()}).index("by_key",["key"]),
-  ownerAccess: defineTable({takeoverId:v.id("takeovers"),seed:v.string(),tokenHash:v.string(),unsubscribeHash:v.string(),weeklyDigestEnabled:v.boolean(),createdAt:v.number()}).index("by_takeover",["takeoverId"]).index("by_token",["tokenHash"]).index("by_unsubscribe",["unsubscribeHash"]),
+  wallSubscribers: defineTable({
+    unsubscribedAt: v.optional(v.number()),
+    email: v.string(),
+    emailHash: v.string(),
+    seed: v.string(),
+    confirmHash: v.string(),
+    unsubscribeHash: v.string(),
+    active: v.boolean(),
+    frequency: v.union(v.literal("every"), v.literal("daily")),
+    generation: v.number(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    lastSequence: v.number(),
+    nextAt: v.number(),
+  })
+    .index("by_email", ["emailHash"])
+    .index("by_confirm", ["confirmHash"])
+    .index("by_unsubscribe", ["unsubscribeHash"])
+    .index("by_due", ["active", "nextAt"]),
+  emailContacts: defineTable({
+    email: v.string(),
+    emailHash: v.string(),
+    sources: v.array(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["emailHash"])
+    .index("by_address", ["email"]),
+  emailHistory: defineTable({
+    key: v.string(),
+    email: v.string(),
+    emailHash: v.string(),
+    kind: v.string(),
+    subject: v.string(),
+    state: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    sentAt: v.optional(v.number()),
+    providerId: v.optional(v.string()),
+  })
+    .index("by_key", ["key"])
+    .index("by_email", ["emailHash", "createdAt"])
+    .index("by_provider", ["providerId"]),
+  emailEvents: defineTable({
+    eventId: v.string(),
+    providerId: v.string(),
+    type: v.string(),
+    occurredAt: v.number(),
+  })
+    .index("by_event", ["eventId"])
+    .index("by_provider", ["providerId", "occurredAt"]),
+  emailIndexProgress: defineTable({
+    source: v.string(),
+    cursor: v.union(v.string(), v.null()),
+    done: v.boolean(),
+  }).index("by_source", ["source"]),
+  milestoneSubscribers: defineTable({
+    email: v.string(),
+    emailHash: v.string(),
+    seed: v.string(),
+    confirmHash: v.string(),
+    unsubscribeHash: v.string(),
+    active: v.boolean(),
+    generation: v.number(),
+    expiresAt: v.number(),
+    lastNotified: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["emailHash"])
+    .index("by_confirm", ["confirmHash"])
+    .index("by_unsubscribe", ["unsubscribeHash"])
+    .index("by_active_milestone", ["active", "lastNotified"])
+    .index("by_active_expiry", ["active", "expiresAt"]),
+  notificationSettings: defineTable({
+    key: v.literal("current"),
+    enabled: v.boolean(),
+    recipient: v.string(),
+    revision: v.number(),
+  }).index("by_key", ["key"]),
+  ownerAccess: defineTable({
+    takeoverId: v.id("takeovers"),
+    seed: v.string(),
+    tokenHash: v.string(),
+    unsubscribeHash: v.string(),
+    weeklyDigestEnabled: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_takeover", ["takeoverId"])
+    .index("by_token", ["tokenHash"])
+    .index("by_unsubscribe", ["unsubscribeHash"]),
   demoStats: defineTable({
     key: v.literal("current"),
     enabled: v.boolean(),
@@ -114,9 +221,9 @@ export default defineSchema({
     .index("by_logoStorageId", ["logoStorageId"])
     .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
   purchases: defineTable({
-    buyerEmailKey:v.optional(v.string()),
-    receiptEmailKey:v.optional(v.string()),
-    funnelCheckoutTracked:v.optional(v.boolean()),
+    buyerEmailKey: v.optional(v.string()),
+    receiptEmailKey: v.optional(v.string()),
+    funnelCheckoutTracked: v.optional(v.boolean()),
     weeklyDigestEnabled: v.optional(v.boolean()),
     takeoverId: v.id("takeovers"),
     buyerEmail: v.string(),
@@ -170,10 +277,10 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
   dailyStats: defineTable({
-    funnelStartedAt:v.optional(v.number()),
-    funnelVisits:v.optional(v.number()),
-    checkoutStarts:v.optional(v.number()),
-    paidActivations:v.optional(v.number()),
+    funnelStartedAt: v.optional(v.number()),
+    funnelVisits: v.optional(v.number()),
+    checkoutStarts: v.optional(v.number()),
+    paidActivations: v.optional(v.number()),
     date: v.string(),
     visitors: v.number(),
     impressions: v.number(),
@@ -223,12 +330,14 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_expiresAt", ["expiresAt"]),
   jobs: defineTable({
-    sender:v.optional(emailSenderFields),
-    recoveryToReceipt:v.optional(v.boolean()),
-    finalReport:v.optional(finalReportSnapshot),
-    adminRecipient:v.optional(v.string()),
-    adminNotice: v.optional(v.object({subject:v.string(),body:v.string()})),
-    digest:v.optional(digestSnapshot),
+    sender: v.optional(emailSenderFields),
+    recoveryToReceipt: v.optional(v.boolean()),
+    finalReport: v.optional(finalReportSnapshot),
+    adminRecipient: v.optional(v.string()),
+    adminNotice: v.optional(
+      v.object({ subject: v.string(), body: v.string() }),
+    ),
+    digest: v.optional(digestSnapshot),
     key: v.string(),
     kind: jobKind,
     takeoverId: v.id("takeovers"),
