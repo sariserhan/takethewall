@@ -59,7 +59,9 @@ export default async function Page({
   return (
     <main className="document-page milestone-page">
       <Link href="/">TAKE THE WALL</Link>
-      <MilestonePage number={m.takeoverNumber} />
+      <section className="milestone-content">
+        <MilestonePage number={m.takeoverNumber} />
+      </section>
       <PublicFooter />
     </main>
   );
