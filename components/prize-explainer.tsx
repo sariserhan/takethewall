@@ -2,13 +2,26 @@ import Link from "next/link";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 type Overview = FunctionReturnType<typeof api.rewards.overview>;
-export function PrizeExplainer({ data }: { data: Overview }) {
+export function PrizeExplainer({
+  data,
+  demo = false,
+}: {
+  data: Overview;
+  demo?: boolean;
+}) {
   if (!data.promotionEnabled) return null;
   const ordered = [...data.milestones].sort((a, b) => a.number - b.number);
   const next = ordered.find((m) => m.number > data.currentNumber);
   const format = (n: number) => n.toLocaleString("en-US");
   return (
     <section className="prize-explainer" aria-labelledby="prize-title">
+      {demo && (
+        <p className="demo-progress-notice">
+          <strong>DEMO PROGRESS</strong> — Sample takeover count only. No number
+          is reserved and no prize is earned. Milestone links below show real
+          records.
+        </p>
+      )}
       <div className="prize-intro">
         <span className="eyebrow">YOUR PURCHASE & THE PRIZES</span>
         <h2 id="prize-title">$3.99 BUYS YOUR TIME ON THE WALL.</h2>
@@ -30,7 +43,9 @@ export function PrizeExplainer({ data }: { data: Overview }) {
       </div>
       {next ? (
         <div className="prize-next">
-          <span>NEXT PRIZE MILESTONE · #{format(next.number)}</span>
+          <span>
+            {demo ? "DEMO · " : ""}NEXT PRIZE MILESTONE · #{format(next.number)}
+          </span>
           <strong>${format(next.rewardUsd)} REWARD</strong>
           <progress
             aria-label={`Progress toward milestone ${next.number}`}
@@ -41,7 +56,7 @@ export function PrizeExplainer({ data }: { data: Overview }) {
             <b>
               {data.currentNumber === 0
                 ? "No numbered takeovers yet"
-                : `Latest takeover number: #${format(data.currentNumber)}`}
+                : `${demo ? "Demo takeover number" : "Latest takeover number"}: #${format(data.currentNumber)}`}
             </b>
             <br />
             {format(next.number - data.currentNumber)} to go until #

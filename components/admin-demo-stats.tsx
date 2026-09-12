@@ -1,6 +1,7 @@
 "use client";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import type { FunctionReturnType } from "convex/server";
 import type { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 const defaults = {
@@ -29,24 +30,29 @@ export function AdminDemoStats() {
         statistics.
       </p>
     );
-  return (
-    <DemoForm
-      key={wall.owner.id}
-      ownerId={wall.owner.id}
-      saved={saved}
-    />
-  );
+  return <DemoForm key={wall.owner.id} ownerId={wall.owner.id} saved={saved} />;
 }
 function DemoForm({
   ownerId,
   saved,
 }: {
   ownerId: Id<"takeovers">;
-  saved: { values: typeof defaults; activeForCurrentOwner: boolean } | null;
+  saved: FunctionReturnType<typeof api.demoStats.read>;
 }) {
   const save = useMutation(api.demoStats.save);
   const [values, setValues] = useState(saved?.values ?? defaults);
   const [enabled, setEnabled] = useState(saved?.activeForCurrentOwner ?? false);
+  const [previewEnabled, setPreviewEnabled] = useState(!!saved?.presentation);
+  const [presentation, setPresentation] = useState(() =>
+    saved?.presentation ?? {
+      displayName: "Demo owner",
+      description: "Sample wall content",
+      websiteUrl: "",
+      ownerSince: Date.now(),
+      previousOwnerName: "Demo previous owner",
+      takeoverCount: 0,
+    },
+  );
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -60,8 +66,9 @@ function DemoForm({
         automatically.
       </p>
       <p>
-        Payments, takeover numbers, prize progress, previous owners and
-        timestamps always use real records.
+        Real ownership, payments, prize claims and permanent winner pages are
+        never changed. Optional content and progress previews are explicitly
+        labeled.
       </p>
       <form
         onSubmit={async (e) => {
@@ -69,7 +76,13 @@ function DemoForm({
           setBusy(true);
           setMessage("");
           try {
-            await save({ enabled, values, reason, expectedCurrentId: ownerId });
+            await save({
+              enabled,
+              values,
+              reason,
+              expectedCurrentId: ownerId,
+              ...(previewEnabled ? { presentation } : {}),
+            });
             setMessage("Demo settings saved.");
           } catch (e) {
             setMessage(e instanceof Error ? e.message : "Could not save.");
@@ -103,6 +116,114 @@ function DemoForm({
           </label>
         ))}
         <p>Demo CTR is calculated from sample clicks and impressions.</p>
+        <label className="check-label">
+          <input
+            type="checkbox"
+            checked={previewEnabled}
+            onChange={(e) => setPreviewEnabled(e.target.checked)}
+          />
+          Preview content and progress too
+        </label>
+        {previewEnabled && (
+          <fieldset>
+            <legend>Labeled demo presentation</legend>
+            <label>
+              Demo owner name
+              <input
+                required
+                maxLength={60}
+                value={presentation.displayName}
+                onChange={(e) =>
+                  setPresentation({
+                    ...presentation,
+                    displayName: e.target.value,
+                  })
+                }
+              />
+            </label>
+            <label>
+              Demo message
+              <input
+                maxLength={120}
+                value={presentation.description}
+                onChange={(e) =>
+                  setPresentation({
+                    ...presentation,
+                    description: e.target.value,
+                  })
+                }
+              />
+            </label>
+            <label>
+              Demo destination URL (optional)
+              <input
+                type="url"
+                value={presentation.websiteUrl}
+                onChange={(e) =>
+                  setPresentation({
+                    ...presentation,
+                    websiteUrl: e.target.value,
+                  })
+                }
+              />
+            </label>
+            <label>
+              Demo owner since (UTC)
+              <input
+                type="datetime-local"
+                required
+                step="1"
+                value={
+                  Number.isFinite(presentation.ownerSince)
+                    ? new Date(presentation.ownerSince)
+                        .toISOString()
+                        .slice(0, 19)
+                    : ""
+                }
+                onChange={(e) =>
+                  setPresentation({
+                    ...presentation,
+                    ownerSince: Date.parse(e.target.value + "Z"),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Demo previous owner
+              <input
+                maxLength={60}
+                value={presentation.previousOwnerName}
+                onChange={(e) =>
+                  setPresentation({
+                    ...presentation,
+                    previousOwnerName: e.target.value,
+                  })
+                }
+              />
+            </label>
+            <label>
+              Demo takeover count / progress
+              <input
+                type="number"
+                required
+                min="0"
+                max="1000000000"
+                step="1"
+                value={presentation.takeoverCount}
+                onChange={(e) =>
+                  setPresentation({
+                    ...presentation,
+                    takeoverCount: e.target.valueAsNumber,
+                  })
+                }
+              />
+            </label>
+            <p>
+              Demo content uses no real owner’s image. Links and dates are
+              samples; milestone links still open the real permanent pages.
+            </p>
+          </fieldset>
+        )}
         <label>
           Reason for change
           <input

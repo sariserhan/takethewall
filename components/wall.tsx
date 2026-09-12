@@ -89,6 +89,8 @@ function WallView({
     [returnToken, setReturnToken] = useState<string | null>(null),
     [changed, setChanged] = useState(false);
   const sample = data?.demoStats;
+  const presentation = data?.demoPresentation;
+  const since = presentation?.ownerSince ?? data?.owner.activatedAt ?? 0;
   const owner = data?.owner,
     adRef = useRef<HTMLAnchorElement>(null),
     previous = useRef<string | null>(null),
@@ -142,7 +144,7 @@ function WallView({
     };
   }, [returnToken, owner?.id]);
   useEffect(() => {
-    if (!owner?.id) return;
+    if (!owner?.id || presentation) return;
     const id = owner.id;
     let visible = false;
     const attempt = () => {
@@ -166,7 +168,7 @@ function WallView({
       observer.disconnect();
       document.removeEventListener("visibilitychange", attempt);
     };
-  }, [owner?.id]);
+  }, [owner?.id, presentation]);
   useEffect(() => {
     if (!owner?.id) return;
     if (previous.current && previous.current !== owner.id) {
@@ -247,8 +249,9 @@ function WallView({
         )}
         {sample && (
           <p className="demo-notice">
-            Demo mode: labeled numbers are sample data, not measured traffic.
-            Takeover and prize counts remain real.
+            {presentation
+              ? "DEMO PREVIEW — Content, dates and labeled counts are samples. Real ownership, payments and prize records are unchanged."
+              : "Demo mode: labeled numbers are sample data, not measured traffic. Takeover and prize counts remain real."}
           </p>
         )}
         <section className="site-metrics" aria-label="Site analytics">
@@ -272,30 +275,58 @@ function WallView({
           />
           <Metric
             label="COUNTED TAKEOVERS"
-            value={numbers(data?.totalTakeovers)}
+            demo={!!presentation}
+            value={numbers(presentation?.takeoverCount ?? data?.totalTakeovers)}
           />
           <div className="metric previous-owner-stat">
-            <span>PREVIOUS OWNER</span>
+            <span>
+              PREVIOUS OWNER
+              {presentation && <small className="demo-badge">Demo</small>}
+            </span>
             <strong>
-              {data ? (data.previousOwnerName ?? "None yet") : "—"}
+              {presentation
+                ? presentation.previousOwnerName || "None in demo"
+                : data
+                  ? (data.previousOwnerName ?? "None yet")
+                  : "—"}
             </strong>
           </div>
         </section>
         <section className="owner-section" aria-label="Current owner">
           <p className="eyebrow">
             CURRENT TAKEOVER{" "}
-            {owner?.takeoverNumber
-              ? `#${owner.takeoverNumber}${owner.kind === "admin_counted" ? " · ADMIN-ISSUED" : ""}`
-              : owner?.kind === "admin_placement"
-                ? "ADMIN PLACEMENT"
-                : "HOUSE PLACEMENT"}
+            {presentation
+              ? "DEMO PREVIEW"
+              : owner?.takeoverNumber
+                ? `#${owner.takeoverNumber}${owner.kind === "admin_counted" ? " · ADMIN-ISSUED" : ""}`
+                : owner?.kind === "admin_placement"
+                  ? "ADMIN PLACEMENT"
+                  : "HOUSE PLACEMENT"}
           </p>
           <p className="eyebrow ownership-label" aria-live="polite">
-            {changed
-              ? "THE WALL WAS JUST TAKEN"
-              : "THIS WALL CURRENTLY BELONGS TO"}
+            {presentation
+              ? "SAMPLE CONTENT — NOT THE CURRENT OWNER"
+              : changed
+                ? "THE WALL WAS JUST TAKEN"
+                : "THIS WALL CURRENTLY BELONGS TO"}
           </p>
-          {owner ? (
+          {presentation ? (
+            <div className="owner-ad demo-owner">
+              <span className="demo-badge">Demo content</span>
+              <h2>{presentation.displayName}</h2>
+              <p>{presentation.description}</p>
+              {presentation.websiteUrl && (
+                <a
+                  className="visit"
+                  href={presentation.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                >
+                  Open demo link <Arrow />
+                </a>
+              )}
+            </div>
+          ) : owner ? (
             <a
               key={owner.id}
               ref={adRef}
@@ -350,16 +381,17 @@ function WallView({
         <section className="reign-metrics" aria-label="Current reign analytics">
           <Metric
             label="CURRENT REIGN"
+            demo={!!presentation}
             value={
               <>
-                <Clock since={owner?.activatedAt ?? 0} />
-                {owner?.activatedAt && (
+                <Clock since={since} />
+                {since > 0 && (
                   <time
                     className="owner-since"
-                    dateTime={new Date(owner.activatedAt).toISOString()}
+                    dateTime={new Date(since).toISOString()}
                   >
                     Owner since{" "}
-                    {new Date(owner.activatedAt)
+                    {new Date(since)
                       .toISOString()
                       .replace("T", " ")
                       .slice(0, 19)}{" "}
@@ -436,7 +468,7 @@ function WallView({
           </button>
         </section>
       </div>
-      <HomepageMilestones />
+      <HomepageMilestones demoCount={presentation?.takeoverCount} />
       <PublicFooter home />
       <PurchaseSheet
         key={

@@ -58,7 +58,7 @@ export function Sequence({ milestone }: { milestone: Milestone }) {
     </ol>
   );
 }
-export function HomepageMilestones() {
+export function HomepageMilestones({ demoCount }: { demoCount?: number }) {
   const data = useQuery(api.rewards.overview);
   const [selected, setSelected] = useState<number | null>(null),
     [dismissed, setDismissed] = useState<number[]>(() => {
@@ -81,7 +81,12 @@ export function HomepageMilestones() {
   const show = active && !dismissed.includes(active.number);
   return (
     <>
-      <PrizeExplainer data={data} />
+      <PrizeExplainer
+        data={
+          demoCount === undefined ? data : { ...data, currentNumber: demoCount }
+        }
+        demo={demoCount !== undefined}
+      />
       {active && (
         <>
           <button

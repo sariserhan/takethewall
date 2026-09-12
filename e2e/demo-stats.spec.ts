@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-test("sample traffic stays visibly labeled and never replaces real takeover counts", async ({ page }) => {
+for (const extended of [false,true]) {
+test(`sample traffic stays labeled (extended preview: ${extended})`, async ({ page }) => {
   const wallQueryIds = new Set<number>();
   await page.route("**/api/context", route => route.fulfill({status: 503, body: ""}));
   await page.routeWebSocket(/convex.*\/sync/, socket => {
@@ -19,6 +20,7 @@ test("sample traffic stays visibly labeled and never replaces real takeover coun
           change.value = {
             owner: {id:"demo_owner_browser_fixture",contentType:"personal",linkType:"other",displayName:"Demo preview",takeoverNumber:null,outboundLinkEnabled:false,websiteUrl:"",domain:"",description:"Labeled sample data",logoUrl:null,activatedAt:1789185600000,activationSequence:0,impressions:0,uniqueVisitors:0,clicks:0,kind:"initial_house"},
             totalVisitors:0,totalTakeovers:0,visitorsToday:0,utcDate:"2026-09-12",regions:[],previousOwnerName:null,
+            demoPresentation:extended ? {displayName:"Preview owner only",description:"Sample presentation",websiteUrl:"https://example.com/",ownerSince:1789185500000,previousOwnerName:"Preview predecessor",takeoverCount:73} : null,
             demoStats:{visitorsToday:120,totalVisitors:500,impressions:240,uniqueVisitors:120,clicks:24},
           };
         }
@@ -27,12 +29,19 @@ test("sample traffic stays visibly labeled and never replaces real takeover coun
     });
   });
   await page.goto("/");
-  await expect(page.locator(".demo-notice")).toContainText("not measured traffic");
-  await expect(page.locator(".demo-badge")).toHaveCount(6);
+  await expect(page.locator(".demo-notice")).toContainText(extended ? "DEMO PREVIEW" : "not measured traffic");
+  await expect(page.locator(".demo-badge")).toHaveCount(extended ? 10 : 6);
   const metric = (label:string) => page.locator(".metric").filter({has:page.locator("span",{hasText:label})});
   await expect(metric("TOTAL VISITORS")).toContainText("500");
-  await expect(metric("COUNTED TAKEOVERS").locator("strong")).toHaveText("0");
-  await expect(metric("COUNTED TAKEOVERS").locator(".demo-badge")).toHaveCount(0);
+  await expect(metric("COUNTED TAKEOVERS").locator("strong")).toHaveText(extended ? "73" : "0");
+  await expect(metric("COUNTED TAKEOVERS").locator(".demo-badge")).toHaveCount(extended ? 1 : 0);
+  if (extended) {
+    await expect(page.locator(".demo-owner")).toContainText("Preview owner only");
+    await expect(page.locator(".demo-progress-notice")).toContainText("No number is reserved");
+    await expect(page.locator(".owner-since")).toContainText("UTC");
+  }
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.screenshot({path:`/tmp/demo-stats-${test.info().project.name}.png`,fullPage:true});
+  await page.screenshot({path:`/tmp/demo-stats-${test.info().project.name}.png`,fullPage:false});
 });
+
+}

@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { demoValues } from "./demoValues";
+import { validateWallContent, plainText } from "../lib/content";
+import { demoValues, demoPresentation } from "./demoValues";
 import { audit, requireAdmin } from "./rewardModel";
 export const read = query({
   args: {},
@@ -9,6 +10,7 @@ export const read = query({
     v.object({
       enabled: v.boolean(),
       values: demoValues,
+      presentation: v.optional(demoPresentation),
       activeForCurrentOwner: v.boolean(),
     }),
   ),
@@ -26,6 +28,7 @@ export const read = query({
     return {
       enabled: row.enabled,
       values: row.values,
+      ...(row.presentation ? { presentation: row.presentation } : {}),
       activeForCurrentOwner:
         row.enabled && row.takeoverId === site?.currentTakeoverId,
     };
@@ -35,6 +38,7 @@ export const save = mutation({
   args: {
     enabled: v.boolean(),
     values: demoValues,
+    presentation: v.optional(demoPresentation),
     reason: v.string(),
     expectedCurrentId: v.id("takeovers"),
   },
@@ -56,6 +60,38 @@ export const save = mutation({
       throw new Error(
         "Sample totals must be consistent: today's visitors cannot exceed total visitors, and unique visitors/clicks cannot exceed impressions.",
       );
+    let presentation = a.presentation;
+    if (presentation) {
+      if (
+        !Number.isSafeInteger(presentation.takeoverCount) ||
+        presentation.takeoverCount < 0 ||
+        presentation.takeoverCount > 1_000_000_000
+      )
+        throw new Error(
+          "Demo takeover count must be a whole number from 0 to 1 billion.",
+        );
+      if (
+        !Number.isSafeInteger(presentation.ownerSince) ||
+        presentation.ownerSince < 0 ||
+        presentation.ownerSince > Date.now()
+      )
+        throw new Error("Demo start time must be a valid past UTC timestamp.");
+      const content = validateWallContent({
+        contentType: presentation.websiteUrl ? "link" : "personal",
+        websiteUrl: presentation.websiteUrl,
+        displayName: presentation.displayName,
+        description: presentation.description,
+      });
+      presentation = {
+        ...presentation,
+        displayName: content.displayName,
+        description: content.description,
+        websiteUrl: content.websiteUrl,
+        previousOwnerName: presentation.previousOwnerName.trim()
+          ? plainText(presentation.previousOwnerName, 60)
+          : "",
+      };
+    }
     const site = await ctx.db
       .query("siteStats")
       .withIndex("by_key", (q) => q.eq("key", "wall"))
@@ -69,6 +105,7 @@ export const save = mutation({
     const next = {
       enabled: a.enabled,
       values: a.values,
+      presentation,
       takeoverId: site.currentTakeoverId,
       updatedAt: Date.now(),
     };
@@ -80,6 +117,7 @@ export const save = mutation({
         ? {
             enabled: row.enabled,
             values: row.values,
+            ...(row.presentation ? { presentation: row.presentation } : {}),
             takeoverId: row.takeoverId,
           }
         : null,

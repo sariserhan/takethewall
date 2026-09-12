@@ -1,4 +1,4 @@
-import { demoValues } from "./demoValues";
+import { demoValues, demoPresentation } from "./demoValues";
 import { rewardTables } from "./rewardSchema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -40,6 +40,7 @@ export default defineSchema({
     enabled: v.boolean(),
     takeoverId: v.id("takeovers"),
     values: demoValues,
+    presentation: v.optional(demoPresentation),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
   ...rewardTables,

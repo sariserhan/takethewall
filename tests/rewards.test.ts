@@ -865,3 +865,26 @@ it("demo stats are admin-only, separate from real counters, and expire on owner 
   const events=await t.run(ctx=>ctx.db.query("adminAudit").collect());
   expect(events.filter(e=>e.action==="DEMO_STATS_UPDATED")).toHaveLength(3);
 });
+
+it("demo presentation never rewrites ownership, audit history or real prize progress", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  const before = (await t.query(api.wall.current, {}))!;
+  const rewards = await t.query(api.rewards.overview, {});
+  const presentation = {displayName:"Sample person",description:"Demo message",websiteUrl:"https://example.com/",ownerSince:Date.now()-100000,previousOwnerName:"Sample previous",takeoverCount:99};
+  const args = {enabled:true,values:{visitorsToday:0,totalVisitors:0,impressions:0,uniqueVisitors:0,clicks:0},presentation,reason:"Preview only",expectedCurrentId:before.owner.id};
+  await admin.mutation(api.demoStats.save,args);
+  const after = (await t.query(api.wall.current,{}))!;
+  expect(after.demoPresentation).toEqual(presentation);
+  expect(after.owner).toEqual(before.owner);
+  expect(after.totalTakeovers).toBe(before.totalTakeovers);
+  expect(after.previousOwnerName).toBe(before.previousOwnerName);
+  expect(await t.query(api.rewards.overview,{})).toEqual(rewards);
+  await expect(admin.mutation(api.demoStats.save,{...args,presentation:{...presentation,websiteUrl:"javascript:alert(1)"}})).rejects.toThrow();
+  await expect(admin.mutation(api.demoStats.save,{...args,presentation:{...presentation,ownerSince:Date.now()+1}})).rejects.toThrow();
+  const {presentation: ignored, ...withoutPresentation} = args;
+  void ignored;
+  await admin.mutation(api.demoStats.save,withoutPresentation);
+  expect((await t.query(api.wall.current,{}))?.demoPresentation).toBeNull();
+});
