@@ -278,7 +278,7 @@ function WallView({
               <StatHelp label="PREVIOUS OWNER" />
             </span>
             <strong>
-              {(data ? (data.previousOwnerName ?? "None yet") : "—")}
+              {demoPreviousOwner || (data ? (data.previousOwnerName ?? "None yet") : "—")}
             </strong>
           </div>
         </section>
