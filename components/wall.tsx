@@ -292,10 +292,9 @@ function WallView({
           <div className="metric previous-owner-stat">
             <span>
               PREVIOUS OWNER
-              {demoPreviousOwner && <small className="demo-badge">Demo</small>}
             </span>
             <strong>
-              {demoPreviousOwner || (data ? (data.previousOwnerName ?? "None yet") : "—")}
+              {(data ? (data.previousOwnerName ?? "None yet") : "—")}
             </strong>
           </div>
         </section>
