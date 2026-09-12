@@ -67,11 +67,6 @@ function Metric({
     <div className="metric">
       <span>
         {label}
-        {demo && (
-          <small className="demo-badge">
-            {breakdown ? "Includes-demo" : "Demo"}
-          </small>
-        )}
       </span>
       <strong>{value}</strong>
     </div>
