@@ -317,7 +317,7 @@ function WallView({
             {presentation
               ? "DEMO PREVIEW"
               : owner?.takeoverNumber
-                ? `#${owner.takeoverNumber}${owner.kind === "admin_counted" ? " · ADMIN-ISSUED" : ""}`
+                ? `#${owner.takeoverNumber}`
                 : owner?.kind === "admin_placement"
                   ? "ADMIN PLACEMENT"
                   : "HOUSE PLACEMENT"}
