@@ -7,15 +7,17 @@ export default function ErrorPage({
   retry: () => void;
 }) {
   return (
-    <SystemScreen code="SOMETHING WENT WRONG" title="THE WALL HIT A SNAG.">
+    <SystemScreen code="!" title="THE WALL HIT A SNAG.">
       <p>We couldn’t load this page. Please try again in a moment.</p>
-      <p>
+      <p className="system-payment-note">
         If you just paid, don’t submit another payment. Your confirmation may
         still be processing.
       </p>
-      <button className="button" onClick={() => retry()}>
-        TRY AGAIN
-      </button>
+      <div className="system-actions">
+        <button className="button" onClick={() => retry()}>
+          TRY AGAIN
+        </button>
+      </div>
     </SystemScreen>
   );
 }

@@ -10,21 +10,45 @@ export function SystemScreen({
 }) {
   return (
     <main className="system-screen">
-      <header className="masthead">
-        <Link href="/" aria-label="Take The Wall home">
-          <h1>TAKE THE WALL</h1>
+      <header className="system-header">
+        <Link className="system-wordmark" href="/">
+          TAKE THE WALL
         </Link>
+        <span>ONE WALL. ONE OWNER.</span>
       </header>
-      <section className="system-content">
-        <span className="system-code">{code}</span>
-        <h2>{title}</h2>
-        {children}
-      </section>
+      <div className="system-stage">
+        <div className="system-poster" aria-hidden="true">
+          <span>TAKE THE WALL</span>
+          <strong>{code}</strong>
+          <div className="system-poster-rule" />
+          <small>
+            {code === "404"
+              ? "NOT EVERY LINK LEADS TO A WALL."
+              : code === "…"
+                ? "YOUR NEXT MOMENT IS LOADING."
+                : "A SHORT PAUSE. TRY AGAIN."}
+          </small>
+        </div>
+        <section className="system-content">
+          <span className="system-code">
+            {code === "404"
+              ? "PAGE NOT FOUND"
+              : code === "…"
+                ? "LOADING"
+                : "TEMPORARILY UNAVAILABLE"}
+          </span>
+          <h1>{title}</h1>
+          {children}
+        </section>
+      </div>
       <footer className="system-footer">
-        <Link href="/">Return to the wall</Link>
-        <Link href="/?info=support">Support</Link>
-        <Link href="/?info=privacy">Privacy</Link>
-        <Link href="/?info=terms">Terms</Link>
+        <span>ONE WALL. STILL HERE.</span>
+        <nav aria-label="Help and information">
+          <Link href="/">Live wall</Link>
+          <Link href="/?info=support">Support</Link>
+          <Link href="/?info=privacy">Privacy</Link>
+          <Link href="/?info=terms">Terms</Link>
+        </nav>
       </footer>
     </main>
   );

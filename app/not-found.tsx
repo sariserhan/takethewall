@@ -7,14 +7,21 @@ export const metadata: Metadata = {
 };
 export default function NotFound() {
   return (
-    <SystemScreen code="404" title="THIS WALL DOESN’T EXIST.">
+    <SystemScreen
+      code="404"
+      title="WRONG TURN.
+RIGHT WALL."
+    >
       <p>
-        The link may be incorrect or the page may have moved. The live wall is
-        still one click away.
+        This page doesn’t exist, but your next moment on the wall might. Check
+        the address or head back to the live wall.
       </p>
-      <Link className="button" href="/">
-        BACK TO THE WALL
-      </Link>
+      <div className="system-actions">
+        <Link className="button" href="/">
+          BACK TO THE WALL <span aria-hidden="true">→</span>
+        </Link>
+        <Link href="/?info=how-it-works">How it works</Link>
+      </div>
     </SystemScreen>
   );
 }
