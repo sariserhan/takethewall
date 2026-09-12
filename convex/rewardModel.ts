@@ -3,6 +3,7 @@ import type { Id } from "./_generated/dataModel";
 import { MILESTONES, LEGAL_VERSION } from "../lib/config";
 import { DEFAULT_RULES } from "../lib/reward-rules";
 import { canonical, auditHash, sha } from "../lib/audit";
+import { components } from "./_generated/api";
 export async function settings(ctx: QueryCtx) {
   const s = await ctx.db
     .query("rewardSettings")
@@ -229,14 +230,32 @@ export async function requireAdmin(ctx: QueryCtx) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  if (!identity) throw new Error("Administrator access required");
+  let email = identity.email;
+  let verified = identity.emailVerified === true;
+  if (typeof identity.sessionId === "string") {
+    // Resolve Better Auth's current verified user rather than depending on
+    // optional email claims cached in an already-issued JWT.
+    const session = await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "session",
+      where: [
+        { field: "_id", value: identity.sessionId },
+        { field: "userId", value: identity.subject },
+        { field: "expiresAt", operator: "gt", value: Date.now() },
+      ],
+    });
+    if (!session) throw new Error("Administrator access required");
+    const user = await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "user",
+      where: [{ field: "_id", value: identity.subject }],
+    });
+    if (!user) throw new Error("Administrator access required");
+    email = user.email;
+    verified = user.emailVerified === true;
+  }
   if (
-    !identity ||
-    (!ids.includes(identity.subject) &&
-      !(
-        identity.emailVerified === true &&
-        identity.email &&
-        emails.includes(identity.email.toLowerCase())
-      ))
+    !ids.includes(identity.subject) &&
+    !(verified && email && emails.includes(email.toLowerCase()))
   )
     throw new Error("Administrator access required");
   return identity.subject;
