@@ -19,6 +19,7 @@ const labels = {
   impressions: "Impressions",
   uniqueVisitors: "Unique visitors",
   clicks: "Clicks",
+  takeoverCount: "Counted takeovers",
 };
 export function AdminDemoStats() {
   const saved = useQuery(api.demoStats.read);
@@ -45,6 +46,7 @@ function DemoForm({
   const [values, setValues] = useState({
     ...defaults,
     ...saved?.values,
+    takeoverCount: saved?.values.takeoverCount ?? saved?.presentation?.takeoverCount ?? 0,
     previousOwnerName: saved?.values.previousOwnerName ?? saved?.presentation?.previousOwnerName ?? "",
   });
   const [enabled, setEnabled] = useState(saved?.activeForCurrentOwner ?? false);
@@ -93,7 +95,7 @@ function DemoForm({
               values,
               reason,
               expectedCurrentId: ownerId,
-              ...(previewEnabled ? { presentation: { ...presentation, previousOwnerName: values.previousOwnerName } } : {}),
+              ...(previewEnabled ? { presentation: { ...presentation, previousOwnerName: values.previousOwnerName, takeoverCount: values.takeoverCount } } : {}),
             });
             setMessage("Demo settings saved.");
           } catch (e) {
@@ -135,7 +137,7 @@ function DemoForm({
         ))}
         <p>
           Displayed CTR uses combined real + demo clicks and impressions.
-          Turning demo off reveals only the real counts.
+          Counted takeovers adds to the displayed count and homepage progress; it does not trigger prizes. Turning demo off reveals only the real counts.
         </p>
         <label>
           Previous owner — demo display
@@ -153,7 +155,7 @@ function DemoForm({
             checked={previewEnabled}
             onChange={(e) => setPreviewEnabled(e.target.checked)}
           />
-          Preview content and progress too
+          Preview content too
         </label>
         {previewEnabled && (
           <fieldset>
@@ -215,23 +217,6 @@ function DemoForm({
                   setPresentation({
                     ...presentation,
                     ownerSince: Date.parse(e.target.value + "Z"),
-                  })
-                }
-              />
-            </label>
-            <label>
-              Demo takeover addition / progress
-              <input
-                type="number"
-                required
-                min="0"
-                max="1000000000"
-                step="1"
-                value={presentation.takeoverCount}
-                onChange={(e) =>
-                  setPresentation({
-                    ...presentation,
-                    takeoverCount: e.target.valueAsNumber,
                   })
                 }
               />

@@ -6,6 +6,7 @@ export const demoValues = v.object({
   uniqueVisitors: v.number(),
   clicks: v.number(),
   previousOwnerName: v.optional(v.string()),
+  takeoverCount: v.optional(v.number()),
 });
 export const demoPresentation = v.object({
   displayName: v.string(),

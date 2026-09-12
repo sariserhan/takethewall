@@ -92,6 +92,7 @@ function WallView({
   const sample = data?.demoStats;
   const presentation = data?.demoPresentation;
   const demoPreviousOwner = sample?.previousOwnerName ?? presentation?.previousOwnerName;
+  const demoTakeoverCount = sample?.takeoverCount ?? presentation?.takeoverCount;
   const since = presentation?.ownerSince ?? data?.owner.activatedAt ?? 0;
   const owner = data?.owner,
     adRef = useRef<HTMLAnchorElement>(null),
@@ -277,14 +278,16 @@ function WallView({
           />
           <Metric
             label="COUNTED TAKEOVERS"
-            demo={!!presentation}
+            demo={demoTakeoverCount !== undefined}
             breakdown={breakdown(
               data?.totalTakeovers,
-              presentation?.takeoverCount,
+              demoTakeoverCount,
             )}
-            value={numbers(
-              combined(data?.totalTakeovers, presentation?.takeoverCount),
-            )}
+            value={
+              <>
+                {numbers(combined(data?.totalTakeovers, demoTakeoverCount))}                
+              </>
+            }
           />
           <div className="metric previous-owner-stat">
             <span>
@@ -482,7 +485,7 @@ function WallView({
           </button>
         </section>
       </div>
-      <HomepageMilestones demoCount={presentation?.takeoverCount} />
+      <HomepageMilestones />
       <PublicFooter home />
       <PurchaseSheet
         key={
