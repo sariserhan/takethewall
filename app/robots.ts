@@ -12,6 +12,7 @@ export default function robots(): MetadataRoute.Robots {
           disallow: [
             "/admin",
             "/owner",
+            "/alerts",
             "/reward/",
             "/api/",
             "/*?purchase=",

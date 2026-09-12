@@ -553,3 +553,72 @@ it("production Stripe activation queues one admin notification with payment deta
   expect(notices[0].adminNotice?.body).toContain(p.args.buyerEmail);
   expect(notices[0].adminNotice?.body).toContain("receipt@example.com");
 });
+
+it("funnel counts measured page loads, unique checkout creation and paid activation, excluding admin access and duplicates", async () => {
+  const t = make(),
+    p = await pending(t);
+  vi.stubEnv("WALL_ENVIRONMENT", "production");
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const before = (await t.query(api.wall.current, {}))!.owner.id;
+  await t.run(async (ctx) => {
+    const purchase = (await ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", p.takeoverId))
+      .unique())!;
+    await ctx.db.patch(purchase._id, { environment: "production" });
+  });
+  const args = event(before, {
+    pageId: "funnel-page",
+    eventId: "funnel-first",
+  });
+  await t.mutation(internal.analytics.record, args);
+  await t.mutation(internal.analytics.record, args);
+  const purchase = (await t.run((ctx) =>
+    ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", p.takeoverId))
+      .unique(),
+  ))!;
+  await t.mutation(internal.purchases.attach, {
+    purchaseId: purchase._id,
+    sessionId: "cs_funnel",
+    checkoutUrl: "",
+  });
+  await t.mutation(internal.purchases.attach, {
+    purchaseId: purchase._id,
+    sessionId: "cs_funnel",
+    checkoutUrl: "",
+  });
+  const paid = { ...payment(p.takeoverId, "funnel"), livemode: true };
+  await t.mutation(internal.purchases.activate, paid);
+  await t.mutation(internal.purchases.activate, paid);
+  await t.mutation(
+    internal.analytics.record,
+    event(p.takeoverId, { pageId: "funnel-page", eventId: "funnel-second" }),
+  );
+  await t.mutation(
+    internal.analytics.record,
+    event(p.takeoverId, {
+      pageId: "excluded-page",
+      eventId: "excluded",
+      excluded: true,
+    }),
+  );
+  const date = new Date().toISOString().slice(0, 10);
+  await expect(
+    t.query(api.funnel.report, { from: date, to: date }),
+  ).rejects.toThrow("Administrator access");
+  const admin = t.withIdentity({
+    subject: "admin",
+    email: "admin@example.com",
+    emailVerified: true,
+  });
+  expect(
+    await admin.query(api.funnel.report, { from: date, to: date }),
+  ).toMatchObject({
+    visits: 1,
+    checkoutStarts: 1,
+    paidActivations: 1,
+    daysTracked: 1,
+  });
+});

@@ -1,3 +1,4 @@
+import {incrementFunnel} from "./funnel";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { daily, enqueue, getSite, limit, receipt } from "./model";
@@ -65,6 +66,7 @@ export const record = internalMutation({
       d = await daily(ctx);
     const region = /^[A-Z]{2}$/.test(a.region) ? a.region : "ZZ";
     if (a.event === "impression") {
+      if(await receipt(ctx,"funnel-visit:"+a.pageId)) await incrementFunnel(ctx,"funnelVisits");
       const seen = await ctx.db
         .query("takeoverVisitors")
         .withIndex("by_takeoverId_visitorHash", (q) =>

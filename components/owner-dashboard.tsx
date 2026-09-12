@@ -1,11 +1,13 @@
 "use client";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { OwnerDashboard } from "@/lib/owner-types";
 import { ctr, duration } from "@/lib/validation";
 import { OwnerEditor } from "./owner-editor";
 import { StatHelp } from "./stat-help";
 export function OwnerDashboardView() {
+  const router = useRouter();
   const [data, setData] = useState<OwnerDashboard | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -13,6 +15,7 @@ export function OwnerDashboardView() {
     [email, setEmail] = useState(""),
     [number, setNumber] = useState(""),
     [notice, setNotice] = useState("");
+  const [cardFormat, setCardFormat] = useState("landscape");
   const [now, setNow] = useState<number | null>(null);
   async function refresh() {
     const response = await fetch("/api/owner", { cache: "no-store" });
@@ -231,6 +234,40 @@ export function OwnerDashboardView() {
               setError("");
             }}
           />
+          {!data.active && (
+            <button
+              className="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const result = await request("repeat");
+                  const d = result.draft;
+                  const category =
+                    d.contentType === "personal" ? "personal" : "website";
+                  sessionStorage.setItem(
+                    "ttw-draft",
+                    JSON.stringify({
+                      ...d,
+                      category,
+                      requestKey: crypto.randomUUID(),
+                    }),
+                  );
+                  router.push("/?take=1");
+                } catch (e) {
+                  setError(
+                    e instanceof Error
+                      ? e.message
+                      : "Could not prepare your draft.",
+                  );
+                  setBusy(false);
+                }
+              }}
+            >
+              Take the wall again — $3.99
+            </button>
+          )}
           <h3>{owner.displayName}</h3>
           <p>{owner.description}</p>
           <p>
@@ -277,18 +314,38 @@ export function OwnerDashboardView() {
             Show people your takeover. This public link never contains your
             dashboard access key.
           </p>
+          <label>
+            Share card format
+            <select
+              value={cardFormat}
+              onChange={(e) => setCardFormat(e.target.value)}
+            >
+              <option value="landscape">Landscape · 1200 × 630</option>
+              <option value="square">Square · 1080 × 1080</option>
+              <option value="portrait">Portrait · 1080 × 1350</option>
+            </select>
+          </label>
           <Image
-            src={`/takeover/${data.publicId}/card?v=${data.contentRevision ?? 0}`}
+            src={`/takeover/${data.publicId}/card?format=${cardFormat}&v=${data.contentRevision ?? 0}`}
             alt={`Share card for takeover ${owner.takeoverNumber}`}
-            width={1200}
-            height={630}
+            width={cardFormat === "landscape" ? 1200 : 1080}
+            height={
+              cardFormat === "landscape"
+                ? 630
+                : cardFormat === "square"
+                  ? 1080
+                  : 1350
+            }
             unoptimized
           />
           <div className="owner-share-actions">
             <button className="button" onClick={() => void share()}>
               Share takeover ↗
             </button>
-            <a href={`/takeover/${data.publicId}/card?download=1`} download>
+            <a
+              href={`/takeover/${data.publicId}/card?download=1&format=${cardFormat}`}
+              download
+            >
               Download card
             </a>
           </div>

@@ -41,6 +41,7 @@ export const digestSnapshot = v.object({displayName:v.string(),number:v.union(v.
 export const editableContent = v.object({contentType:v.string(),linkType:v.string(),websiteUrl:v.string(),domain:v.string(),displayName:v.string(),description:v.string(),logoStorageId:v.optional(v.id("_storage"))});
 export const finalReportSnapshot = v.object({...digestSnapshot.fields,replacedAt:v.number(),endReason:v.string()});
 export default defineSchema({
+  milestoneSubscribers:defineTable({email:v.string(),emailHash:v.string(),seed:v.string(),confirmHash:v.string(),unsubscribeHash:v.string(),active:v.boolean(),generation:v.number(),expiresAt:v.number(),lastNotified:v.number(),createdAt:v.number()}).index("by_email",["emailHash"]).index("by_confirm",["confirmHash"]).index("by_unsubscribe",["unsubscribeHash"]).index("by_active_milestone",["active","lastNotified"]).index("by_active_expiry",["active","expiresAt"]),
   notificationSettings: defineTable({key:v.literal("current"),enabled:v.boolean(),recipient:v.string(),revision:v.number()}).index("by_key",["key"]),
   ownerAccess: defineTable({takeoverId:v.id("takeovers"),seed:v.string(),tokenHash:v.string(),unsubscribeHash:v.string(),weeklyDigestEnabled:v.boolean(),createdAt:v.number()}).index("by_takeover",["takeoverId"]).index("by_token",["tokenHash"]).index("by_unsubscribe",["unsubscribeHash"]),
   demoStats: defineTable({
@@ -113,6 +114,7 @@ export default defineSchema({
     .index("by_logoStorageId", ["logoStorageId"])
     .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
   purchases: defineTable({
+    funnelCheckoutTracked:v.optional(v.boolean()),
     weeklyDigestEnabled: v.optional(v.boolean()),
     takeoverId: v.id("takeovers"),
     buyerEmail: v.string(),
@@ -164,6 +166,10 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
   dailyStats: defineTable({
+    funnelStartedAt:v.optional(v.number()),
+    funnelVisits:v.optional(v.number()),
+    checkoutStarts:v.optional(v.number()),
+    paidActivations:v.optional(v.number()),
     date: v.string(),
     visitors: v.number(),
     impressions: v.number(),

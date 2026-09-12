@@ -1,3 +1,7 @@
+import { alertConfirmation, alertUnsubscribe } from "../lib/alert-secrets";
+import { ownerBaseUrl } from "../lib/owner-secrets";
+import { getSite } from "./model";
+import { settings } from "./rewardModel";
 import {
   internalAction,
   internalMutation,
@@ -38,6 +42,14 @@ export const prepare = internalMutation({
       subject: v.string(),
       body: v.string(),
       key: v.string(),
+      presentation: v.optional(
+        v.object({
+          eyebrow: v.string(),
+          cta: v.object({ label: v.string(), url: v.string() }),
+          unsubscribeUrl: v.optional(v.string()),
+          unsubscribeLabel: v.optional(v.string()),
+        }),
+      ),
     }),
   ),
   handler: async (ctx, a) => {
@@ -54,6 +66,63 @@ export const prepare = internalMutation({
         lastError: "Delivery window expired; reconcile before resending",
       });
       return null;
+    }
+    let presentation:
+      | {
+          eyebrow: string;
+          cta: { label: string; url: string };
+          unsubscribeUrl?: string;
+          unsubscribeLabel?: string;
+        }
+      | undefined;
+    if (j.subscriberId) {
+      const subscriber = await ctx.db.get(j.subscriberId);
+      let allowed =
+        !!subscriber?.email && j.generation === subscriber?.generation;
+      if (j.kind === "milestone_confirm")
+        allowed =
+          allowed && !subscriber!.active && subscriber!.expiresAt > Date.now();
+      else {
+        const config = await settings(ctx),
+          site = await getSite(ctx);
+        allowed =
+          allowed &&
+          !!subscriber?.active &&
+          process.env.WALL_ENVIRONMENT === "production" &&
+          config.rewardsEnabled &&
+          config.promotionEnabled &&
+          !!j.milestoneNumber &&
+          config.milestones.some(
+            (m) => m.takeoverNumber === j.milestoneNumber,
+          ) &&
+          site.totalTakeovers + (site.numberingOffset ?? 0) <
+            j.milestoneNumber!;
+      }
+      if (!allowed) {
+        await ctx.db.patch(j._id, { state: "sent", body: "" });
+        return null;
+      }
+      presentation =
+        j.kind === "milestone_confirm"
+          ? {
+              eyebrow: "CONFIRM YOUR ALERTS",
+              cta: {
+                label: "Confirm milestone alerts",
+                url:
+                  ownerBaseUrl() +
+                  "/alerts#confirm=" +
+                  alertConfirmation(subscriber!.seed),
+              },
+            }
+          : {
+              eyebrow: "A MILESTONE IS APPROACHING",
+              cta: { label: "Check the live wall", url: ownerBaseUrl() },
+              unsubscribeUrl:
+                ownerBaseUrl() +
+                "/alerts#unsubscribe=" +
+                alertUnsubscribe(subscriber!.seed),
+              unsubscribeLabel: "Unsubscribe from milestone alerts",
+            };
     }
     let body = j.body;
     if (j.claimId) {
@@ -113,7 +182,13 @@ export const prepare = internalMutation({
       attempts: j.attempts + 1,
       nextAt: Date.now() + 60_000,
     });
-    return { to: j.to, subject: j.subject, body, key: j.key };
+    return {
+      to: j.to,
+      subject: j.subject,
+      body,
+      key: j.key,
+      ...(presentation ? { presentation } : {}),
+    };
   },
 });
 export const finish = internalMutation({

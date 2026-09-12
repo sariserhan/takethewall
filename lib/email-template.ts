@@ -26,6 +26,7 @@ export interface EmailPresentation {
   cta?: { label: string; url: string };
   footnote?: string;
   unsubscribeUrl?: string;
+  unsubscribeLabel?: string;
 }
 function safeLink(url: string) {
   if (!/^https?:\/\//.test(url)) throw new Error("Invalid email URL");
@@ -64,7 +65,7 @@ export function emailTemplate(
       : "") +
     (presentation.footnote ? "\n\n" + presentation.footnote : "") +
     (presentation.unsubscribeUrl
-      ? `\n\nUnsubscribe from weekly summaries: ${presentation.unsubscribeUrl}`
+      ? `\n\n${presentation.unsubscribeLabel ?? "Unsubscribe from weekly summaries"}: ${presentation.unsubscribeUrl}`
       : "");
   return {
     subject,
@@ -85,7 +86,7 @@ ${metrics}${cta}
 ${presentation.footnote ? `<p style="font-size:12px;line-height:1.6;color:#68685f;">${escapeHtml(presentation.footnote)}</p>` : ""}
 </td></tr>
 <tr><td class="inner" style="padding:22px 32px;border-top:1px solid #babbb0;font-size:12px;line-height:1.6;color:#68685f;">
-<strong style="color:#11110f;">Take The Wall</strong><br>This is a service notification from Take The Wall.<br><a href="https://www.takethewall.com" style="color:#11110f;">Visit the wall</a> &nbsp;·&nbsp; <a href="mailto:support@takethewall.com" style="color:#11110f;">Get help</a>${presentation.unsubscribeUrl ? `<br><a href="${safeLink(presentation.unsubscribeUrl)}" style="color:#68685f;">Unsubscribe from weekly summaries</a>` : ""}
+<strong style="color:#11110f;">Take The Wall</strong><br>This is a service notification from Take The Wall.<br><a href="https://www.takethewall.com" style="color:#11110f;">Visit the wall</a> &nbsp;·&nbsp; <a href="mailto:support@takethewall.com" style="color:#11110f;">Get help</a>${presentation.unsubscribeUrl ? `<br><a href="${safeLink(presentation.unsubscribeUrl)}" style="color:#68685f;">${escapeHtml(presentation.unsubscribeLabel ?? "Unsubscribe from weekly summaries")}</a>` : ""}
 </td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>`,

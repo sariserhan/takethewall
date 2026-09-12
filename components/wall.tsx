@@ -1,4 +1,5 @@
 "use client";
+import {MilestoneAlerts} from "./milestone-alerts";
 import { ReportContent } from "./report-content";
 import { StatHelp } from "./stat-help";
 import { contentCta } from "@/lib/content";
@@ -458,6 +459,7 @@ function WallView({
         </section>
       </div>
       <HomepageMilestones />
+      <MilestoneAlerts/>
       <PublicFooter home />
       <PurchaseSheet
         key={

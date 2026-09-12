@@ -26,6 +26,9 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "alertSubscribe": result=await ctx.runMutation(internal.milestoneAlerts.subscribe,args);break;
+        case "alertManage": result=await ctx.runMutation(internal.milestoneAlerts.manage,args);break;
+        case "ownerRepeat": result = await ctx.runMutation(internal.owners.repeat,args); break;
         case "ownerEdit": result = await ctx.runMutation(internal.owners.edit,args); break;
         case "ownerDashboard": result = await ctx.runQuery(internal.owners.dashboard,args); break;
         case "ownerPreferences": result = await ctx.runMutation(internal.owners.preferences,args); break;

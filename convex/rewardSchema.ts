@@ -179,6 +179,8 @@ export const rewardTables = {
     createdAt: v.number(),
   }).index("by_ticket", ["ticketId"]),
   transactionalMail: defineTable({
+    subscriberId:v.optional(v.id("milestoneSubscribers")),
+    milestoneNumber:v.optional(v.number()),
     key: v.string(),
     kind: v.string(),
     claimId: v.optional(v.id("rewardClaims")),

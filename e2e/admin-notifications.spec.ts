@@ -60,24 +60,32 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     let version = { querySet: 0, identity: 0, ts: timestamp() };
     const queries = new Map<number, string>();
     const value = (path: string): unknown =>
-      path === "admin:identity"
-        ? "admin@example.com"
-        : path === "admin:overview"
-          ? JSON.stringify({ milestones: [] })
-          : path === "admin:getNotificationSettings"
-            ? settings
-            : path === "admin:getSettings"
-              ? {
-                  milestones: [],
-                  initialDays: 7,
-                  additionalDays: 7,
-                  rulesVersion: "test",
-                  rulesJson: "{}",
-                  rewardsEnabled: false,
-                  payoutsEnabled: false,
-                  promotionEnabled: false,
-                }
-              : null;
+      path === "funnel:report"
+        ? {
+            visits: 100,
+            checkoutStarts: 20,
+            paidActivations: 10,
+            startedAt: 1789200000000,
+            daysTracked: 2,
+          }
+        : path === "admin:identity"
+          ? "admin@example.com"
+          : path === "admin:overview"
+            ? JSON.stringify({ milestones: [] })
+            : path === "admin:getNotificationSettings"
+              ? settings
+              : path === "admin:getSettings"
+                ? {
+                    milestones: [],
+                    initialDays: 7,
+                    additionalDays: 7,
+                    rulesVersion: "test",
+                    rulesJson: "{}",
+                    rewardsEnabled: false,
+                    payoutsEnabled: false,
+                    promotionEnabled: false,
+                  }
+                : null;
     function transition(
       changes: unknown[],
       patch: Partial<typeof version> = {},
@@ -178,5 +186,22 @@ test("admin edits the notification recipient and toggle without leaving /admin",
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await page.getByRole("button", { name: "funnel", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Measured activity funnel" }),
+  ).toBeVisible();
+  await expect(page.locator(".funnel-stages")).toContainText("100");
+  await expect(
+    page.getByText("Checkout / visit ratio:", { exact: false }),
+  ).toContainText("20.0%");
+  await page.getByRole("button", { name: "Last 30 days" }).click();
+  await expect(
+    page.getByRole("button", { name: "Last 30 days" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(/\/admin$/);
+  await page.screenshot({
+    path: `/tmp/admin-funnel-${info.project.name}.png`,
+    fullPage: false,
+  });
   expect(errors).toEqual([]);
 });

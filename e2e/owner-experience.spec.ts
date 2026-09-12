@@ -404,3 +404,128 @@ test("image crop is applied before purchase preview and can be cancelled", async
     ),
   ).toBe(true);
 });
+
+test("returning owner gets a reviewable checkout draft and chooses share formats", async ({
+  page,
+}) => {
+  await wallFixture(page);
+  let repeats = 0,
+    payments = 0;
+  await page.route("**/api/checkout", (r) => {
+    payments++;
+    return r.fulfill({ status: 500, json: {} });
+  });
+  await page.route("**/api/owner", (r) => {
+    const a = r.request().method() === "POST" ? r.request().postDataJSON() : {};
+    if (a.action === "repeat") {
+      repeats++;
+      return r.fulfill({
+        json: {
+          draft: {
+            contentType: "personal",
+            displayName: "Raven Studio",
+            description: "A little corner of the internet.",
+            websiteUrl: "",
+            logoUrl: "",
+            uploadKey: "",
+            buyerEmail: "owner@example.com",
+            weeklyDigestEnabled: false,
+          },
+        },
+      });
+    }
+    return r.fulfill({
+      json: {
+        dashboard: {
+          ...dashboard,
+          contentRevision: 0,
+          active: false,
+          replacedAt: Date.now(),
+        },
+      },
+    });
+  });
+  await page.route("**/takeover/**/card*", (r) =>
+    r.fulfill({ status: 404, body: "" }),
+  );
+  await page.goto("/owner");
+  await page.getByLabel("Share card format").selectOption("portrait");
+  await expect(
+    page.getByRole("link", { name: "Download card" }),
+  ).toHaveAttribute("href", /format=portrait/);
+  await page
+    .getByRole("button", { name: "Take the wall again — $3.99" })
+    .click();
+  await expect(page).toHaveURL(/\/\?take=1$/);
+  const dialog = page.getByRole("dialog", { name: "MAKE IT YOURS." });
+  await expect(dialog.getByLabel("Display name")).toHaveValue("Raven Studio");
+  await expect(dialog.getByLabel("Buyer email")).toHaveValue(
+    "owner@example.com",
+  );
+  await expect(dialog.getByLabel("Optional message")).toHaveValue(
+    "A little corner of the internet.",
+  );
+  expect(repeats).toBe(1);
+  expect(payments).toBe(0);
+  await dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" }),
+  ).toBeVisible();
+  expect(payments).toBe(0);
+});
+test("milestone signup and email confirmation require deliberate consent", async ({
+  page,
+}, info) => {
+  await wallFixture(page);
+  const calls: Record<string, unknown>[] = [];
+  await page.route("**/api/alerts", (r) => {
+    calls.push(r.request().postDataJSON());
+    return r.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Notify me about milestones" })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Milestone alerts",
+    exact: true,
+  });
+  await dialog
+    .getByLabel("Email address", { exact: true })
+    .fill("person@example.com");
+  await dialog.getByRole("checkbox").check();
+  await dialog.getByRole("button", { name: "Send confirmation email" }).click();
+  await expect(dialog.getByRole("status")).toContainText("Check your inbox");
+  expect(calls[0]).toMatchObject({
+    action: "subscribe",
+    consent: true,
+    email: "person@example.com",
+  });
+  await page.goto("/alerts#confirm=" + "b".repeat(64));
+  await expect(
+    page.getByRole("button", { name: "Confirm my subscription" }),
+  ).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("");
+  expect(calls).toHaveLength(1);
+  await page.getByRole("button", { name: "Confirm my subscription" }).click();
+  await expect(page.getByRole("status")).toContainText("confirmed");
+  expect(calls[1].action).toBe("confirm");
+  await page.goto("/alerts#unsubscribe=" + "c".repeat(64));
+  await expect(
+    page.getByRole("button", { name: "Unsubscribe from milestone alerts" }),
+  ).toBeVisible();
+  expect(calls).toHaveLength(2);
+  await page
+    .getByRole("button", { name: "Unsubscribe from milestone alerts" })
+    .click();
+  await expect(page.getByRole("status")).toContainText("unsubscribed");
+  await page.screenshot({
+    path: `/tmp/milestone-alerts-${info.project.name}.png`,
+    fullPage: false,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});

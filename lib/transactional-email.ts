@@ -1,10 +1,11 @@
-import { emailTemplate } from "./email-template";
+import { emailTemplate, type EmailPresentation } from "./email-template";
 export interface TransactionalEmailProvider {
   send(message: {
     to: string;
     subject: string;
     body: string;
     key: string;
+    presentation?: EmailPresentation;
   }): Promise<void>;
 }
 export const transactionalEmail: TransactionalEmailProvider = {
@@ -21,7 +22,7 @@ export const transactionalEmail: TransactionalEmailProvider = {
       body: JSON.stringify({
         from: process.env.RESEND_FROM,
         to: [message.to],
-        ...emailTemplate(message.subject, message.body),
+        ...emailTemplate(message.subject, message.body, message.presentation),
         reply_to: process.env.SUPPORT_EMAIL ?? "support@takethewall.com",
       }),
       signal: AbortSignal.timeout(10000),

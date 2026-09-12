@@ -663,3 +663,45 @@ it("only admins can change notification settings; recipient changes affect futur
     ),
   ).toBeNull();
 });
+
+it("repeat prepares a private prefilled draft without activating or charging and refuses moderated content", async () => {
+  const { t, id, token, publish } = await setup();
+  const image = await t.run((ctx) => ctx.storage.store(new Blob(["image"])));
+  await t.run((ctx) => ctx.db.patch(id, { logoStorageId: image }));
+  await publish("second");
+  const before = await t.query(api.wall.current, {}),
+    old = await t.run((ctx) => ctx.db.get(id));
+  const draft = await t.mutation(internal.owners.repeat, {
+    token,
+    ownerHash: "repeat-ip",
+  });
+  expect(draft).toMatchObject({
+    displayName: "first",
+    buyerEmail: "first@example.com",
+    description: "A real placement",
+  });
+  expect(draft.uploadKey).not.toBe("");
+  const upload = await t.run((ctx) =>
+    ctx.db
+      .query("uploads")
+      .withIndex("by_key", (q) => q.eq("key", draft.uploadKey))
+      .unique(),
+  );
+  expect(upload).toMatchObject({
+    storageId: image,
+    claimed: false,
+    ownerHash: "repeat-ip",
+  });
+  expect(await t.query(api.wall.current, {})).toEqual(before);
+  expect(await t.run((ctx) => ctx.db.get(id))).toEqual(old);
+  await expect(
+    t.mutation(internal.owners.repeat, {
+      token: "a".repeat(64),
+      ownerHash: "repeat-ip",
+    }),
+  ).rejects.toThrow("Invalid private link");
+  await t.run((ctx) => ctx.db.patch(id, { blocked: true }));
+  await expect(
+    t.mutation(internal.owners.repeat, { token, ownerHash: "repeat-ip" }),
+  ).rejects.toThrow("cannot be reused");
+});

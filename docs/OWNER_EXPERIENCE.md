@@ -1,6 +1,6 @@
 # Owner experience and weekly digest
 
-Owners can request a private dashboard link at `/owner` using their public takeover number and the email used at checkout. Activation and replacement emails also include this link. Access does not require an account. The private link must not be shared; the dashboard provides a separate public share link and downloadable 1200×630 PNG.
+Owners can request a private dashboard link at `/owner` using their public takeover number and the email used at checkout. Activation and replacement emails also include this link. Access does not require an account. The private link must not be shared; the dashboard provides a separate public share link and downloadable landscape, square, and portrait PNGs.
 
 Checkout now includes desktop/mobile content review before creating an embedded Stripe checkout. Reports from the live wall enter the existing admin support queue with a snapshot of the reported placement and moderation actions.
 
@@ -53,3 +53,15 @@ In `/admin` → Settings → Takeover notifications, admins can change the recip
 5. During a later genuine replacement, verify the original owner's final report after the late-event window, and compare it with their private dashboard. Do not create another paid takeover solely to test the report without approving that purchase.
 
 Automated checks use simulated payment/email responses; successful builds and mocked delivery do not prove real inbox delivery. No live charge or test email has been made for this update.
+
+## Repeat checkout, milestone alerts, share formats, and funnel
+
+A replaced owner can select **Take the wall again — $3.99** in their private dashboard. This creates a draft from their own content and a fresh upload ticket for the existing image. The owner reviews it through normal checkout before paying. Preparing the draft does not charge, activate a takeover, or change the original record. Blocked content and disabled outbound links cannot bypass moderation through this flow.
+
+The homepage offers optional milestone email alerts. Signup requires consent and email confirmation within 24 hours. In production, with rewards and promotion enabled, the scheduler queues an alert when the next configured milestone is within 10 counted takeovers. Each subscriber receives at most one alert per milestone; delivery checks that the milestone has not already passed. Up to 50 subscribers are queued each minute, so this is a best-effort notification, never a reservation or prize guarantee. Email links require a deliberate confirmation or unsubscribe action. Unsubscribing suppresses queued alerts and does not change owner service emails or weekly-digest preferences. Expired inactive subscription records are cleaned up after 30 days.
+
+Share cards now offer landscape (1200×630), square (1080×1080), and portrait (1080×1350) downloads. Each includes a QR code pointing only to the public takeover page, without private dashboard tokens or purchaser details. Removed content remains unavailable.
+
+The **funnel** tab stays within `/admin`. Its 7- and 30-day UTC windows show measured wall page visits, Stripe checkout sessions created, and paid activations. Visits are deduplicated by page ID across owner changes; checkout attachment and payment webhook retries do not double count. Tracking requires production and `PUBLIC_METRICS_ENABLED=true`. Demo additions, numbering offsets, test purchases, and admin publications are excluded. Tracking starts with deployment; older activity is not fabricated or backfilled. Ratios compare activity within the selected period, not matched cohorts: a payment may belong to an earlier checkout, and blocked analytics may omit visits.
+
+These features reuse existing environment variables and email delivery; no new secret or webhook is required. Deploy the frontend and Convex backend together to register the alert schedule and new tables/functions. Automated email and payment checks are mocked; they do not send real emails or charge cards.

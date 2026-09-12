@@ -107,7 +107,7 @@ export const publicCopy: Record<
       },
       {
         title: "Private purchase and support information",
-        body: "We store purchase email, payment references, status, and necessary support correspondence to fulfill purchases, provide notices, handle problems, and maintain operational records. Purchase is not consent to marketing. Owners can choose a weekly performance summary while their takeover remains live, and unsubscribe in the dashboard or email. Stripe handles payment details; TakeTheWall does not store complete card numbers.",
+        body: "We store purchase email, payment references, status, and necessary support correspondence to fulfill purchases, provide notices, handle problems, and maintain operational records. Purchase is not consent to marketing. Milestone alerts require a separate signup and email confirmation; every milestone alert includes an unsubscribe link. Owners can choose a weekly performance summary while their takeover remains live, and unsubscribe in the dashboard or email. Stripe handles payment details; TakeTheWall does not store complete card numbers.",
       },
       {
         title: "Reward claim information",

@@ -1,3 +1,4 @@
+import {incrementFunnel} from "./funnel";
 import { queueAdminTakeoverEmail } from "./adminNotifications";
 import { internal } from "./_generated/api";
 import { onActivation } from "./rewardModel";
@@ -119,7 +120,9 @@ export const attach = internalMutation({
     if (!p) throw new Error("Unknown purchase");
     if (p.sessionId && p.sessionId !== a.sessionId)
       throw new Error("Conflicting Checkout Session");
+    if(!p.funnelCheckoutTracked && p.environment === "production") await incrementFunnel(ctx,"checkoutStarts");
     await ctx.db.patch(p._id, {
+      funnelCheckoutTracked:true,
       sessionId: a.sessionId,
       cleanupAt: undefined,
       checkoutUrl: a.checkoutUrl,
@@ -273,6 +276,7 @@ export const activate = internalMutation({
       await ctx.scheduler.runAfter(0, internal.auditTrail.checkpoint, {});
     await enqueue(ctx, "activation_email", t._id);
     await queueAdminTakeoverEmail(ctx,t._id);
+    if(p.environment === "production") await incrementFunnel(ctx,"paidActivations");
     if (previous.kind === "paid" || previous.kind === "admin_counted")
       await enqueue(ctx, "replacement_email", previous._id);
     await enqueue(ctx, "checkout_completed", t._id);

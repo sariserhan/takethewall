@@ -52,6 +52,8 @@ export async function mail(
     claimId?: Id<"rewardClaims">;
     ticketId?: Id<"supportTickets">;
     generation?: number;
+    subscriberId?: Id<"milestoneSubscribers">;
+    milestoneNumber?:number;
   },
 ) {
   if (

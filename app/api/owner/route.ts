@@ -67,6 +67,11 @@ export async function POST(req: Request) {
       });
       return Response.json({ dashboard });
     }
+    if (a.action === "repeat") {
+      const token = jar.get("ttw-owner")?.value;
+      if(!token) throw new HttpError("Open your private email link first.",401);
+      return Response.json({draft:await backend("ownerRepeat",{token,ownerHash:clientHash(req)})},{headers:{"Cache-Control":"private, no-store"}});
+    }
     if (a.action === "edit") {
       const token = jar.get("ttw-owner")?.value;
       if (!token)

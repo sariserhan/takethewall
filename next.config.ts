@@ -18,6 +18,7 @@ const config: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      {source:"/alerts",headers:[{key:"X-Robots-Tag",value:"noindex, noarchive"},{key:"Cache-Control",value:"private, no-store"}]},
       {
         source: "/owner/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, noarchive" }, { key: "Cache-Control", value: "private, no-store" }],

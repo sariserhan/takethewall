@@ -275,3 +275,17 @@ export const edit = internalMutation({
     return null;
   },
 });
+
+export const repeat = internalMutation({
+ args:{token:v.string(),ownerHash:v.string()},returns:v.object({contentType:v.string(),displayName:v.string(),description:v.string(),websiteUrl:v.string(),logoUrl:v.string(),uploadKey:v.string(),buyerEmail:v.string(),weeklyDigestEnabled:v.boolean()}),
+ handler:async(ctx,a)=>{
+  const access=await ownerAccess(ctx,a.token);await limit(ctx,"owner-repeat:"+access.takeoverId,10,3600_000);
+  const t=await ctx.db.get(access.takeoverId);
+  if(!t||t.blocked||(t.contentType!=="personal"&&t.outboundLinkEnabled===false))throw new Error("This content cannot be reused. Start a new draft instead.");
+  const p=await ctx.db.query("purchases").withIndex("by_takeoverId",q=>q.eq("takeoverId",t._id)).unique();
+  const content=validateWallContent(t);
+  let uploadKey="",logoUrl="";
+  if(t.logoStorageId){logoUrl=await ctx.storage.getUrl(t.logoStorageId) ?? "";if(logoUrl){uploadKey=crypto.randomUUID();await ctx.db.insert("uploads",{key:uploadKey,ownerHash:a.ownerHash,storageId:t.logoStorageId,claimed:false,expiresAt:Date.now()+48*3600_000});}}
+  return {contentType:content.contentType,displayName:content.displayName,description:content.description,websiteUrl:content.websiteUrl,logoUrl,uploadKey,buyerEmail:p?.buyerEmail ?? "",weeklyDigestEnabled:access.weeklyDigestEnabled};
+ },
+});
