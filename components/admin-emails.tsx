@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { AdminContactControls } from "./admin-contact-controls";
 import { Dialog } from "./dialog";
 const time = (at: number | null) =>
   at
@@ -15,6 +16,9 @@ type Contact = {
   email: string;
   sources: string[];
   createdAt: number;
+  suppression?: string | null;
+  wallConfirmedAt?: number | null;
+  milestoneConfirmedAt?: number | null;
   wall: string;
   milestone: string;
   last: { kind: string; state: string; at: number } | null;
@@ -89,10 +93,26 @@ export function AdminEmails() {
                     <td>
                       {c.email}
                       <small>{c.sources.join(" · ")}</small>
+                      {c.suppression && (
+                        <small>
+                          Optional emails paused ·{" "}
+                          {c.suppression.replaceAll("_", " ")}
+                        </small>
+                      )}
                       <small>First collected {time(c.createdAt)}</small>
                     </td>
-                    <td>{c.wall}</td>
-                    <td>{c.milestone}</td>
+                    <td>
+                      {c.wall}
+                      {c.wallConfirmedAt && (
+                        <small>Confirmed {time(c.wallConfirmedAt)}</small>
+                      )}
+                    </td>
+                    <td>
+                      {c.milestone}
+                      {c.milestoneConfirmedAt && (
+                        <small>Confirmed {time(c.milestoneConfirmedAt)}</small>
+                      )}
+                    </td>
                     <td>
                       {c.last ? (
                         <>
@@ -129,7 +149,15 @@ export function AdminEmails() {
         open={!!selected}
         onClose={() => setSelected("")}
       >
-        {selected && <EmailHistory key={selected} email={selected} />}
+        {selected && (
+          <>
+            <AdminContactControls
+              key={"contact:" + selected}
+              email={selected}
+            />
+            <EmailHistory key={selected} email={selected} />
+          </>
+        )}
       </Dialog>
     </section>
   );

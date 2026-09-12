@@ -27,3 +27,19 @@ Existing purchase/receipt contacts, subscribers, reward claimants, support conta
 ## Deployment
 
 Deploy both the Next.js application and Convex functions. No new environment variables are required; the existing `CLAIM_TOKEN_SECRET`, `SITE_URL`, server bridge secret, Resend API key, and signed webhook configuration are reused. Broadcasts require `WALL_ENVIRONMENT=production`; tests use mocked providers and do not send subscriber emails.
+
+## Suppression and contact controls
+
+The existing signed Resend webhook now retains the bounce classification, without recipient lists, diagnostics, or message content. A `Permanent` bounce or `email.complained` event pauses wall updates, milestone alerts, their confirmation messages, and weekly owner digests. Transient/temporary/unknown bounces and delivery delays do not trigger this policy. Successful or out-of-order delivery events never clear it. A webhook arriving before the send record is matched when the provider ID is saved later. The bounded directory reconciliation also checks previously recorded delivery events. Older bounces without a stored classification are not assumed to be permanent.
+
+Suppression is checked when preparing queued mail and before sending owner jobs, as well as when subscribing/confirming or queuing updates. Changing a preference or resubmitting a signup cannot bypass the stop. Purchase, support, and sign-in messages are not treated as optional marketing updates. Already submitted provider requests cannot be recalled.
+
+In `/admin` → **emails** → **View emails**, contact preferences show the suppression reason/date and wall/milestone confirmation timestamps. Previously confirmed subscribers without a stored date show “Date not recorded”; dates are never inferred from collection or delivery time. **Unsubscribe optional emails** applies the same stop to an address. No control silently resubscribes a suppressed contact.
+
+**Delete contact email data** requires typing the address. It immediately removes the directory entry and blocks queued messages to that contact. A bounded, resumable erasure clears subscriber records, email history, matching purchase email fields, related support correspondence, and reward-claim email/access-token fields. It revokes the affected owner access links, clears associated admin email snapshots, and redacts the address from operational audit metadata. Other email addresses on a purchase are preserved. An internal retry cron resumes interrupted batches; the dialog shows pending/completed status.
+
+This is application contact-data deletion, not deletion of public wall history, payment records, reward eligibility records/documents, or Better Auth administrator accounts. Copies held by Stripe, Resend, or recipient mailboxes are outside this control. The confirmation screen states these boundaries. A retained email hash and deletion marker prevent reconciliation and late delivery callbacks from restoring the address or its email history. It is intentionally not a provider-side unsubscribe/deletion API call.
+
+Validation covers unauthorized mutations, explicit deletion confirmation, early and repeated webhooks, hard versus soft bounces, re-subscription attempts, stale queued messages, historical consent dates, more than one deletion batch, preservation of unrelated contacts and financial records, and post-deletion reconciliation.
+
+Provider references: [Resend bounce webhook](https://resend.com/docs/webhooks/emails/bounced), [bounce classifications](https://resend.com/docs/dashboard/emails/email-bounces).

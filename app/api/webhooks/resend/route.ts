@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   type DeliveryEvent = {
     type?: unknown;
     created_at?: unknown;
-    data?: { email_id?: unknown };
+    data?: { email_id?: unknown; bounce?: { type?: unknown } };
   };
   let event: DeliveryEvent;
   try {
@@ -48,6 +48,9 @@ export async function POST(req: Request) {
       emailId: event.data.email_id,
       type: event.type,
       occurredAt: Date.parse(event.created_at),
+      ...(typeof event.data?.bounce?.type === "string"
+        ? { bounceType: event.data.bounce.type.slice(0, 40) }
+        : {}),
     });
     return Response.json({ received: true });
   } catch {

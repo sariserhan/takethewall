@@ -1,3 +1,4 @@
+import { emailAllowed } from "./emailPolicy";
 import { senderForMail, legacyEmailSender } from "../lib/email-routing";
 import { emailSenderFields } from "./rewardSchema";
 import { notificationSettings } from "./adminNotifications";
@@ -107,6 +108,7 @@ export const data = internalQuery({
   returns: v.union(
     v.null(),
     v.object({
+      deliveryAllowed: v.boolean(),
       id: v.id("jobs"),
       key: v.string(),
       kind: jobKind,
@@ -164,7 +166,16 @@ export const data = internalQuery({
       j.kind === "admin_takeover_email"
         ? await notificationSettings(ctx)
         : null;
+    const destination =
+      j.kind === "admin_takeover_email"
+        ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
+        : j.recoveryToReceipt
+          ? (p?.receiptEmail ?? "")
+          : (p?.buyerEmail ?? "");
+    const deliveryAllowed =
+      !!destination && (await emailAllowed(ctx, destination, j.kind));
     return {
+      deliveryAllowed,
       adminNotificationEnabled: notifications?.enabled ?? false,
       ...(j.finalReport ? { finalReport: j.finalReport } : {}),
       ...(access && j.kind.endsWith("_email")
@@ -311,6 +322,7 @@ export const dispatch = internalAction({
         if (j.kind.endsWith("_email")) {
           if (
             !j.email ||
+            !j.deliveryAllowed ||
             (j.kind === "admin_takeover_email" &&
               (!j.adminNotificationEnabled ||
                 j.environment !== "production" ||

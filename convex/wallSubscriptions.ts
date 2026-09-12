@@ -1,3 +1,4 @@
+import { emailAllowed } from "./emailPolicy";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { validateEmail } from "../lib/validation";
@@ -32,6 +33,7 @@ export const subscribe = internalMutation({
     const email = validateEmail(a.email).toLowerCase(),
       emailHash = sha(email);
     await limit(ctx, "wall-alert-email:" + emailHash, 3, 3600_000);
+    if (!(await emailAllowed(ctx, email, "wall_confirm"))) return null;
     const old = await ctx.db
       .query("wallSubscribers")
       .withIndex("by_email", (q) => q.eq("emailHash", emailHash))
@@ -42,6 +44,7 @@ export const subscribe = internalMutation({
       now = Date.now();
     const values = {
       unsubscribedAt: undefined,
+      confirmedAt: undefined,
       email,
       emailHash,
       seed,
@@ -97,11 +100,17 @@ export const manage = internalMutation({
             .unique();
     if (!row) return false;
     if (a.action === "confirm") {
-      if (!row.email || row.expiresAt <= Date.now()) return false;
+      if (
+        !row.email ||
+        row.expiresAt <= Date.now() ||
+        !(await emailAllowed(ctx, row.email, "wall_confirm"))
+      )
+        return false;
       if (!row.active) {
         const site = await getSite(ctx);
         await ctx.db.patch(row._id, {
           active: true,
+          confirmedAt: Date.now(),
           lastSequence: site.currentActivationSequence,
           nextAt:
             row.frequency === "daily" ? nextDaily(Date.now()) : Date.now(),
@@ -117,7 +126,12 @@ export const manage = internalMutation({
         expiresAt: Date.now(),
       });
     } else {
-      if (!row.active || !a.frequency) return false;
+      if (
+        !row.active ||
+        !a.frequency ||
+        !(await emailAllowed(ctx, row.email, "wall_confirm"))
+      )
+        return false;
       await ctx.db.patch(row._id, {
         frequency: a.frequency,
         generation: row.generation + 1,
@@ -140,6 +154,7 @@ export const queue = internalMutation({
       .take(20);
     let count = 0;
     for (const s of subscribers) {
+      if (!(await emailAllowed(ctx, s.email, "wall_change"))) continue;
       const rows = await ctx.db
         .query("takeovers")
         .withIndex("by_activationSequence", (q) =>

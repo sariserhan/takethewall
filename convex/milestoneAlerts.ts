@@ -1,3 +1,4 @@
+import { emailAllowed } from "./emailPolicy";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { validateEmail } from "../lib/validation";
@@ -47,11 +48,20 @@ export const manage = internalMutation({
             .unique();
     if (!row) return false;
     if (a.action === "confirm") {
-      if (row.expiresAt < Date.now() || !row.email) return false;
-      await ctx.db.patch(row._id, { active: true });
+      if (
+        row.expiresAt < Date.now() ||
+        !row.email ||
+        !(await emailAllowed(ctx, row.email, "milestone_confirm"))
+      )
+        return false;
+      await ctx.db.patch(row._id, {
+        active: true,
+        confirmedAt: row.confirmedAt ?? Date.now(),
+      });
     } else
       await ctx.db.patch(row._id, {
         active: false,
+        unsubscribedAt: Date.now(),
         email: "",
         expiresAt: Date.now(),
         generation: row.generation + 1,
@@ -79,6 +89,7 @@ export const queue = internalMutation({
       )
       .take(50);
     for (const s of rows) {
+      if (!(await emailAllowed(ctx, s.email, "milestone_alert"))) continue;
       await mail(ctx, {
         key: `milestone-alert:${s._id}:${next.takeoverNumber}:${s.generation}`,
         kind: "milestone_alert",
@@ -113,6 +124,7 @@ export async function requestSubscription(
   ctx: import("./_generated/server").MutationCtx,
   email: string,
 ) {
+  if (!(await emailAllowed(ctx, email, "milestone_confirm"))) return null;
   const emailHash = sha(email.toLowerCase());
   const old = await ctx.db
     .query("milestoneSubscribers")
@@ -122,6 +134,8 @@ export async function requestSubscription(
   const seed = crypto.randomUUID() + crypto.randomUUID(),
     generation = (old?.generation ?? 0) + 1;
   const values = {
+    confirmedAt: undefined,
+    unsubscribedAt: undefined,
     email,
     emailHash,
     seed,

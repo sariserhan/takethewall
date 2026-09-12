@@ -1,3 +1,4 @@
+import { emailAllowed } from "./emailPolicy";
 import { requestSubscription } from "./milestoneAlerts";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
@@ -61,16 +62,19 @@ export const dashboard = internalQuery({
       : null;
     return {
       milestoneAlerts: subscriber?.active
-        ? "on" as const
-        : subscriber?.email
-          ? "pending" as const
-          : "off" as const,
+        ? ("on" as const)
+        : subscriber?.email && !subscriber.unsubscribedAt
+          ? ("pending" as const)
+          : ("off" as const),
       contentRevision: t.contentRevision ?? 0,
       owner: await projectOwner(ctx, t),
       active: site.currentTakeoverId === t._id && !t.blocked,
       replacedAt: t.replacedAt ?? null,
       publicId: t.publicTakeoverId,
-      weeklyDigestEnabled: access.weeklyDigestEnabled,
+      weeklyDigestEnabled:
+        access.weeklyDigestEnabled &&
+        !!purchase?.buyerEmail &&
+        (await emailAllowed(ctx, purchase.buyerEmail, "weekly_digest_email")),
       shareUrl: `${ownerBaseUrl()}/takeover/${t.publicTakeoverId}`,
       regions: regions.map((r) => ({
         regionCode: r.regionCode,
@@ -88,6 +92,21 @@ export const preferences = internalMutation({
   returns: v.null(),
   handler: async (ctx, a) => {
     const access = await ownerAccess(ctx, a.token);
+    if (a.weeklyDigestEnabled) {
+      const p = await ctx.db
+        .query("purchases")
+        .withIndex("by_takeoverId", (q) =>
+          q.eq("takeoverId", access.takeoverId),
+        )
+        .unique();
+      if (
+        !p?.buyerEmail ||
+        !(await emailAllowed(ctx, p.buyerEmail, "weekly_digest_email"))
+      )
+        throw Error(
+          "Optional emails are paused for this address. Contact support for help.",
+        );
+    }
     if (a.weeklyDigestEnabled !== undefined)
       await ctx.db.patch(access._id, {
         weeklyDigestEnabled: a.weeklyDigestEnabled,
@@ -104,9 +123,13 @@ export const preferences = internalMutation({
         throw new Error(
           "Checkout email is no longer available. Use the homepage signup.",
         );
-      if (a.milestoneAlertsEnabled)
+      if (a.milestoneAlertsEnabled) {
+        if (!(await emailAllowed(ctx, p.buyerEmail, "milestone_confirm")))
+          throw Error(
+            "Optional emails are paused for this address. Contact support for help.",
+          );
         await requestSubscription(ctx, p.buyerEmail);
-      else {
+      } else {
         const row = await ctx.db
           .query("milestoneSubscribers")
           .withIndex("by_email", (q) =>
@@ -222,7 +245,12 @@ export const queueWeeklyDigest = internalMutation({
       .query("purchases")
       .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
       .unique();
-    if (p?.environment !== "production" || p.paymentIssue) return false;
+    if (
+      p?.environment !== "production" ||
+      p.paymentIssue ||
+      !(await emailAllowed(ctx, p.buyerEmail, "weekly_digest_email"))
+    )
+      return false;
     const monday = new Date(Date.now());
     monday.setUTCHours(0, 0, 0, 0);
     monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));

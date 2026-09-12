@@ -1,3 +1,4 @@
+import { policyFor, applyProviderSuppression } from "./emailPolicy";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -17,7 +18,12 @@ export async function rememberContact(
   createdAt = Date.now(),
 ) {
   email = email.trim().toLowerCase();
-  if (!email || !email.includes("@")) return;
+  if (
+    !email ||
+    !email.includes("@") ||
+    (await policyFor(ctx, email))?.deletedAt
+  )
+    return;
   const emailHash = sha(email),
     old = await ctx.db
       .query("emailContacts")
@@ -59,7 +65,7 @@ export async function trackEmail(
     providerId?: string;
   },
 ) {
-  if (!a.email) return;
+  if (!a.email || (await policyFor(ctx, a.email))?.deletedAt) return;
   const email = a.email.toLowerCase(),
     emailHash = sha(email);
   await rememberContact(ctx, email, "email recipient", a.createdAt);
@@ -77,6 +83,7 @@ export async function trackEmail(
     ...(a.providerId ? { providerId: a.providerId } : {}),
     ...(a.state === "accepted" ? { sentAt: old?.sentAt ?? Date.now() } : {}),
   };
+  if (a.providerId) await applyProviderSuppression(ctx, email, a.providerId);
   if (old) await ctx.db.patch(old._id, values);
   else
     await ctx.db.insert("emailHistory", {
@@ -110,7 +117,7 @@ export const list = query({
       .paginate(a.paginationOpts);
     const rows = await Promise.all(
       page.page.map(async (c) => {
-        const [wall, milestone, last] = await Promise.all([
+        const [wall, milestone, last, policy] = await Promise.all([
           ctx.db
             .query("wallSubscribers")
             .withIndex("by_email", (q) => q.eq("emailHash", c.emailHash))
@@ -124,6 +131,7 @@ export const list = query({
             .withIndex("by_email", (q) => q.eq("emailHash", c.emailHash))
             .order("desc")
             .first(),
+          policyFor(ctx, c.email),
         ]);
         const status = (s: typeof wall | typeof milestone) =>
           !s
@@ -143,6 +151,10 @@ export const list = query({
               .first()
           : null;
         return {
+          suppression: policy?.reason ?? null,
+          stoppedAt: policy?.stoppedAt ?? null,
+          wallConfirmedAt: wall?.confirmedAt ?? null,
+          milestoneConfirmedAt: milestone?.confirmedAt ?? null,
           id: c._id,
           email: c.email,
           sources: c.sources,
@@ -223,6 +235,7 @@ const sources = [
   "supportTickets",
   "transactionalMail",
   "jobs",
+  "emailHistory",
 ] as const;
 export const reconcileSource = internalMutation({
   args: { source: v.union(...sources.map((s) => v.literal(s))) },
@@ -240,6 +253,16 @@ export const reconcileSource = internalMutation({
         numItems: 30,
       });
     for (const row of page.page) {
+      if (source === "emailHistory") {
+        if (
+          "providerId" in row &&
+          row.providerId &&
+          "email" in row &&
+          row.email
+        )
+          await applyProviderSuppression(ctx, row.email, row.providerId);
+        continue;
+      }
       if ("buyerEmail" in row) {
         await rememberContact(ctx, row.buyerEmail, "checkout", row.createdAt);
         if (row.receiptEmail)

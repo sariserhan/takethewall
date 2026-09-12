@@ -1,3 +1,4 @@
+import { emailAllowed } from "./emailPolicy";
 import { trackEmail } from "./emailDirectory";
 import {
   wallConfirmation,
@@ -81,6 +82,10 @@ export const prepare = internalMutation({
         createdAt: j.createdAt,
       });
     };
+    if (!j.to || !(await emailAllowed(ctx, j.to, j.kind))) {
+      await skip();
+      return null;
+    }
     if (j.attempts >= 10 || Date.now() - j.createdAt > 23 * 3600_000) {
       await ctx.db.patch(j._id, {
         state: "failed",

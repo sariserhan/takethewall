@@ -16,12 +16,20 @@ beforeEach(() => {
   backend.mockResolvedValue(null);
 });
 afterEach(() => vi.unstubAllEnvs());
-function request(type = "email.delivered", date = new Date(), tamper = false) {
+function request(
+  type = "email.delivered",
+  date = new Date(),
+  tamper = false,
+  bounceType?: string,
+) {
   const payload = JSON.stringify({
     type,
     created_at: new Date().toISOString(),
     data: {
       email_id: "email-test",
+      ...(bounceType
+        ? { bounce: { type: bounceType, message: "Private diagnostic" } }
+        : {}),
       to: ["private@example.com"],
       subject: "Private subject",
     },
@@ -70,4 +78,18 @@ it("does not store inbound email content", async () => {
 it("returns retryable failure if persistence is unavailable", async () => {
   backend.mockRejectedValueOnce(new Error("unavailable"));
   expect((await POST(request())).status).toBe(500);
+});
+
+it("passes signed bounce classification without diagnostics or recipient data", async () => {
+  expect(
+    (await POST(request("email.bounced", new Date(), false, "Permanent")))
+      .status,
+  ).toBe(200);
+  expect(backend).toHaveBeenCalledWith("emailDelivery", {
+    eventId: "msg_test",
+    emailId: "email-test",
+    type: "email.bounced",
+    occurredAt: expect.any(Number),
+    bounceType: "Permanent",
+  });
 });

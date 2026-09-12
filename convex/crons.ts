@@ -74,4 +74,10 @@ crons.interval(
   internal.emailDirectory.reconcile,
   {},
 );
+crons.interval(
+  "resume contact deletions",
+  { minutes: 1 },
+  internal.contactManagement.resume,
+  {},
+);
 export default crons;

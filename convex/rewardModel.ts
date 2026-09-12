@@ -1,3 +1,4 @@
+import { emailAllowed } from "./emailPolicy";
 import { trackEmail } from "./emailDirectory";
 import { numberingOffset } from "./numbering";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -67,6 +68,7 @@ export async function mail(
       .unique()
   )
     return;
+  if (!a.to || !(await emailAllowed(ctx, a.to, a.kind))) return;
   await trackEmail(ctx, {
     key: a.key,
     email: a.to,

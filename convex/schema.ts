@@ -61,7 +61,27 @@ export const finalReportSnapshot = v.object({
   endReason: v.string(),
 });
 export default defineSchema({
+  emailPolicies: defineTable({
+    emailHash: v.string(),
+    reason: v.optional(
+      v.union(
+        v.literal("hard_bounce"),
+        v.literal("spam_complaint"),
+        v.literal("admin_unsubscribe"),
+      ),
+    ),
+    stoppedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+    deletionState: v.optional(
+      v.union(v.literal("pending"), v.literal("complete")),
+    ),
+    deletionSource: v.optional(v.number()),
+    deletionCursor: v.optional(v.union(v.string(), v.null())),
+  })
+    .index("by_email", ["emailHash"])
+    .index("by_deletion", ["deletionState"]),
   wallSubscribers: defineTable({
+    confirmedAt: v.optional(v.number()),
     unsubscribedAt: v.optional(v.number()),
     email: v.string(),
     emailHash: v.string(),
@@ -105,11 +125,13 @@ export default defineSchema({
     .index("by_email", ["emailHash", "createdAt"])
     .index("by_provider", ["providerId"]),
   emailEvents: defineTable({
+    bounceType: v.optional(v.string()),
     eventId: v.string(),
     providerId: v.string(),
     type: v.string(),
     occurredAt: v.number(),
   })
+    .index("by_provider_type", ["providerId", "type", "bounceType"])
     .index("by_event", ["eventId"])
     .index("by_provider", ["providerId", "occurredAt"]),
   emailIndexProgress: defineTable({
@@ -118,6 +140,8 @@ export default defineSchema({
     done: v.boolean(),
   }).index("by_source", ["source"]),
   milestoneSubscribers: defineTable({
+    confirmedAt: v.optional(v.number()),
+    unsubscribedAt: v.optional(v.number()),
     email: v.string(),
     emailHash: v.string(),
     seed: v.string(),

@@ -51,6 +51,25 @@ test("admin edits the notification recipient and toggle without leaving /admin",
       revision: 0,
     },
     saves = 0;
+  const contactState: {
+    reason: string | null;
+    stoppedAt: number | null;
+    deletionState: string | null;
+    deletedAt: number | null;
+    wall: {
+      active: boolean;
+      confirmedAt: number;
+      unsubscribedAt: number | null;
+    };
+    milestone: null;
+  } = {
+    reason: null,
+    stoppedAt: null,
+    deletionState: null,
+    deletedAt: null,
+    wall: { active: true, confirmedAt: 1789200000000, unsubscribedAt: null },
+    milestone: null,
+  };
   await page.routeWebSocket(/convex.*\/sync/, (socket) => {
     let tick = 0;
     const timestamp = () => {
@@ -61,103 +80,105 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     let version = { querySet: 0, identity: 0, ts: timestamp() };
     const queries = new Map<number, string>();
     const value = (path: string): unknown =>
-      path === "emailDirectory:list"
-        ? JSON.stringify({
-            rows: [
-              {
-                id: "contact-1",
-                email: "reader@example.com",
-                sources: ["wall subscriber"],
-                createdAt: 1789200000000,
-                wall: "Confirmed · daily",
-                milestone: "Not subscribed",
-                last: {
-                  kind: "wall_daily",
-                  state: "accepted",
-                  at: 1789200000000,
-                },
-              },
-            ],
-            cursor: "",
-            done: true,
-          })
-        : path === "emailDirectory:history"
+      path === "contactManagement:details"
+        ? JSON.stringify(contactState)
+        : path === "emailDirectory:list"
           ? JSON.stringify({
               rows: [
                 {
-                  id: "mail-1",
-                  kind: "wall_daily",
-                  subject: "Your daily wall update",
-                  state: "accepted",
+                  id: "contact-1",
+                  email: "reader@example.com",
+                  sources: ["wall subscriber"],
                   createdAt: 1789200000000,
-                  updatedAt: 1789200001000,
-                  sentAt: 1789200001000,
-                  events: [
-                    {
-                      eventId: "event-1",
-                      type: "email.delivered",
-                      occurredAt: 1789200002000,
-                    },
-                  ],
+                  wall: "Confirmed · daily",
+                  milestone: "Not subscribed",
+                  last: {
+                    kind: "wall_daily",
+                    state: "accepted",
+                    at: 1789200000000,
+                  },
                 },
               ],
               cursor: "",
               done: true,
             })
-          : path === "deliveryAdmin:overview"
+          : path === "emailDirectory:history"
             ? JSON.stringify({
-                emails: [
+                rows: [
                   {
-                    id: "job-fixture",
-                    queue: "jobs",
-                    kind: "activation_email",
-                    state: "failed",
-                    attempts: 12,
-                    createdAt: Date.now(),
-                    nextAt: Date.now(),
-                    error: "Provider unavailable",
-                    retryBefore: Date.now() + 23 * 3600_000,
+                    id: "mail-1",
+                    kind: "wall_daily",
+                    subject: "Your daily wall update",
+                    state: "accepted",
+                    createdAt: 1789200000000,
+                    updatedAt: 1789200001000,
+                    sentAt: 1789200001000,
+                    events: [
+                      {
+                        eventId: "event-1",
+                        type: "email.delivered",
+                        occurredAt: 1789200002000,
+                      },
+                    ],
                   },
                 ],
-                activations: [
-                  {
-                    id: "owner-fixture",
-                    name: "Pending Studio",
-                    createdAt: Date.now(),
-                    sessionId: "cs_test_fixture",
-                    environment: "test",
-                    expired: false,
-                    blocked: false,
-                  },
-                ],
-                limit: 50,
+                cursor: "",
+                done: true,
               })
-            : path === "funnel:report"
-              ? {
-                  visits: 100,
-                  checkoutStarts: 20,
-                  paidActivations: 10,
-                  startedAt: 1789200000000,
-                  daysTracked: 2,
-                }
-              : path === "admin:identity"
-                ? "admin@example.com"
-                : path === "admin:overview"
-                  ? JSON.stringify({ milestones: [] })
-                  : path === "admin:getNotificationSettings"
-                    ? settings
-                    : path === "admin:getSettings"
-                      ? {
-                          milestones: [],
-                          initialDays: 7,
-                          additionalDays: 7,
-                          rulesVersion: "test",
-                          rulesJson: "{}",
-                          rewardsEnabled: false,
-                          payoutsEnabled: false,
-                          promotionEnabled: false,
-                        }
-                      : null;
+            : path === "deliveryAdmin:overview"
+              ? JSON.stringify({
+                  emails: [
+                    {
+                      id: "job-fixture",
+                      queue: "jobs",
+                      kind: "activation_email",
+                      state: "failed",
+                      attempts: 12,
+                      createdAt: Date.now(),
+                      nextAt: Date.now(),
+                      error: "Provider unavailable",
+                      retryBefore: Date.now() + 23 * 3600_000,
+                    },
+                  ],
+                  activations: [
+                    {
+                      id: "owner-fixture",
+                      name: "Pending Studio",
+                      createdAt: Date.now(),
+                      sessionId: "cs_test_fixture",
+                      environment: "test",
+                      expired: false,
+                      blocked: false,
+                    },
+                  ],
+                  limit: 50,
+                })
+              : path === "funnel:report"
+                ? {
+                    visits: 100,
+                    checkoutStarts: 20,
+                    paidActivations: 10,
+                    startedAt: 1789200000000,
+                    daysTracked: 2,
+                  }
+                : path === "admin:identity"
+                  ? "admin@example.com"
+                  : path === "admin:overview"
+                    ? JSON.stringify({ milestones: [] })
+                    : path === "admin:getNotificationSettings"
+                      ? settings
+                      : path === "admin:getSettings"
+                        ? {
+                            milestones: [],
+                            initialDays: 7,
+                            additionalDays: 7,
+                            rulesVersion: "test",
+                            rulesJson: "{}",
+                            rewardsEnabled: false,
+                            payoutsEnabled: false,
+                            promotionEnabled: false,
+                          }
+                        : null;
     function transition(
       changes: unknown[],
       patch: Partial<typeof version> = {},
@@ -198,6 +219,45 @@ test("admin edits the notification recipient and toggle without leaving /admin",
         transition(changes, { querySet: msg.newVersion });
       }
       if (msg.type === "Mutation") {
+        if (
+          ["contactManagement:unsubscribe", "contactManagement:erase"].includes(
+            msg.udfPath,
+          )
+        ) {
+          expect(msg.args[0].email).toBe("reader@example.com");
+          contactState.reason = "admin_unsubscribe";
+          contactState.stoppedAt = 1789200003000;
+          contactState.wall.active = false;
+          contactState.wall.unsubscribedAt = 1789200003000;
+          if (msg.udfPath === "contactManagement:erase") {
+            expect(msg.args[0].confirmation).toBe("reader@example.com");
+            contactState.deletionState = "complete";
+            contactState.deletedAt = 1789200003000;
+          }
+          tick++;
+          socket.send(
+            JSON.stringify({
+              type: "MutationResponse",
+              requestId: msg.requestId,
+              success: true,
+              result: null,
+              ts: timestamp(),
+              logLines: [],
+            }),
+          );
+          transition(
+            [...queries]
+              .filter(([, path]) => path === "contactManagement:details")
+              .map(([id, path]) => ({
+                type: "QueryUpdated",
+                queryId: id,
+                value: value(path),
+                logLines: [],
+                journal: null,
+              })),
+          );
+          return;
+        }
         if (msg.udfPath === "deliveryAdmin:retry") {
           tick++;
           socket.send(
@@ -270,6 +330,37 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     path: `/tmp/admin-email-directory-${info.project.name}.png`,
     fullPage: false,
   });
+  await expect(history.getByText(/Confirmed: 2026-/)).toBeVisible();
+  await history
+    .getByRole("button", { name: "Unsubscribe optional emails" })
+    .click();
+  await expect(history.getByText(/Optional emails paused/)).toBeVisible();
+  await history
+    .getByRole("button", { name: "Delete contact email data…", exact: true })
+    .click();
+  const erase = history.getByRole("button", {
+    name: "Delete contact email data permanently",
+  });
+  await expect(erase).toBeDisabled();
+  await history
+    .getByLabel("Type reader@example.com to confirm")
+    .fill("wrong@example.com");
+  await expect(erase).toBeDisabled();
+  await history
+    .getByLabel("Type reader@example.com to confirm")
+    .fill("reader@example.com");
+  expect(
+    (await new AxeBuilder({ page }).include("dialog[open]").analyze())
+      .violations,
+  ).toEqual([]);
+  await page.screenshot({
+    path: `/tmp/contact-controls-${info.project.name}.png`,
+    fullPage: false,
+  });
+  await erase.click();
+  await expect(
+    history.getByText("Contact email deletion complete."),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "settings", exact: true }).click();

@@ -1,3 +1,4 @@
+import { applyProviderSuppression } from "./emailPolicy";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { audit } from "./rewardModel";
@@ -8,6 +9,7 @@ export const record = internalMutation({
     emailId: v.string(),
     type: v.union(...resendEventTypes.map((type) => v.literal(type))),
     occurredAt: v.number(),
+    bounceType: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -29,7 +31,18 @@ export const record = internalMutation({
         providerId: a.emailId,
         type: a.type,
         occurredAt: a.occurredAt,
+        ...(a.bounceType ? { bounceType: a.bounceType.slice(0, 40) } : {}),
       });
+    if (existing && !existing.bounceType && a.bounceType)
+      await ctx.db.patch(existing._id, {
+        bounceType: a.bounceType.slice(0, 40),
+      });
+    const sends = await ctx.db
+      .query("emailHistory")
+      .withIndex("by_provider", (q) => q.eq("providerId", a.emailId))
+      .take(10);
+    for (const send of sends)
+      await applyProviderSuppression(ctx, send.email, a.emailId);
     const target = "resend:" + a.eventId;
     if (
       await ctx.db
