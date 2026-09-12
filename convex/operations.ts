@@ -211,6 +211,8 @@ export const cleanup = internalMutation({
       if (notice) await ctx.db.patch(notice._id,{adminNotice:undefined});
       await ctx.db.patch(p._id, {
         buyerEmail: "",
+      buyerEmailKey:"",
+      receiptEmailKey:"",
         receiptEmail: undefined,
         contactDeleteAt: 8640000000000000,
       });
@@ -239,6 +241,8 @@ export const deleteContact = internalMutation({
     }
     await ctx.db.patch(a.purchaseId, {
       buyerEmail: "",
+      buyerEmailKey:"",
+      receiptEmailKey:"",
       receiptEmail: undefined,
       contactDeleteAt: 8640000000000000,
     });

@@ -46,4 +46,5 @@ crons.weekly(
 );
 crons.interval("milestone subscriber alerts",{minutes:1},internal.milestoneAlerts.queue,{});
 crons.daily("expired milestone signups",{hourUTC:3,minuteUTC:0},internal.milestoneAlerts.cleanup,{});
+crons.interval("index recovery contacts",{minutes:1},internal.recovery.indexContacts,{});
 export default crons;

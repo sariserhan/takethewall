@@ -1,3 +1,4 @@
+import { sha } from "../lib/audit";
 import {incrementFunnel} from "./funnel";
 import { queueAdminTakeoverEmail } from "./adminNotifications";
 import { internal } from "./_generated/api";
@@ -92,6 +93,7 @@ export const pending = internalMutation({
     const purchaseId = await ctx.db.insert("purchases", {
       takeoverId: id,
       buyerEmail,
+      buyerEmailKey:sha(buyerEmail.toLowerCase()),
       weeklyDigestEnabled:a.weeklyDigestEnabled ?? true,
       legalVersion: LEGAL_VERSION,
       requestKey: a.requestKey,
@@ -255,7 +257,7 @@ export const activate = internalMutation({
       sessionId: a.sessionId,
       paymentIntentId: a.paymentIntentId,
       ...(a.receiptEmail
-        ? { receiptEmail: a.receiptEmail.trim().slice(0, 800) }
+        ? { receiptEmail: a.receiptEmail.trim().slice(0, 800), receiptEmailKey:sha(a.receiptEmail.trim().toLowerCase()) }
         : {}),
       contactDeleteAt: now + 365 * 86400_000,
     });

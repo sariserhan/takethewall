@@ -23,7 +23,9 @@ export async function readVisitorPingTotals(args: {
     from: args.from,
     to: args.to,
     interval: "hour",
-    traffic: "exclude_bots",
+    // These custom events are relayed by Convex after application traffic checks.
+    // Provider bot classification describes the relay server, not the visitor.
+    traffic: "all",
     event: args.event,
     property: "takeoverId",
     value: args.takeoverId,

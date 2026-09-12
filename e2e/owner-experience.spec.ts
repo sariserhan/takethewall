@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Page } from "@playwright/test";
 const publicId = "ttw_" + "a".repeat(32);
 const owner = {
@@ -526,6 +527,112 @@ test("milestone signup and email confirmation require deliberate consent", async
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("email-only recovery and owner milestone preferences", async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  let loggedIn = false,
+    status = "off",
+    recovered = false;
+  await page.route("**/api/owner", async (route) => {
+    if (route.request().method() === "GET")
+      return route.fulfill({
+        json: {
+          dashboard: loggedIn
+            ? { ...dashboard, milestoneAlerts: status }
+            : null,
+        },
+      });
+    const a = route.request().postDataJSON();
+    if (a.action === "recover") {
+      expect(a.email).toBe("receipt@example.com");
+      expect(a.number).toBeUndefined();
+      recovered = true;
+      return route.fulfill({ json: { ok: true } });
+    }
+    if (a.action === "login") {
+      loggedIn = true;
+      return route.fulfill({
+        json: { dashboard: { ...dashboard, milestoneAlerts: status } },
+      });
+    }
+    if (a.action === "preferences") {
+      status = a.milestoneAlertsEnabled ? "pending" : "off";
+      return route.fulfill({ json: { ok: true } });
+    }
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.goto("/owner");
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await page
+    .getByLabel("Checkout or receipt email")
+    .fill("receipt@example.com");
+  await page.getByRole("button", { name: "Email my private link" }).click();
+  await expect(page.getByRole("status")).toContainText("no need to pay again");
+  expect(recovered).toBe(true);
+  await page.goto("/owner#token=" + "a".repeat(64));
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Send milestone confirmation" })
+    .click();
+  await expect(
+    page.getByText("Status: Check your inbox to confirm"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Stop milestone alerts" }).click();
+  await expect(page.getByText("Status: Not subscribed")).toBeVisible();
+  await page
+    .locator(".owner-preferences")
+    .screenshot({ path: `/tmp/preferences-${info.project.name}.png` });
+  expect(errors).toEqual([]);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+test("dialogs restore keyboard focus and contain navigation", async ({
+  page,
+}) => {
+  await wallFixture(page);
+  await page.goto("/");
+  const trigger = page.getByRole("button", {
+    name: "Notify me about milestones",
+  });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Milestone alerts" });
+  await expect(dialog).toBeVisible();
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press("Tab");
+    expect(
+      await dialog.evaluate((d) => d.contains(document.activeElement)),
+    ).toBe(true);
+  }
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+  await expect(trigger).toBeFocused();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(
+    await page.evaluate(
+      () => matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
   ).toBe(true);
 });

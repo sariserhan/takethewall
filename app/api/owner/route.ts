@@ -1,3 +1,4 @@
+import { recoverPayment } from "@/lib/payment-recovery";
 import { cookies } from "next/headers";
 import {
   backend,
@@ -44,6 +45,23 @@ export async function POST(req: Request) {
       jar.delete("ttw-owner");
       return Response.json({ ok: true });
     }
+    if (a.action === "recover") {
+      const email = String(a.email ?? "");
+      const matches = await backend<
+        { takeoverId: string; sessionId: string | null; paid: boolean }[]
+      >("recoveryFind", { email, ipHash: clientHash(req) });
+      for (const p of matches) {
+        if (
+          p.paid ||
+          (p.sessionId && (await recoverPayment(p.sessionId, p.takeoverId)))
+        )
+          await backend("recoverySend", { takeoverId: p.takeoverId, email });
+      }
+      return Response.json(
+        { ok: true },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
     if (a.action === "request") {
       await backend("ownerRequestLink", {
         number: Number(a.number),
@@ -69,8 +87,17 @@ export async function POST(req: Request) {
     }
     if (a.action === "repeat") {
       const token = jar.get("ttw-owner")?.value;
-      if(!token) throw new HttpError("Open your private email link first.",401);
-      return Response.json({draft:await backend("ownerRepeat",{token,ownerHash:clientHash(req)})},{headers:{"Cache-Control":"private, no-store"}});
+      if (!token)
+        throw new HttpError("Open your private email link first.", 401);
+      return Response.json(
+        {
+          draft: await backend("ownerRepeat", {
+            token,
+            ownerHash: clientHash(req),
+          }),
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
     }
     if (a.action === "edit") {
       const token = jar.get("ttw-owner")?.value;
@@ -102,11 +129,19 @@ export async function POST(req: Request) {
       const token = jar.get("ttw-owner")?.value;
       if (!token)
         throw new HttpError("Open your private email link first.", 401);
-      if (typeof a.weeklyDigestEnabled !== "boolean")
+      if (
+        typeof a.weeklyDigestEnabled !== "boolean" &&
+        typeof a.milestoneAlertsEnabled !== "boolean"
+      )
         throw new HttpError("Invalid preference");
       await backend("ownerPreferences", {
         token,
-        weeklyDigestEnabled: a.weeklyDigestEnabled,
+        ...(typeof a.weeklyDigestEnabled === "boolean"
+          ? { weeklyDigestEnabled: a.weeklyDigestEnabled }
+          : {}),
+        ...(typeof a.milestoneAlertsEnabled === "boolean"
+          ? { milestoneAlertsEnabled: a.milestoneAlertsEnabled }
+          : {}),
       });
       return Response.json({ ok: true });
     }

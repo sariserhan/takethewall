@@ -114,7 +114,8 @@ export function OwnerDashboardView() {
         </h1>
         <p>
           Use the private link in your activation email, or request it again
-          below. No account needed.
+          below. Paid and closed the browser? Leave the number blank to recover
+          your latest purchases. No account needed.
         </p>
         {error && <p role="alert">{error}</p>}
         <form
@@ -123,9 +124,12 @@ export function OwnerDashboardView() {
             setBusy(true);
             setError("");
             try {
-              await request("request", { email, number: Number(number) });
+              await request(number ? "request" : "recover", {
+                email,
+                ...(number ? { number: Number(number) } : {}),
+              });
               setNotice(
-                "If these details match a takeover, its owner will receive a private link.",
+                "If we find a completed purchase, we’ll email a private link. Pending payments are checked with Stripe. Check your inbox and spam folder; no need to pay again.",
               );
             } catch (e) {
               setError(e instanceof Error ? e.message : "Request failed.");
@@ -135,19 +139,18 @@ export function OwnerDashboardView() {
           }}
         >
           <label>
-            Takeover number
+            Takeover number (optional)
             <input
               inputMode="numeric"
               type="number"
               min={1}
               step={1}
-              required
               value={number}
               onChange={(e) => setNumber(e.target.value)}
             />
           </label>
           <label>
-            Buyer email
+            Checkout or receipt email
             <input
               type="email"
               maxLength={254}
@@ -359,7 +362,7 @@ export function OwnerDashboardView() {
           </label>
         </section>
         <section className="owner-preferences">
-          <h2>Your weekly update</h2>
+          <h2>Email preferences</h2>
           <p>
             A branded stats summary every Monday at 09:00 UTC, only while this
             takeover is live. You can unsubscribe here or in any digest.
@@ -392,6 +395,47 @@ export function OwnerDashboardView() {
             />
             Email me weekly summaries while I own the wall
           </label>
+          <h3>Milestone alerts</h3>
+          <p>
+            For your checkout email, across all your takeovers. One alert when a
+            milestone is within 10 counted takeovers; no number is reserved.
+            Activation and final-report service emails remain enabled.
+          </p>
+          <p>
+            Status:{" "}
+            {data.milestoneAlerts === "on"
+              ? "Subscribed"
+              : data.milestoneAlerts === "pending"
+                ? "Check your inbox to confirm"
+                : "Not subscribed"}
+          </p>
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              try {
+                await request("preferences", {
+                  milestoneAlertsEnabled:
+                    !data.milestoneAlerts || data.milestoneAlerts === "off",
+                });
+                await refresh();
+                setNotice(
+                  data.milestoneAlerts && data.milestoneAlerts !== "off"
+                    ? "Milestone alerts stopped."
+                    : "Check your checkout email to confirm milestone alerts.",
+                );
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Could not save.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {data.milestoneAlerts && data.milestoneAlerts !== "off"
+              ? "Stop milestone alerts"
+              : "Send milestone confirmation"}
+          </button>
         </section>
         <section className="owner-regions">
           <h2>Top regions</h2>

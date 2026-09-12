@@ -21,38 +21,7 @@ export const subscribe = internalMutation({
     const email = validateEmail(a.email),
       emailHash = sha(email.toLowerCase());
     await limit(ctx, "alerts-email:" + emailHash, 3, 3600_000);
-    const old = await ctx.db
-      .query("milestoneSubscribers")
-      .withIndex("by_email", (q) => q.eq("emailHash", emailHash))
-      .unique();
-    if (old?.active) return null;
-    const seed = crypto.randomUUID() + crypto.randomUUID(),
-      generation = (old?.generation ?? 0) + 1;
-    const values = {
-      email,
-      emailHash,
-      seed,
-      confirmHash: sha(alertConfirmation(seed)),
-      unsubscribeHash: sha(alertUnsubscribe(seed)),
-      active: false,
-      generation,
-      expiresAt: Date.now() + 24 * 3600_000,
-      lastNotified: old?.lastNotified ?? 0,
-      createdAt: Date.now(),
-    };
-    const id = old
-      ? old._id
-      : await ctx.db.insert("milestoneSubscribers", values);
-    if (old) await ctx.db.patch(id, values);
-    await mail(ctx, {
-      key: "milestone-confirm:" + id + ":" + generation,
-      kind: "milestone_confirm",
-      subscriberId: id,
-      generation,
-      to: email,
-      subject: "Confirm your milestone alerts",
-      body: "Confirm this request to get one email when a future milestone is within 10 counted takeovers. No number is reserved, and an alert does not guarantee a prize. If you did not request this, ignore this email. This confirmation expires in 24 hours.",
-    });
+    await requestSubscription(ctx, email);
     return null;
   },
 });
@@ -139,3 +108,42 @@ export const cleanup = internalMutation({
     return null;
   },
 });
+
+export async function requestSubscription(
+  ctx: import("./_generated/server").MutationCtx,
+  email: string,
+) {
+  const emailHash = sha(email.toLowerCase());
+  const old = await ctx.db
+    .query("milestoneSubscribers")
+    .withIndex("by_email", (q) => q.eq("emailHash", emailHash))
+    .unique();
+  if (old?.active) return null;
+  const seed = crypto.randomUUID() + crypto.randomUUID(),
+    generation = (old?.generation ?? 0) + 1;
+  const values = {
+    email,
+    emailHash,
+    seed,
+    confirmHash: sha(alertConfirmation(seed)),
+    unsubscribeHash: sha(alertUnsubscribe(seed)),
+    active: false,
+    generation,
+    expiresAt: Date.now() + 24 * 3600_000,
+    lastNotified: old?.lastNotified ?? 0,
+    createdAt: Date.now(),
+  };
+  const id = old
+    ? old._id
+    : await ctx.db.insert("milestoneSubscribers", values);
+  if (old) await ctx.db.patch(id, values);
+  await mail(ctx, {
+    key: "milestone-confirm:" + id + ":" + generation,
+    kind: "milestone_confirm",
+    subscriberId: id,
+    generation,
+    to: email,
+    subject: "Confirm your milestone alerts",
+    body: "Confirm this request to get one email when a future milestone is within 10 counted takeovers. No number is reserved, and an alert does not guarantee a prize. If you did not request this, ignore this email. This confirmation expires in 24 hours.",
+  });
+}

@@ -24,6 +24,7 @@ export interface SharedTakeover {
 export interface OwnerDashboard extends SharedTakeover {
   contentRevision: number;
   weeklyDigestEnabled: boolean;
+  milestoneAlerts?: "on" | "pending" | "off";
   shareUrl: string;
   regions: { regionCode: string; impressions: number }[];
 }

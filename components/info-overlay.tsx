@@ -141,6 +141,8 @@ export function InfoOverlay() {
             <p>
               Live counters come from Convex. VisitorPing provides separate
               aggregate reports; its totals are not added to the live counters.
+              Custom-event reports include server-relayed events, using our
+              traffic checks rather than VisitorPing’s server bot classification.
             </p>
           </>
         ) : page === "contact" ? (

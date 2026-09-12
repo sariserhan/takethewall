@@ -42,6 +42,7 @@ it("filters and authenticates reads, using aggregate uniques rather than series 
   });
   const [url, options] = fetcher.mock.calls[0];
   expect(url.pathname).toContain("site%2Fa");
+  expect(url.searchParams.get("traffic")).toBe("all");
   expect(url.searchParams.get("value")).toBe(args.takeoverId);
   expect(url.searchParams.get("event")).toBe("wall_impression");
   expect(options.headers.Authorization).toBe("Bearer secret");

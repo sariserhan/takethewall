@@ -114,6 +114,8 @@ export default defineSchema({
     .index("by_logoStorageId", ["logoStorageId"])
     .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
   purchases: defineTable({
+    buyerEmailKey:v.optional(v.string()),
+    receiptEmailKey:v.optional(v.string()),
     funnelCheckoutTracked:v.optional(v.boolean()),
     weeklyDigestEnabled: v.optional(v.boolean()),
     takeoverId: v.id("takeovers"),
@@ -140,6 +142,8 @@ export default defineSchema({
     createdAt: v.number(),
     contactDeleteAt: v.number(),
   })
+    .index("by_buyerEmailKey", ["buyerEmailKey"])
+    .index("by_receiptEmailKey", ["receiptEmailKey"])
     .index("by_takeoverId", ["takeoverId"])
     .index("by_requestKey", ["requestKey"])
     .index("by_tokenHash", ["tokenHash"])
@@ -219,6 +223,7 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_expiresAt", ["expiresAt"]),
   jobs: defineTable({
+    recoveryToReceipt:v.optional(v.boolean()),
     finalReport:v.optional(finalReportSnapshot),
     adminRecipient:v.optional(v.string()),
     adminNotice: v.optional(v.object({subject:v.string(),body:v.string()})),

@@ -1,4 +1,5 @@
 "use client";
+import { AdminDelivery } from "./admin-delivery";
 import {AdminFunnel} from "./admin-funnel";
 import { AdminNotifications } from "./admin-notifications";
 import { AdminDemoStats } from "./admin-demo-stats";
@@ -13,6 +14,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 const sections = [
   "overview",
   "funnel",
+  "delivery",
   "publish",
   "demo stats",
   "takeovers",
@@ -33,7 +35,7 @@ export function AdminDashboard() {
   const [before, setBefore] = useState<string | undefined>();
   const raw = useQuery(
     api.admin.list,
-    !["overview", "funnel", "settings", "publish", "demo stats"].includes(section)
+    !["overview", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section)
       ? { section, cursor: before }
       : "skip",
   );
@@ -70,7 +72,7 @@ export function AdminDashboard() {
       </nav>
       {error && <p role="alert">{error}</p>}
       {((section === "overview" && overview === undefined) ||
-        (!["overview", "funnel", "settings", "publish", "demo stats"].includes(section) &&
+        (!["overview", "delivery", "funnel", "settings", "publish", "demo stats"].includes(section) &&
           raw === undefined)) && (
         <LoadingSkeleton label={`Loading ${section}`} />
       )}
@@ -113,6 +115,7 @@ export function AdminDashboard() {
           )}
         </>
       )}
+      {section === "delivery" && <AdminDelivery/>}
       {section === "funnel" && <AdminFunnel/>}
       {section === "publish" && <AdminPublish />}
       {section === "demo stats" && <AdminDemoStats />}

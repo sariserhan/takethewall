@@ -705,3 +705,18 @@ it("repeat prepares a private prefilled draft without activating or charging and
     t.mutation(internal.owners.repeat, { token, ownerHash: "repeat-ip" }),
   ).rejects.toThrow("cannot be reused");
 });
+it("owner email preferences keep weekly and confirmed milestone subscriptions independent",async()=>{
+ const {t,token,access}=await setup();
+ await t.mutation(internal.owners.preferences,{token,milestoneAlertsEnabled:true});
+ expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("pending");
+ const subscriber=(await t.run(ctx=>ctx.db.query("milestoneSubscribers").collect()))[0];
+ const {alertConfirmation}=await import("../lib/alert-secrets");
+ await t.mutation(internal.milestoneAlerts.manage,{token:alertConfirmation(subscriber.seed),action:"confirm"});
+ expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("on");
+ await t.mutation(internal.owners.preferences,{token,weeklyDigestEnabled:false});
+ expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("on");
+ await t.mutation(internal.owners.preferences,{token,milestoneAlertsEnabled:false});
+ expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("off");
+ expect((await t.run(ctx=>ctx.db.get(access._id)))?.weeklyDigestEnabled).toBe(false);
+ await expect(t.mutation(internal.owners.preferences,{token:"f".repeat(64),milestoneAlertsEnabled:true})).rejects.toThrow("Invalid private link");
+});

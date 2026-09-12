@@ -142,7 +142,7 @@ export const publicCopy: Record<
       },
       {
         title: "Analytics estimates",
-        body: "Visitor counts estimate browser activity. They may be affected by blockers, network failures, identifier resets, bots, and delayed events. Country inference is approximate. VisitorPing reports are eventually consistent and limited to the requested retained history; they are not added to Convex's immediate counters.",
+        body: "Visitor counts estimate browser activity. They may be affected by blockers, network failures, identifier resets, bots, and delayed events. Country inference is approximate. Server-relayed custom-event reports use our traffic checks rather than VisitorPing’s server bot classification. VisitorPing reports are eventually consistent and limited to the requested retained history; they are not added to Convex's immediate counters.",
       },
       {
         title: "Provisional rewards",

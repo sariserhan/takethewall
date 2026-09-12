@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { test, expect } from "@playwright/test";
 test("admin edits the notification recipient and toggle without leaving /admin", async ({
   page,
@@ -60,32 +61,60 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     let version = { querySet: 0, identity: 0, ts: timestamp() };
     const queries = new Map<number, string>();
     const value = (path: string): unknown =>
-      path === "funnel:report"
-        ? {
-            visits: 100,
-            checkoutStarts: 20,
-            paidActivations: 10,
-            startedAt: 1789200000000,
-            daysTracked: 2,
-          }
-        : path === "admin:identity"
-          ? "admin@example.com"
-          : path === "admin:overview"
-            ? JSON.stringify({ milestones: [] })
-            : path === "admin:getNotificationSettings"
-              ? settings
-              : path === "admin:getSettings"
-                ? {
-                    milestones: [],
-                    initialDays: 7,
-                    additionalDays: 7,
-                    rulesVersion: "test",
-                    rulesJson: "{}",
-                    rewardsEnabled: false,
-                    payoutsEnabled: false,
-                    promotionEnabled: false,
-                  }
-                : null;
+      path === "deliveryAdmin:overview"
+        ? JSON.stringify({
+            emails: [
+              {
+                id: "job-fixture",
+                queue: "jobs",
+                kind: "activation_email",
+                state: "failed",
+                attempts: 12,
+                createdAt: Date.now(),
+                nextAt: Date.now(),
+                error: "Provider unavailable",
+                retryBefore: Date.now()+23*3600_000,
+              },
+            ],
+            activations: [
+              {
+                id: "owner-fixture",
+                name: "Pending Studio",
+                createdAt: Date.now(),
+                sessionId: "cs_test_fixture",
+                environment: "test",
+                expired: false,
+                blocked: false,
+              },
+            ],
+            limit: 50,
+          })
+        : path === "funnel:report"
+          ? {
+              visits: 100,
+              checkoutStarts: 20,
+              paidActivations: 10,
+              startedAt: 1789200000000,
+              daysTracked: 2,
+            }
+          : path === "admin:identity"
+            ? "admin@example.com"
+            : path === "admin:overview"
+              ? JSON.stringify({ milestones: [] })
+              : path === "admin:getNotificationSettings"
+                ? settings
+                : path === "admin:getSettings"
+                  ? {
+                      milestones: [],
+                      initialDays: 7,
+                      additionalDays: 7,
+                      rulesVersion: "test",
+                      rulesJson: "{}",
+                      rewardsEnabled: false,
+                      payoutsEnabled: false,
+                      promotionEnabled: false,
+                    }
+                  : null;
     function transition(
       changes: unknown[],
       patch: Partial<typeof version> = {},
@@ -126,6 +155,21 @@ test("admin edits the notification recipient and toggle without leaving /admin",
         transition(changes, { querySet: msg.newVersion });
       }
       if (msg.type === "Mutation") {
+        if (msg.udfPath === "deliveryAdmin:retry") {
+          tick++;
+          socket.send(
+            JSON.stringify({
+              type: "MutationResponse",
+              requestId: msg.requestId,
+              success: true,
+              result: null,
+              ts: timestamp(),
+              logLines: [],
+            }),
+          );
+          transition([]);
+          return;
+        }
         expect(msg.udfPath).toBe("admin:saveNotificationSettings");
         const a = msg.args[0];
         expect(a.expectedRevision).toBe(settings.revision);
@@ -203,5 +247,39 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     path: `/tmp/admin-funnel-${info.project.name}.png`,
     fullPage: false,
   });
+  await page.route("**/api/admin/recover", (r) =>
+    r.fulfill({
+      json: {
+        message: "Stripe has not confirmed payment. Nothing was published.",
+      },
+    }),
+  );
+  await page.getByRole("button", { name: "delivery", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Delivery & activation" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Retry email", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("original delivery key");
+  await page
+    .getByRole("button", { name: "Check payment & publish if paid" })
+    .click();
+  await expect(page.getByRole("status")).toContainText("Nothing was published");
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await page.screenshot({
+    path: `/tmp/delivery-${info.project.name}.png`,
+    fullPage: true,
+  });
+  await expect(page).toHaveURL(/\/admin$/);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
   expect(errors).toEqual([]);
 });

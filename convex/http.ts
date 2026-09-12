@@ -26,6 +26,8 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "recoveryFind": result=await ctx.runMutation(internal.recovery.find,args);break;
+        case "recoverySend": result=await ctx.runMutation(internal.recovery.sendLink,args);break;
         case "alertSubscribe": result=await ctx.runMutation(internal.milestoneAlerts.subscribe,args);break;
         case "alertManage": result=await ctx.runMutation(internal.milestoneAlerts.manage,args);break;
         case "ownerRepeat": result = await ctx.runMutation(internal.owners.repeat,args); break;

@@ -1,3 +1,4 @@
+import { requestSubscription } from "./milestoneAlerts";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { ensureOwnerAccess, ownerAccess } from "./ownerModel";
@@ -27,6 +28,11 @@ export const dashboard = internalQuery({
     ...shared,
     contentRevision: v.number(),
     weeklyDigestEnabled: v.boolean(),
+    milestoneAlerts: v.union(
+      v.literal("on"),
+      v.literal("pending"),
+      v.literal("off"),
+    ),
     shareUrl: v.string(),
     regions: v.array(
       v.object({ regionCode: v.string(), impressions: v.number() }),
@@ -41,7 +47,24 @@ export const dashboard = internalQuery({
       .query("takeoverRegions")
       .withIndex("by_takeoverId_regionCode", (q) => q.eq("takeoverId", t._id))
       .take(300);
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
+      .unique();
+    const subscriber = purchase?.buyerEmail
+      ? await ctx.db
+          .query("milestoneSubscribers")
+          .withIndex("by_email", (q) =>
+            q.eq("emailHash", sha(purchase.buyerEmail.toLowerCase())),
+          )
+          .unique()
+      : null;
     return {
+      milestoneAlerts: subscriber?.active
+        ? "on" as const
+        : subscriber?.email
+          ? "pending" as const
+          : "off" as const,
       contentRevision: t.contentRevision ?? 0,
       owner: await projectOwner(ctx, t),
       active: site.currentTakeoverId === t._id && !t.blocked,
@@ -57,13 +80,48 @@ export const dashboard = internalQuery({
   },
 });
 export const preferences = internalMutation({
-  args: { token: v.string(), weeklyDigestEnabled: v.boolean() },
+  args: {
+    token: v.string(),
+    weeklyDigestEnabled: v.optional(v.boolean()),
+    milestoneAlertsEnabled: v.optional(v.boolean()),
+  },
   returns: v.null(),
   handler: async (ctx, a) => {
     const access = await ownerAccess(ctx, a.token);
-    await ctx.db.patch(access._id, {
-      weeklyDigestEnabled: a.weeklyDigestEnabled,
-    });
+    if (a.weeklyDigestEnabled !== undefined)
+      await ctx.db.patch(access._id, {
+        weeklyDigestEnabled: a.weeklyDigestEnabled,
+      });
+    if (a.milestoneAlertsEnabled !== undefined) {
+      await limit(ctx, "owner-alerts:" + access.takeoverId, 5, 3600_000);
+      const p = await ctx.db
+        .query("purchases")
+        .withIndex("by_takeoverId", (q) =>
+          q.eq("takeoverId", access.takeoverId),
+        )
+        .unique();
+      if (!p?.buyerEmail)
+        throw new Error(
+          "Checkout email is no longer available. Use the homepage signup.",
+        );
+      if (a.milestoneAlertsEnabled)
+        await requestSubscription(ctx, p.buyerEmail);
+      else {
+        const row = await ctx.db
+          .query("milestoneSubscribers")
+          .withIndex("by_email", (q) =>
+            q.eq("emailHash", sha(p.buyerEmail.toLowerCase())),
+          )
+          .unique();
+        if (row)
+          await ctx.db.patch(row._id, {
+            active: false,
+            email: "",
+            expiresAt: Date.now(),
+            generation: row.generation + 1,
+          });
+      }
+    }
     return null;
   },
 });
@@ -277,15 +335,58 @@ export const edit = internalMutation({
 });
 
 export const repeat = internalMutation({
- args:{token:v.string(),ownerHash:v.string()},returns:v.object({contentType:v.string(),displayName:v.string(),description:v.string(),websiteUrl:v.string(),logoUrl:v.string(),uploadKey:v.string(),buyerEmail:v.string(),weeklyDigestEnabled:v.boolean()}),
- handler:async(ctx,a)=>{
-  const access=await ownerAccess(ctx,a.token);await limit(ctx,"owner-repeat:"+access.takeoverId,10,3600_000);
-  const t=await ctx.db.get(access.takeoverId);
-  if(!t||t.blocked||(t.contentType!=="personal"&&t.outboundLinkEnabled===false))throw new Error("This content cannot be reused. Start a new draft instead.");
-  const p=await ctx.db.query("purchases").withIndex("by_takeoverId",q=>q.eq("takeoverId",t._id)).unique();
-  const content=validateWallContent(t);
-  let uploadKey="",logoUrl="";
-  if(t.logoStorageId){logoUrl=await ctx.storage.getUrl(t.logoStorageId) ?? "";if(logoUrl){uploadKey=crypto.randomUUID();await ctx.db.insert("uploads",{key:uploadKey,ownerHash:a.ownerHash,storageId:t.logoStorageId,claimed:false,expiresAt:Date.now()+48*3600_000});}}
-  return {contentType:content.contentType,displayName:content.displayName,description:content.description,websiteUrl:content.websiteUrl,logoUrl,uploadKey,buyerEmail:p?.buyerEmail ?? "",weeklyDigestEnabled:access.weeklyDigestEnabled};
- },
+  args: { token: v.string(), ownerHash: v.string() },
+  returns: v.object({
+    contentType: v.string(),
+    displayName: v.string(),
+    description: v.string(),
+    websiteUrl: v.string(),
+    logoUrl: v.string(),
+    uploadKey: v.string(),
+    buyerEmail: v.string(),
+    weeklyDigestEnabled: v.boolean(),
+  }),
+  handler: async (ctx, a) => {
+    const access = await ownerAccess(ctx, a.token);
+    await limit(ctx, "owner-repeat:" + access.takeoverId, 10, 3600_000);
+    const t = await ctx.db.get(access.takeoverId);
+    if (
+      !t ||
+      t.blocked ||
+      (t.contentType !== "personal" && t.outboundLinkEnabled === false)
+    )
+      throw new Error(
+        "This content cannot be reused. Start a new draft instead.",
+      );
+    const p = await ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
+      .unique();
+    const content = validateWallContent(t);
+    let uploadKey = "",
+      logoUrl = "";
+    if (t.logoStorageId) {
+      logoUrl = (await ctx.storage.getUrl(t.logoStorageId)) ?? "";
+      if (logoUrl) {
+        uploadKey = crypto.randomUUID();
+        await ctx.db.insert("uploads", {
+          key: uploadKey,
+          ownerHash: a.ownerHash,
+          storageId: t.logoStorageId,
+          claimed: false,
+          expiresAt: Date.now() + 48 * 3600_000,
+        });
+      }
+    }
+    return {
+      contentType: content.contentType,
+      displayName: content.displayName,
+      description: content.description,
+      websiteUrl: content.websiteUrl,
+      logoUrl,
+      uploadKey,
+      buyerEmail: p?.buyerEmail ?? "",
+      weeklyDigestEnabled: access.weeklyDigestEnabled,
+    };
+  },
 });

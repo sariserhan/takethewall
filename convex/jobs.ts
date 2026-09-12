@@ -192,7 +192,7 @@ export const data = internalQuery({
       email:
         j.kind === "admin_takeover_email"
           ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
-          : (p?.buyerEmail ?? ""),
+          : (j.kind === "owner_access_email" ? (j.recoveryToReceipt ? p?.receiptEmail : p?.buyerEmail) ?? "" : p?.buyerEmail ?? ""),
       environment: p?.environment ?? process.env.WALL_ENVIRONMENT ?? "test",
     };
   },
