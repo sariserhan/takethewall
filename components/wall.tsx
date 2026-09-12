@@ -270,9 +270,6 @@ function WallView({
             value={
               <>
                 {numbers(combined(data?.totalTakeovers, demoTakeoverCount))}
-                {!!data?.numberingOffset && (
-                  <small className="numbering-note">Includes starting offset of {data.numberingOffset}</small>
-                )}
               </>
             }
           />
