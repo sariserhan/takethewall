@@ -259,13 +259,6 @@ function WallView({
             been confirmed.
           </div>
         )}
-        {sample && (
-          <p className="demo-notice">
-            {presentation
-              ? "DEMO PREVIEW — Content and dates are samples. Labeled counts combine real + demo values. Real ownership, payments and prize records are unchanged."
-              : "Demo mode: labeled totals combine real traffic + demo additions. Demo additions are not measured traffic. Prize eligibility uses real records only."}
-          </p>
-        )}
         <section className="site-metrics" aria-label="Site analytics">
           <Metric
             label="VISITORS TODAY (UTC)"
