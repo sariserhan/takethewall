@@ -15,6 +15,9 @@ export function PrizeExplainer({
   const format = (n: number) => n.toLocaleString("en-US");
   return (
     <section className="prize-explainer" aria-labelledby="prize-title">
+      {!!data.numberingOffset && (
+        <p className="numbering-note">Public takeover numbers include a starting offset of {data.numberingOffset}. The offset is not a set of completed takeovers; prizes follow the public milestone numbers.</p>
+      )}
       {demo && (
         <p className="demo-progress-notice">
           <strong>DEMO PROGRESS</strong> — Displayed progress combines real

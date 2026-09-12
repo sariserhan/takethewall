@@ -1,3 +1,4 @@
+import { numberingOffset } from "./numbering";
 import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { auditHash } from "../lib/audit";
@@ -105,6 +106,7 @@ export const entries = query({
   args: { after: v.optional(v.number()) },
   returns: v.object({
     entries: v.array(entry),
+    numberingOffset: v.optional(v.number()),
     next: v.union(v.number(), v.null()),
   }),
   handler: async (ctx, a) => {
@@ -112,7 +114,9 @@ export const entries = query({
       .query("takeoverAudit")
       .withIndex("by_number", (q) => q.gt("takeoverNumber", a.after ?? 0))
       .take(100);
+    const offset = await numberingOffset(ctx);
     return {
+      ...(offset ? { numberingOffset: offset } : {}),
       entries: rows.map((r) => ({
         takeoverNumber: r.takeoverNumber,
         publicTakeoverId: r.publicTakeoverId,

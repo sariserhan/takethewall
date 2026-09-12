@@ -74,6 +74,7 @@ export function AdminDashboard() {
       {section === "overview" && <AdminHealth />}
       {stats && (
         <>
+          {!!stats.site?.numberingOffset && <p>Public numbering offset: {stats.site.numberingOffset}. Actual recorded takeovers: {stats.site.recordedTakeovers}. Audit sequence numbers remain unchanged.</p>}
           <div className="admin-cards">
             {Object.entries({
               "Counted takeovers": stats.site?.totalTakeovers ?? 0,

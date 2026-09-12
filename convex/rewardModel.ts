@@ -1,3 +1,4 @@
+import { numberingOffset } from "./numbering";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { MILESTONES, LEGAL_VERSION } from "../lib/config";
@@ -86,9 +87,10 @@ export async function createCandidate(
   number: number,
 ) {
   const reward = (await ctx.db.get(rewardId))!;
+  const offset = await numberingOffset(ctx);
   const takeover = await ctx.db
     .query("takeovers")
-    .withIndex("by_takeoverNumber", (q) => q.eq("takeoverNumber", number))
+    .withIndex("by_takeoverNumber", (q) => q.eq("takeoverNumber", number - offset))
     .unique();
   if (!takeover) {
     await ctx.db.patch(rewardId, {

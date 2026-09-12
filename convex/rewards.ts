@@ -16,6 +16,7 @@ import { MILESTONES } from "../lib/config";
 import { snapshot } from "./rewardSchema";
 const sequenceRow = v.object({
   number: v.number(),
+  auditSequenceNumber: v.optional(v.number()),
   displayName: v.union(v.string(), v.null()),
   publicTakeoverId: v.union(v.string(), v.null()),
   auditHash: v.union(v.string(), v.null()),
@@ -39,6 +40,7 @@ export const overview = query({
   args: {},
   returns: v.object({
     currentNumber: v.number(),
+    numberingOffset: v.optional(v.number()),
     promotionEnabled: v.boolean(),
     milestones: v.array(publicMilestone),
   }),
@@ -74,7 +76,7 @@ export const overview = query({
               const t = await ctx.db
                 .query("takeovers")
                 .withIndex("by_takeoverNumber", (q) =>
-                  q.eq("takeoverNumber", n),
+                  q.eq("takeoverNumber", n - (site?.numberingOffset ?? 0)),
                 )
                 .unique();
               const claims = t
@@ -85,6 +87,7 @@ export const overview = query({
                 : [];
               sequence.push({
                 number: n,
+                ...(t?.takeoverNumber !== undefined && site?.numberingOffset ? { auditSequenceNumber: t.takeoverNumber } : {}),
                 displayName: t?.displayName ?? t?.domain ?? null,
                 publicTakeoverId: t?.publicTakeoverId ?? null,
                 auditHash: t?.auditHash ?? null,
@@ -124,7 +127,8 @@ export const overview = query({
         }),
     );
     return {
-      currentNumber: site?.totalTakeovers ?? 0,
+      currentNumber: (site?.totalTakeovers ?? 0) + (site?.numberingOffset ?? 0),
+      ...(site?.numberingOffset ? { numberingOffset: site.numberingOffset } : {}),
       promotionEnabled: config.promotionEnabled,
       milestones,
     };

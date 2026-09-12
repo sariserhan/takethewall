@@ -46,6 +46,7 @@ export function Sequence({ milestone }: { milestone: Milestone }) {
           {r.auditHash && (
             <details>
               <summary>Audit</summary>
+              {r.auditSequenceNumber !== undefined && <span>Original audit sequence #{r.auditSequenceNumber}; public number includes the starting offset.</span>}
               <span>{r.publicTakeoverId}</span>
               <code>{r.auditHash}</code>
               <time>
@@ -365,6 +366,9 @@ function MilestoneView({ number }: { number: number }) {
           </details>
         </>
       ) : null}
+      {!!data.numberingOffset && (
+        <p className="numbering-note">Numbering includes a starting offset of {data.numberingOffset}; no owner or payment records exist for the offset.</p>
+      )}
       <p className="permanent-rules">
         <Link href={`/rewards?version=${encodeURIComponent(m.rulesVersion)}`}>
           Read the Reward Rules

@@ -1,3 +1,4 @@
+import { numberingOffset } from "./numbering";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import {
@@ -53,7 +54,7 @@ export const overview = query({
       .take(100);
     return JSON.stringify({
       adminId,
-      site,
+      site: site ? { ...site, recordedTakeovers: site.totalTakeovers, totalTakeovers: site.totalTakeovers + (site.numberingOffset ?? 0) } : null,
       today,
       recentOpenClaims: claims.filter(
         (c) => !["paid", "expired", "ineligible"].includes(c.status),
@@ -89,6 +90,7 @@ export const list = query({
       });
     switch (a.section) {
       case "takeovers": {
+        const offset = await numberingOffset(ctx);
         const rows = await ctx.db
           .query("takeovers")
           .order("desc")
@@ -103,6 +105,7 @@ export const list = query({
                 .unique();
               return {
                 ...t,
+                ...(offset && t.takeoverNumber !== undefined ? { auditSequenceNumber: t.takeoverNumber, takeoverNumber: t.takeoverNumber + offset } : {}),
                 logoUrl: t.logoStorageId
                   ? await ctx.storage.getUrl(t.logoStorageId)
                   : null,
@@ -636,7 +639,7 @@ export const saveSettings = mutation({
       .withIndex("by_key", (q) => q.eq("key", "wall"))
       .unique();
     const old = await settings(ctx);
-    const current = site?.totalTakeovers ?? 0;
+    const current = (site?.totalTakeovers ?? 0) + (site?.numberingOffset ?? 0);
     if (
       value.milestones.length > 100 ||
       value.milestones.some(
@@ -871,7 +874,7 @@ export const publish = mutation({
       await ctx.db.patch(siteId, { totalTakeovers: number, auditHash: hash });
       const day = await daily(ctx);
       await ctx.db.patch(day._id, { takeovers: day.takeovers + 1 });
-      await onActivation(ctx, number);
+      await onActivation(ctx, number + (site?.numberingOffset ?? 0));
       if (number % 100 === 0)
         await ctx.scheduler.runAfter(0, internal.auditTrail.checkpoint, {});
       await enqueue(ctx, "activation_email", id);

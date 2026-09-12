@@ -8,7 +8,7 @@ const explanations: Record<string, string> = {
   "TOTAL VISITORS":
     "Distinct browsers recorded across the site's lifetime. This total carries on when the wall owner changes; it does not reset with a takeover.",
   "COUNTED TAKEOVERS":
-    "Takeovers included in the milestone sequence. House placements do not count. Demo additions affect displayed progress only; they do not create real takeovers or trigger prizes.",
+    "The public takeover sequence, including any documented starting offset. An offset does not represent completed takeovers. House placements do not count. Demo additions affect displayed progress only; they do not create real takeovers or trigger prizes.",
   "PREVIOUS OWNER":
     "The owner immediately before the current one. This shows only the most recent previous owner, rather than the full ownership history.",
   "CURRENT REIGN":

@@ -891,3 +891,47 @@ it("demo presentation never rewrites ownership, audit history or real prize prog
   await admin.mutation(api.demoStats.save,withoutPresentation);
   expect((await t.query(api.wall.current,{}))?.demoPresentation).toBeNull();
 });
+
+it("a documented numbering offset preserves audit records and maps future prizes to actual owners", async () => {
+  const t = await setup();
+  await t.run(async ctx => {
+    const config = (await ctx.db.query("rewardSettings").first())!;
+    await ctx.db.patch(config._id, { value: { ...config.value, milestones: [{takeoverNumber:17,rewardUsd:100}] } });
+  });
+  await activate(t, 1);
+  const original = await t.query(api.auditTrail.entries, {});
+  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:0})).rejects.toThrow("wall has changed");
+  expect(await t.mutation(internal.numbering.initialize,{expectedRecordedCount:1})).toEqual({offset:15,currentNumber:16});
+  // Repeating initialization is safe and does not add another offset.
+  await t.mutation(internal.numbering.initialize,{expectedRecordedCount:1});
+  expect(await t.query(api.wall.current, {})).toMatchObject({totalTakeovers:16,numberingOffset:15,owner:{takeoverNumber:16}});
+  expect(await t.query(api.auditTrail.entries, {})).toEqual({...original,numberingOffset:15});
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({valid:true});
+  await t.run(async ctx => {
+    expect((await ctx.db.query("siteStats").first())?.totalTakeovers).toBe(1);
+    expect(await ctx.db.query("takeovers").collect()).toHaveLength(2); // house + one actual takeover
+    expect(await ctx.db.query("purchases").collect()).toHaveLength(1);
+    expect(await ctx.db.query("rewardClaims").collect()).toHaveLength(0);
+    expect((await ctx.db.query("adminAudit").collect()).filter(a=>a.action==="NUMBERING_OFFSET_INITIALIZED")).toHaveLength(1);
+  });
+  const second = await activate(t, 2);
+  expect(await t.query(api.wall.current, {})).toMatchObject({totalTakeovers:17,owner:{takeoverNumber:17}});
+  const claim = await firstClaim(t);
+  expect(claim).toMatchObject({takeoverNumber:17,takeoverId:second.takeoverId});
+  const overview = await t.query(api.rewards.overview, {});
+  expect(overview).toMatchObject({currentNumber:17,numberingOffset:15});
+  expect(overview.milestones.find(m=>m.number===17)?.sequence.find(r=>r.number===17)?.displayName).toBe("Person 2");
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  await t.withIdentity(adminIdentity).mutation(api.admin.publish,{contentType:"personal",websiteUrl:"",displayName:"Next admin owner",description:"Hello",countTowardMilestones:true,recipientEmail:"admin@example.com",reason:"Verify offset numbering",requestKey:"offset-admin",expectedCurrentId:second.takeoverId});
+  expect(await t.query(api.wall.current, {})).toMatchObject({totalTakeovers:18,owner:{takeoverNumber:18}});
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({valid:true});
+});
+
+it("numbering offset cannot skip milestone obligations or modify an established sequence", async () => {
+  const t = await setup();
+  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:0})).rejects.toThrow("milestone");
+  await activate(t,1);
+  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:1})).rejects.toThrow("milestone");
+  await activate(t,2);
+  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:2})).rejects.toThrow("wall has changed");
+});

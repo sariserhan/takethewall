@@ -1,3 +1,4 @@
+import { numberingOffset } from "./numbering";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -26,7 +27,7 @@ export async function projectOwner(ctx: QueryCtx, t: Doc<"takeovers">) {
     contentType: t.contentType ?? "link",
     linkType: t.linkType ?? "website",
     displayName: t.displayName ?? t.domain,
-    takeoverNumber: t.takeoverNumber ?? null,
+    takeoverNumber: t.takeoverNumber === undefined ? null : t.takeoverNumber + await numberingOffset(ctx),
     outboundLinkEnabled:
       t.outboundLinkEnabled !== false && t.contentType !== "personal",
     websiteUrl: t.websiteUrl,

@@ -147,6 +147,7 @@ export default defineSchema({
     auditHash: v.optional(v.string()),
     totalVisitors: v.number(),
     totalTakeovers: v.number(),
+    numberingOffset: v.optional(v.number()),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
   dailyStats: defineTable({

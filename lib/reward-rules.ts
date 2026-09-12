@@ -8,7 +8,7 @@ export const DEFAULT_RULES = {
   purchase:
     "One $3.99 USD purchase activates one public placement after verified payment. Checkout does not reserve a number. No duration, traffic, clicks or results are guaranteed.",
   ordering:
-    "Paid takeover numbers follow atomic successful activation order. House and moderation restorations do not count.",
+    "Counted takeover numbers follow atomic successful activation order. A documented starting offset of 15 may be applied before any milestone is reached: public number equals recorded sequence number plus 15. The offset represents no owners or payments and cannot receive a prize. Milestones use public numbers, so public #100 corresponds to recorded takeover #85 when the offset is active. House and moderation restorations do not count.",
   recipients:
     "A milestone activation creates a provisional recipient. Ineligible or expired candidates cascade strictly to the next paid takeover, without random selection, arbitrary skipping or maximum distance. One takeover may receive multiple rewards.",
   availability:
@@ -24,7 +24,7 @@ export const DEFAULT_RULES = {
   trophy:
     "Eligibility approval and confirmed payout publish the permanent content snapshot. Original-reign statistics remain live until replacement plus the two-minute late-event window, then freeze. Future purchases cannot change it. Unsafe outbound links can be disabled without removing the historical trophy. Permanent placement means continued historical publication for the operating life of TakeTheWall, subject to mandatory legal obligations.",
   audit:
-    "Canonical SHA-256 records link paid activations in order. Independently retained or externally anchored checkpoints help detect later modification. Hashing does not independently prove fair payment ordering.",
+    "Canonical SHA-256 records link counted activations using their original recorded sequence numbers. A numbering offset does not rewrite these records or hashes. Independently retained or externally anchored checkpoints help detect later modification. Hashing does not independently prove fair payment ordering.",
 };
 export interface EligibilityProvider {
   getRequirements(input: {

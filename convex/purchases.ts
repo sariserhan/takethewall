@@ -265,7 +265,7 @@ export const activate = internalMutation({
       takeovers: d.takeovers + 1,
       revenueCents: (d.revenueCents ?? 0) + a.amountCents,
     });
-    await onActivation(ctx, takeoverNumber);
+    await onActivation(ctx, takeoverNumber + (site.numberingOffset ?? 0));
     if (takeoverNumber % 100 === 0)
       await ctx.scheduler.runAfter(0, internal.auditTrail.checkpoint, {});
     await enqueue(ctx, "activation_email", t._id);

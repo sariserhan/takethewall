@@ -24,6 +24,7 @@ import type * as http from "../http.js";
 import type * as jobs from "../jobs.js";
 import type * as mail from "../mail.js";
 import type * as model from "../model.js";
+import type * as numbering from "../numbering.js";
 import type * as operations from "../operations.js";
 import type * as paymentIssues from "../paymentIssues.js";
 import type * as purchases from "../purchases.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   jobs: typeof jobs;
   mail: typeof mail;
   model: typeof model;
+  numbering: typeof numbering;
   operations: typeof operations;
   paymentIssues: typeof paymentIssues;
   purchases: typeof purchases;

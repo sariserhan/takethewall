@@ -13,6 +13,7 @@ export const current = query({
       previousOwnerName: v.union(v.string(), v.null()),
       totalVisitors: v.number(),
       totalTakeovers: v.number(),
+      numberingOffset: v.optional(v.number()),
       visitorsToday: v.number(),
       utcDate: v.string(),
       regions: v.array(
@@ -64,7 +65,8 @@ export const current = query({
           : previous.displayName || previous.domain || "House placement"
         : null,
       totalVisitors: s.totalVisitors,
-      totalTakeovers: s.totalTakeovers,
+      totalTakeovers: s.totalTakeovers + (s.numberingOffset ?? 0),
+      ...(s.numberingOffset ? { numberingOffset: s.numberingOffset } : {}),
       visitorsToday: d?.visitors ?? 0,
       utcDate,
       regions: r.map((x) => ({

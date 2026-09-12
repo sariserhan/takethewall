@@ -965,3 +965,5 @@ textarea {
 .metric .stat-help-panel strong,.stat-help-panel strong{font:700 12px/1.4 var(--body);letter-spacing:.04em}
 .owner-since .stat-help-trigger{padding:0;gap:3px}
 .owner-since .stat-help-icon{width:11px;height:11px;font-size:8px}
+
+.numbering-note,.metric strong .numbering-note{display:block;font:11px/1.5 var(--body);letter-spacing:0;color:var(--muted);margin-top:6px;max-width:65ch}
