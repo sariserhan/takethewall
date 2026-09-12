@@ -79,3 +79,7 @@ recipient sites were presented.
 
 Structured receipt: `submission-receipts.json`. No money spent. No incremental
 visits claimed. Do not resubmit Weird Revenue while it is awaiting review.
+
+## First-owner campaign kit
+
+See [first-owners-kit.md](first-owners-kit.md) for the video script, personal invitation copy, three community drafts, event checklist, and measurement plan. These materials are drafts; no additional submissions or messages have been sent.
