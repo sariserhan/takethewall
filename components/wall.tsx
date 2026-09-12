@@ -1,4 +1,5 @@
 "use client";
+import { StatHelp } from "./stat-help";
 import { contentCta } from "@/lib/content";
 import { HomepageMilestones } from "./milestones";
 import { PublicFooter } from "./public-footer";
@@ -66,7 +67,7 @@ function Metric({
   return (
     <div className="metric">
       <span>
-        {label}
+        <StatHelp label={label} detail={demo ? breakdown : undefined} />
       </span>
       <strong>{value}</strong>
     </div>
@@ -291,7 +292,7 @@ function WallView({
           />
           <div className="metric previous-owner-stat">
             <span>
-              PREVIOUS OWNER
+              <StatHelp label="PREVIOUS OWNER" />
             </span>
             <strong>
               {(data ? (data.previousOwnerName ?? "None yet") : "—")}
@@ -396,7 +397,7 @@ function WallView({
                     className="owner-since"
                     dateTime={new Date(since).toISOString()}
                   >
-                    Owner since{" "}
+                    <StatHelp label="Owner since" />{" "}
                     {new Date(since)
                       .toISOString()
                       .replace("T", " ")
@@ -447,7 +448,7 @@ function WallView({
             }
           />
           <div className="regions">
-            <span className="eyebrow">TOP REGIONS</span>
+            <span className="eyebrow"><StatHelp label="TOP REGIONS" /></span>
             {regions.length ? (
               <ul>
                 {regions.map((r) => (
