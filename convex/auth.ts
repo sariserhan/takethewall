@@ -1,3 +1,4 @@
+import { emailSender } from "../lib/email-routing";
 import { emailTemplate } from "../lib/email-template";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
@@ -40,7 +41,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
         storeOTP: "hashed",
         async sendVerificationOTP({ email, otp, type }) {
           if (type !== "sign-in" || !allowed(email)) return;
-          if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM)
+          if (!process.env.RESEND_API_KEY)
             throw new Error("Admin email delivery is not configured");
           const r = await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -49,7 +50,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: process.env.RESEND_FROM,
+              ...emailSender("account"),
               to: [email],
               ...emailTemplate(
                 "Your administrator sign-in code",

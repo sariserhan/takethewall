@@ -207,6 +207,8 @@ it("weekly digests are deduplicated, use recorded totals, and have stable retry 
   const request = JSON.parse(fetchMock.mock.calls[0][1].body);
   expect(request.to).toEqual(["first@example.com"]);
   expect(request.html).toContain("YOUR WEEKLY OWNER REPORT");
+  expect(request.from).toBe("Take The Wall — Weekly Digest <digest@takethewall.com>");
+  expect(request.reply_to).toBe("support@takethewall.com");
   expect(request.html).toContain("Open your private dashboard");
   expect(request.text).toContain("Totals since");
   expect(request.headers["List-Unsubscribe-Post"]).toBe(
@@ -486,7 +488,8 @@ it("admin notifications capture activation once and dispatch privately without o
   expect(send).toHaveBeenCalledTimes(1);
   const message = JSON.parse(send.mock.calls[0][1].body);
   expect(message.to).toEqual(["serhan.sari@yahoo.com"]);
-  expect(message.from).toBe("notification@takethewall.com");
+  expect(message.from).toBe("Take The Wall — Notifications <notifications@takethewall.com>");
+  expect(message.reply_to).toBe("support@takethewall.com");
   expect(message.text).toContain("production@example.com");
   expect(message.text).not.toContain("Changed later");
   expect(message.html).toContain("WALL TAKEOVER NOTIFICATION");

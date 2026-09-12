@@ -62,6 +62,7 @@ it("alerts need consent and email confirmation, deduplicate, and cancel queued m
   const prepared = await t.mutation(internal.mail.prepare, {
     id: verification._id,
   });
+  expect(prepared?.sender).toEqual({from:"Take The Wall — Milestone Alerts <alerts@takethewall.com>",reply_to:"support@takethewall.com"});
   expect(prepared?.presentation?.cta.url).toContain(alertConfirmation(s.seed));
   expect(
     await t.mutation(internal.milestoneAlerts.manage, {

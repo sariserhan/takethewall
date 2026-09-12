@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-12T18:26:07.736021+00:00",
+  "project": "Take The Wall",
+  "spendUsd": 0,
+  "submissions": [
+    {
+      "publisher": "Weird Revenue",
+      "url": "https://weirdrevenue.com/submit",
+      "status": "received_for_review",
+      "httpStatus": 200,
+      "confirmationUrl": "https://weirdrevenue.com/submit?sent=1",
+      "confirmation": "Thanks, it is in the queue.",
+      "published": false
+    },
+    {
+      "publisher": "Another Useless Website",
+      "url": "https://anotheruseless.website/submit-website/",
+      "status": "blocked_before_submission",
+      "httpStatus": 403,
+      "published": false
+    },
+    {
+      "publisher": "The Random Web",
+      "url": "https://therandomweb.com/contact",
+      "status": "submission_rejected_by_access_control",
+      "httpStatus": 403,
+      "error": "Cloudflare 1010 browser_signature_banned; no retry",
+      "published": false
+    }
+  ],
+  "incrementalVisitors": "Not yet measured; submissions are not visits."
+}

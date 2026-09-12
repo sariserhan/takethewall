@@ -19,6 +19,8 @@ it("Better Auth email OTP signs in an allowlisted administrator with a real sess
     "fetch",
     vi.fn(async (_url, init) => {
       const data = JSON.parse(String(init?.body ?? "{}"));
+      expect(data.from).toBe("Take The Wall — Account <account@takethewall.com>");
+      expect(data.reply_to).toBe("support@takethewall.com");
       otp = data.text?.match(/\b\d{6}\b/)?.[0] ?? otp;
       return Response.json({ id: "mock-mail" });
     }),

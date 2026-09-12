@@ -1,5 +1,5 @@
 import { demoValues, demoPresentation } from "./demoValues";
-import { rewardTables } from "./rewardSchema";
+import { rewardTables, emailSenderFields } from "./rewardSchema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 export const kind = v.union(
@@ -223,6 +223,7 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_expiresAt", ["expiresAt"]),
   jobs: defineTable({
+    sender:v.optional(emailSenderFields),
     recoveryToReceipt:v.optional(v.boolean()),
     finalReport:v.optional(finalReportSnapshot),
     adminRecipient:v.optional(v.string()),

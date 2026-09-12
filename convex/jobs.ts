@@ -1,3 +1,5 @@
+import { senderForMail, legacyEmailSender } from "../lib/email-routing";
+import { emailSenderFields } from "./rewardSchema";
 import { notificationSettings } from "./adminNotifications";
 import { weeklyOwnerEmail, finalOwnerEmail } from "../lib/owner-email";
 import {
@@ -66,6 +68,14 @@ export const claim = internalMutation({
     }
     if (j.kind.endsWith("_email")) await limit(ctx, "email:global", 50);
     await ctx.db.patch(j._id, {
+      ...(j.kind.endsWith("_email")
+        ? {
+            sender:
+              j.sender ??
+              (j.attempts > 0 ? legacyEmailSender(false) : undefined) ??
+              senderForMail(j),
+          }
+        : {}),
       state: "sending",
       attempts: j.attempts + 1,
       nextAt: Date.now() + 60_000,
@@ -100,6 +110,7 @@ export const data = internalQuery({
       id: v.id("jobs"),
       key: v.string(),
       kind: jobKind,
+      sender: v.optional(emailSenderFields),
       takeoverId: v.id("takeovers"),
       deliveryId: v.string(),
       visitorHash: v.optional(v.string()),
@@ -177,6 +188,7 @@ export const data = internalQuery({
       id: j._id,
       key: j.key,
       kind: j.kind,
+      ...(j.sender ? { sender: j.sender } : {}),
       takeoverId: j.takeoverId,
       deliveryId: j.deliveryId,
       ...(j.visitorHash
@@ -192,7 +204,9 @@ export const data = internalQuery({
       email:
         j.kind === "admin_takeover_email"
           ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
-          : (j.kind === "owner_access_email" ? (j.recoveryToReceipt ? p?.receiptEmail : p?.buyerEmail) ?? "" : p?.buyerEmail ?? ""),
+          : j.kind === "owner_access_email"
+            ? ((j.recoveryToReceipt ? p?.receiptEmail : p?.buyerEmail) ?? "")
+            : (p?.buyerEmail ?? ""),
       environment: p?.environment ?? process.env.WALL_ENVIRONMENT ?? "test",
     };
   },
@@ -238,6 +252,14 @@ export const replay = internalMutation({
         "Email idempotency window elapsed. Reconcile in Resend before any manual send.",
       );
     await ctx.db.patch(j._id, {
+      ...(j.kind.endsWith("_email")
+        ? {
+            sender:
+              j.sender ??
+              (j.attempts > 0 ? legacyEmailSender(false) : undefined) ??
+              senderForMail(j),
+          }
+        : {}),
       state: "pending",
       attempts: 0,
       nextAt: Date.now(),
@@ -280,7 +302,7 @@ export const dispatch = internalAction({
             await ctx.runMutation(internal.jobs.finish, { id, ok: true });
             continue;
           }
-          if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM)
+          if (!process.env.RESEND_API_KEY)
             throw new Error("Email provider is not configured");
           if (Date.now() - j.timestamp > 23 * 3600_000) {
             await ctx.runMutation(internal.jobs.finish, {
@@ -342,7 +364,7 @@ export const dispatch = internalAction({
               "Idempotency-Key": j.key,
             },
             body: JSON.stringify({
-              from: process.env.RESEND_FROM,
+              ...(j.sender ?? senderForMail(j)),
               to: [j.email],
               ...rendered,
               ...(j.kind === "weekly_digest_email"

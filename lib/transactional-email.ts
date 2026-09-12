@@ -1,6 +1,8 @@
+import type { EmailSender } from "./email-routing";
 import { emailTemplate, type EmailPresentation } from "./email-template";
 export interface TransactionalEmailProvider {
   send(message: {
+    sender: EmailSender;
     to: string;
     subject: string;
     body: string;
@@ -10,7 +12,7 @@ export interface TransactionalEmailProvider {
 }
 export const transactionalEmail: TransactionalEmailProvider = {
   async send(message) {
-    if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM)
+    if (!process.env.RESEND_API_KEY)
       throw new Error("Email configuration unavailable");
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -20,10 +22,9 @@ export const transactionalEmail: TransactionalEmailProvider = {
         "Idempotency-Key": message.key,
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM,
+        ...message.sender,
         to: [message.to],
         ...emailTemplate(message.subject, message.body, message.presentation),
-        reply_to: process.env.SUPPORT_EMAIL ?? "support@takethewall.com",
       }),
       signal: AbortSignal.timeout(10000),
     });

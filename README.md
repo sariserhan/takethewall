@@ -25,10 +25,11 @@ Copy the relevant variables from `.env.example` into Next.js and Convex configur
 ## Payments and services
 
 - **Next.js:** Stripe secret key, webhook secret, optional existing Price ID, `WALL_TOKEN_SECRET`, `WALL_SERVER_SECRET`, `CONVEX_HTTP_URL`, `NEXT_PUBLIC_SITE_URL`, and `WALL_ENVIRONMENT`.
-- **Convex:** the same `WALL_SERVER_SECRET` and `WALL_ENVIRONMENT`, plus `RESEND_API_KEY`, `RESEND_FROM`, `VISITORPING_SITE_KEY`, `VISITORPING_API_KEY`, `VISITORPING_SITE_ID`, and `PUBLIC_METRICS_ENABLED`.
+- **Convex:** the same `WALL_SERVER_SECRET` and `WALL_ENVIRONMENT`, plus `RESEND_API_KEY`, `VISITORPING_SITE_KEY`, `VISITORPING_API_KEY`, `VISITORPING_SITE_ID`, and `PUBLIC_METRICS_ENABLED`.
 - **Both:** set `PUBLIC_METRICS_ENABLED=true` only on a dedicated production deployment. Next.js additionally requires `VERCEL_ENV=production` to accept production traffic. All local/preview traffic remains excluded. Test and live payments must use separate Convex deployments.
 - Stripe keys are checked against `WALL_ENVIRONMENT` before Checkout creation. The price is server-owned: 399 cents, USD, one time. No promotional codes or adaptive pricing. Dynamic hosted Checkout methods permit supported wallets configured in Stripe.
 - Enable Stripe payment receipts in its Dashboard. The buyer email prefills Checkout; the final receipt email is kept separately. Resend activation/replacement messages go to the original purchase contact, never to a public profile.
+- New email senders are mapped by purpose in `lib/email-routing.ts`. Keep existing `RESEND_FROM` only for legacy in-flight retries; it no longer controls new emails.
 - Use a verified **TakeTheWall sender**, not another project's sender. Configure support@takethewall.com and privacy@takethewall.com before launch.
 
 Forward test webhooks with the Stripe CLI:

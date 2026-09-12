@@ -12,7 +12,7 @@ Delivery uses the existing retryable jobs outbox, a stable snapshot, and one job
 
 ## Configuration and rollout
 
-Existing Convex environment variables are reused: `CLAIM_TOKEN_SECRET` (at least 32 characters), `SITE_URL`, `RESEND_API_KEY`, `RESEND_FROM`, and `WALL_ENVIRONMENT=production`. Set optional `WEEKLY_OWNER_DIGEST_ENABLED=false` on Convex to pause weekly delivery. No new required secret or webhook is needed.
+Existing Convex environment variables are reused: `CLAIM_TOKEN_SECRET` (at least 32 characters), `SITE_URL`, `RESEND_API_KEY`, and `WALL_ENVIRONMENT=production`. Set optional `WEEKLY_OWNER_DIGEST_ENABLED=false` on Convex to pause weekly delivery. No new required secret or webhook is needed.
 
 Deploy the frontend and Convex backend together. Deployment registers the Monday schedule; no immediate digest is sent. Existing owners can request access from `/owner`. Rotating `CLAIM_TOKEN_SECRET` invalidates old owner links; requesting a new link regenerates access.
 
@@ -30,7 +30,7 @@ Edits leave the takeover number, activation timestamp, counters, payment, and pr
 
 ## Administrator takeover notifications
 
-Every new production paid takeover or admin publication queues a branded email to `serhan.sari@yahoo.com`, using the existing `RESEND_FROM` sender (`notification@takethewall.com`). It includes owner and buyer/receipt email, public takeover number, destination, description, image availability, UTC activation time, source, amount/currency, available Stripe references, record ID, activation hash, published-content link, and an admin dashboard button. It never includes owner login tokens or card details.
+Every new production paid takeover or admin publication queues a branded email to `serhan.sari@yahoo.com`, from `notifications@takethewall.com`. It includes owner and buyer/receipt email, public takeover number, destination, description, image availability, UTC activation time, source, amount/currency, available Stripe references, record ID, activation hash, published-content link, and an admin dashboard button. It never includes owner login tokens or card details.
 
 The snapshot is captured in the activation transaction, with one job per takeover. Retries reuse the same idempotency key; edits and repeated payment webhooks do not produce additional takeover notifications. Delivery uses the existing outbox dispatcher. Development/test activations are suppressed. There is no backfill for past takeovers and no new required environment variable or webhook. Temporary notification snapshots are removed after successful delivery and follow contact deletion when undelivered.
 
@@ -86,3 +86,22 @@ Dialogs wrap Tab/Shift+Tab and restore focus to their trigger. Close buttons and
 - Filtering those events by the current `takeoverId` still returns zero. Read-only inspection of the separate VisitorPing repository found that `apps/consumer/src/event-data.ts` drops metadata for unsupported custom events, including the wall events. Its consumer must preserve a bounded, validated takeover ID for these events before owner-scoped reporting can work. Previously discarded metadata cannot be reconstructed from the aggregate API. This separate provider repository was not changed or deployed.
 
 Validation: 149 automated tests, 24 desktop/mobile browser flows, lint, typecheck, and production build passed. Browser plugin was unavailable; regular Playwright was used. Backend changes were synced only to the personal development deployment. Production rollout and live payment/inbox verification remain outstanding.
+
+
+## Purpose-specific email senders
+
+All application email sending now uses the shared mapping in `lib/email-routing.ts`:
+
+| From address | Purpose | Reply-To |
+| --- | --- | --- |
+| account@takethewall.com | Admin sign-in codes, reward portal sign-in codes, owner dashboard/recovery links | support@takethewall.com |
+| notifications@takethewall.com | Activation, replacement/final report, administrator takeover notification | support@takethewall.com |
+| digest@takethewall.com | Weekly owner summaries | support@takethewall.com |
+| alerts@takethewall.com | Milestone signup confirmation and approaching-milestone alerts | support@takethewall.com |
+| rewards@takethewall.com | Claim invitations, claim status/reminders, winner messages, payout updates, replies to milestone-reward inquiries | rewards@takethewall.com |
+| support@takethewall.com | Payment, wall, technical and content-report support replies | support@takethewall.com |
+| contact@takethewall.com | General questions, business inquiries, and uncategorized correspondence | contact@takethewall.com |
+
+Each sender includes a recognizable Take The Wall display name. The existing verified Resend domain and API key are reused; no additional secret or per-address environment variable is needed. Email templates, recipients, and unsubscribe behavior remain unchanged. Stripe's own payment receipt emails are configured separately in Stripe.
+
+Both outboxes pin sender and Reply-To on the first delivery attempt so retries retain the same headers. Previously attempted jobs without a pinned sender use the existing `RESEND_FROM` and prior Reply-To behavior; keep that legacy variable unchanged until those jobs finish or leave their 23-hour retry window. New messages do not use it, and health checks no longer require it. Admin manual retries preserve the same routing snapshot.

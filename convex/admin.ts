@@ -612,10 +612,10 @@ export const supportAction = mutation({
       });
       await mail(ctx, {
         key: "support:" + id,
-        kind: "support",
+        kind: ["General question", "Business inquiry"].includes(t.topic) ? "contact" : t.topic === "Milestone reward" ? "reward_support" : "support",
         ticketId: t._id,
         to: t.email,
-        subject: "TakeTheWall Support",
+        subject: ["General question", "Business inquiry"].includes(t.topic) ? "Take The Wall — Your inquiry" : t.topic === "Milestone reward" ? "Take The Wall — Rewards" : "Take The Wall — Support",
         body,
       });
       await audit(ctx, actor, "SUPPORT_REPLY_SENT", t._id);

@@ -1,3 +1,4 @@
+import { senderForMail, legacyEmailSender } from "../lib/email-routing";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAdmin, audit } from "./rewardModel";
@@ -102,6 +103,12 @@ export const retry = mutation({
           "Reconcile this email in Resend; its safe retry window has expired.",
         );
       await ctx.db.patch(j._id, {
+        sender:
+          j.sender ??
+          (j.attempts > 0
+            ? legacyEmailSender(false)
+            : undefined) ??
+          senderForMail(j),
         state: "pending",
         attempts: 0,
         nextAt: Date.now(),
@@ -117,6 +124,12 @@ export const retry = mutation({
           "Reconcile this email in Resend; its safe retry window has expired.",
         );
       await ctx.db.patch(j._id, {
+        sender:
+          j.sender ??
+          (j.attempts > 0
+            ? legacyEmailSender(true)
+            : undefined) ??
+          senderForMail(j),
         state: "pending",
         attempts: 0,
         nextAt: Date.now(),

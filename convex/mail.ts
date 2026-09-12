@@ -1,3 +1,5 @@
+import { senderForMail, legacyEmailSender } from "../lib/email-routing";
+import { emailSenderFields } from "./rewardSchema";
 import { alertConfirmation, alertUnsubscribe } from "../lib/alert-secrets";
 import { ownerBaseUrl } from "../lib/owner-secrets";
 import { getSite } from "./model";
@@ -38,6 +40,7 @@ export const prepare = internalMutation({
   returns: v.union(
     v.null(),
     v.object({
+      sender: emailSenderFields,
       to: v.string(),
       subject: v.string(),
       body: v.string(),
@@ -177,12 +180,18 @@ export const prepare = internalMutation({
         body += `\n\nOpen your existing protected claim link to sign in. If you need a replacement link, contact support@takethewall.com.`;
       }
     }
+    const sender =
+      j.sender ??
+      (j.attempts > 0 ? legacyEmailSender(true) : undefined) ??
+      senderForMail(j);
     await ctx.db.patch(j._id, {
+      sender,
       state: "sending",
       attempts: j.attempts + 1,
       nextAt: Date.now() + 60_000,
     });
     return {
+      sender,
       to: j.to,
       subject: j.subject,
       body,
@@ -226,7 +235,7 @@ export const dispatch = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) return null;
+    if (!process.env.RESEND_API_KEY) return null;
     const ids = await ctx.runQuery(internal.mail.due, {});
     for (const id of ids) {
       try {

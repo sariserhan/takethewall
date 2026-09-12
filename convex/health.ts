@@ -32,7 +32,7 @@ export const overview = query({
     return JSON.stringify({
       wallInitialized: !!site,
       lastPaymentAt: payment?.createdAt ?? null,
-      emailMissing: missing(["RESEND_API_KEY", "RESEND_FROM"]),
+      emailMissing: missing(["RESEND_API_KEY"]),
       failedMail: mailFailures.length,
       failedJobs: jobs.length,
       countsCappedAt: 100,
