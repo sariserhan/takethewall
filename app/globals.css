@@ -1010,3 +1010,7 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
   margin: 0;
   max-width: none;
 }
+
+.region-label { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.region-label .region-flag { display: block; width: 20px; height: 15px; flex: none; object-fit: cover; border-radius: 1px; box-shadow: 0 0 0 1px #1112; }
+.region-label .region-globe { display: block; width: 20px; height: 15px; flex: none; color: var(--muted); }

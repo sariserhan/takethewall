@@ -1,4 +1,5 @@
 "use client";
+import {RegionLabel} from "./region-label";
 import { PublishedShare } from "./takeover-share";
 import { WallSubscription } from "./wall-subscription";
 import { MilestoneAlerts } from "./milestone-alerts";
@@ -440,9 +441,7 @@ function WallView({
               <ul>
                 {regions.map((r) => (
                   <li key={r.regionCode}>
-                    <span>
-                      {r.regionCode === "ZZ" ? "Unknown" : r.regionCode}
-                    </span>
+                    <RegionLabel code={r.regionCode}/>
                     <span>{r.percent.toFixed(0)}%</span>
                   </li>
                 ))}

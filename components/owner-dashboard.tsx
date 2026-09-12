@@ -1,4 +1,5 @@
 "use client";
+import {RegionLabel} from "./region-label";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -469,7 +470,7 @@ export function OwnerDashboardView() {
                 .slice(0, 5)
                 .map((r) => (
                   <li key={r.regionCode}>
-                    {r.regionCode === "ZZ" ? "Unknown" : r.regionCode}
+                    <RegionLabel code={r.regionCode}/>
                     <strong>
                       {r.impressions.toLocaleString("en-US")} views
                     </strong>
