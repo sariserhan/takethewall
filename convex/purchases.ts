@@ -18,6 +18,7 @@ import {
 import { validateEmail } from "../lib/validation";
 export const pending = internalMutation({
   args: {
+    weeklyDigestEnabled:v.optional(v.boolean()),
     requestKey: v.string(),
     fingerprint: v.string(),
     tokenHash: v.string(),
@@ -89,6 +90,7 @@ export const pending = internalMutation({
     const purchaseId = await ctx.db.insert("purchases", {
       takeoverId: id,
       buyerEmail,
+      weeklyDigestEnabled:a.weeklyDigestEnabled ?? true,
       legalVersion: LEGAL_VERSION,
       requestKey: a.requestKey,
       fingerprint: a.fingerprint,

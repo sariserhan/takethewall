@@ -600,6 +600,7 @@ export const supportAction = mutation({
       });
     }
     if (a.reply) {
+      if(!t.email)throw new Error("This report has no reply email.");
       const body = plainText(a.reply, 10000, true, true);
       const id = await ctx.db.insert("supportMessages", {
         ticketId: t._id,

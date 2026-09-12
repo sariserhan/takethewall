@@ -1,6 +1,6 @@
 "use client";
-import { contentCta, validateWallContent } from "@/lib/content";
-import Image from "next/image";
+import { TakeoverPreview } from "./takeover-preview";
+import { validateWallContent } from "@/lib/content";
 import dynamic from "next/dynamic";
 import type { CheckoutSession } from "./embedded-payment";
 const EmbeddedPayment = dynamic(() => import("./embedded-payment"), {
@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
 import { validateEmail, validateFile } from "@/lib/validation";
 interface Draft {
+  weeklyDigestEnabled: boolean;
   contentType: "link" | "personal";
   category: "website" | "app" | "social" | "personal";
   displayName: string;
@@ -24,6 +25,7 @@ interface Draft {
   requestKey: string;
 }
 const empty: Draft = {
+  weeklyDigestEnabled: true,
   contentType: "link",
   category: "website",
   displayName: "",
@@ -47,6 +49,7 @@ export function PurchaseSheet({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   // Hydrate a browser-only saved draft after server rendering.
   useEffect(() => {
@@ -102,6 +105,10 @@ export function PurchaseSheet({
     try {
       validateWallContent(draft);
       validateEmail(draft.buyerEmail);
+      if (!reviewing) {
+        setReviewing(true);
+        return;
+      }
       setBusy(true);
       const requestKey = draft.requestKey || crypto.randomUUID();
       const saved = { ...draft, requestKey };
@@ -136,10 +143,6 @@ export function PurchaseSheet({
       setBusy(false);
     }
   }
-  let domain = "your-website.com";
-  try {
-    domain = new URL(draft.websiteUrl).hostname.replace(/^www\./, "");
-  } catch {}
   return (
     <Dialog
       open={open}
@@ -157,11 +160,44 @@ export function PurchaseSheet({
               if (verified) {
                 setCheckout(null);
                 setDraft(empty);
+                setReviewing(false);
               }
               onClose();
             }}
           />
         )
+      ) : reviewing ? (
+        <form className="purchase-review" onSubmit={submit}>
+          <p className="sheet-intro">Check your content before you pay.</p>
+          <TakeoverPreview draft={draft} />
+          <p>
+            Your private dashboard link and service emails go to{" "}
+            <strong>{draft.buyerEmail}</strong>.
+          </p>
+          {error && (
+            <p role="alert" className="form-error">
+              {error}
+            </p>
+          )}
+          <div className="review-actions">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setReviewing(false)}
+            >
+              Edit content
+            </button>
+            <button type="submit" className="button pay" disabled={busy}>
+              {busy ? "Preparing checkout…" : "PAY $3.99 & TAKE THE WALL"}
+              <Arrow />
+            </button>
+          </div>
+          <p className="field-note">
+            By paying, you accept the <Link href="/?info=terms">Terms</Link> and{" "}
+            <Link href="/?info=rewards">Reward Rules</Link>. No guaranteed
+            duration, audience or prize.
+          </p>
+        </form>
       ) : (
         <>
           <p className="sheet-intro">
@@ -279,9 +315,20 @@ export function PurchaseSheet({
                     onChange={(e) => change({ buyerEmail: e.target.value })}
                   />
                 </label>
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={draft.weeklyDigestEnabled}
+                    onChange={(e) =>
+                      change({ weeklyDigestEnabled: e.target.checked })
+                    }
+                  />
+                  Email me a weekly stats summary while I own the wall.
+                </label>
                 <p className="field-note">
-                  For your receipt, activation and replacement notices. Private.
-                  No account. No marketing.
+                  For your receipt, activation and replacement notices, plus
+                  your private owner dashboard. Private. No account. No
+                  marketing.
                 </p>
               </fieldset>
               {error && (
@@ -294,7 +341,7 @@ export function PurchaseSheet({
                 disabled={busy || uploading}
                 type="submit"
               >
-                {busy ? "Preparing checkout…" : "PAY $3.99 & TAKE THE WALL"}
+                {busy ? "Preparing checkout…" : "PREVIEW YOUR TAKEOVER"}
                 <Arrow />
               </button>
               <p className="field-note">
@@ -308,38 +355,7 @@ export function PurchaseSheet({
                 short reign or low traffic.
               </p>
             </form>
-            <aside className="preview">
-              <span className="eyebrow">YOUR WALL PREVIEW</span>
-              <div className="preview-ad">
-                {draft.logoUrl ? (
-                  <Image
-                    src={draft.logoUrl}
-                    width={140}
-                    height={140}
-                    alt="Your logo preview"
-                    unoptimized
-                  />
-                ) : null}
-                <h3>
-                  {draft.displayName ||
-                    (draft.contentType === "personal" ? "YOUR NAME" : domain)}
-                </h3>
-                <p>
-                  {draft.description ||
-                    "Your big moment. Your little corner of the internet."}
-                </p>
-                {draft.contentType !== "personal" && (
-                  <span className="visit">
-                    {contentCta()} <Arrow />
-                  </span>
-                )}
-              </div>
-              <div className="preview-footer">
-                It could be yours for
-                <br />
-                <strong>1 second or 100 days.</strong>
-              </div>
-            </aside>
+            <TakeoverPreview draft={draft} />
           </div>
         </>
       )}

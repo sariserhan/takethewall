@@ -26,6 +26,8 @@ import type * as mail from "../mail.js";
 import type * as model from "../model.js";
 import type * as numbering from "../numbering.js";
 import type * as operations from "../operations.js";
+import type * as ownerModel from "../ownerModel.js";
+import type * as owners from "../owners.js";
 import type * as paymentIssues from "../paymentIssues.js";
 import type * as purchases from "../purchases.js";
 import type * as rehearsal from "../rehearsal.js";
@@ -62,6 +64,8 @@ declare const fullApi: ApiFromModules<{
   model: typeof model;
   numbering: typeof numbering;
   operations: typeof operations;
+  ownerModel: typeof ownerModel;
+  owners: typeof owners;
   paymentIssues: typeof paymentIssues;
   purchases: typeof purchases;
   rehearsal: typeof rehearsal;

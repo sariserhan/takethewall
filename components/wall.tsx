@@ -1,4 +1,5 @@
 "use client";
+import { ReportContent } from "./report-content";
 import { StatHelp } from "./stat-help";
 import { contentCta } from "@/lib/content";
 import { HomepageMilestones } from "./milestones";
@@ -368,6 +369,7 @@ function WallView({
             </div>
           )}
         </section>
+        {owner && <div className="wall-owner-tools"><ReportContent takeoverId={owner.id} name={owner.displayName || owner.domain} /></div>}
         <section className="reign-metrics" aria-label="Current reign analytics">
           <Metric
             label="CURRENT REIGN"

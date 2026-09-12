@@ -21,6 +21,7 @@ export function PublicFooter({ home = false }: { home?: boolean }) {
     <>
       <footer className="public-footer">
         <nav aria-label="Information">
+          <Link href="/owner">Owner dashboard</Link>
           {infoLinks.map(([label, key]) => (
             <Link key={key} href={`/?info=${key}`}>
               {label}

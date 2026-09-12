@@ -17,6 +17,8 @@ export const status = v.union(
 );
 export const jobKind = v.union(
   v.literal("activation_email"),
+  v.literal("owner_access_email"),
+  v.literal("weekly_digest_email"),
   v.literal("replacement_email"),
   v.literal("checkout_completed"),
   v.literal("takeover_activated"),
@@ -34,7 +36,9 @@ export const visitorPingSnapshot = v.object({
   uniqueVisitors: v.number(),
   clicks: v.number(),
 });
+export const digestSnapshot = v.object({displayName:v.string(),number:v.union(v.number(),v.null()),impressions:v.number(),uniqueVisitors:v.number(),clicks:v.number(),activatedAt:v.number(),snapshotAt:v.number()});
 export default defineSchema({
+  ownerAccess: defineTable({takeoverId:v.id("takeovers"),seed:v.string(),tokenHash:v.string(),unsubscribeHash:v.string(),weeklyDigestEnabled:v.boolean(),createdAt:v.number()}).index("by_takeover",["takeoverId"]).index("by_token",["tokenHash"]).index("by_unsubscribe",["unsubscribeHash"]),
   demoStats: defineTable({
     key: v.literal("current"),
     enabled: v.boolean(),
@@ -97,10 +101,12 @@ export default defineSchema({
     clicks: v.number(),
   })
     .index("by_takeoverNumber", ["takeoverNumber"])
+    .index("by_publicId", ["publicTakeoverId"])
     .index("by_status", ["status"])
     .index("by_activationSequence", ["activationSequence"])
     .index("by_logoStorageId", ["logoStorageId"]),
   purchases: defineTable({
+    weeklyDigestEnabled: v.optional(v.boolean()),
     takeoverId: v.id("takeovers"),
     buyerEmail: v.string(),
     legalVersion: v.optional(v.string()),
@@ -200,6 +206,7 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_expiresAt", ["expiresAt"]),
   jobs: defineTable({
+    digest:v.optional(digestSnapshot),
     key: v.string(),
     kind: jobKind,
     takeoverId: v.id("takeovers"),

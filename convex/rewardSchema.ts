@@ -157,6 +157,8 @@ export const rewardTables = {
     .index("by_target", ["target"])
     .index("by_created", ["createdAt"]),
   supportTickets: defineTable({
+    takeoverId: v.optional(v.id("takeovers")),
+    reportedContent: v.optional(v.string()),
     name: v.string(),
     email: v.string(),
     topic: v.string(),

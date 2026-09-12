@@ -31,7 +31,8 @@ test("embedded checkout stays in the overlay and waits for server activation", a
   await dialog.getByRole("button", { name: "Me / Message" }).click();
   await dialog.getByLabel("Display name").fill("EMBEDDED CHECKOUT TEST");
   await dialog.getByLabel("Buyer email").fill("test@example.com");
-  await dialog.locator('button[type="submit"]').click();
+  await dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
+  await dialog.getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" }).click();
   await dialog
     .getByRole("button", { name: "Complete simulated payment" })
     .click();

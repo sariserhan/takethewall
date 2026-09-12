@@ -26,11 +26,19 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "ownerDashboard": result = await ctx.runQuery(internal.owners.dashboard,args); break;
+        case "ownerPreferences": result = await ctx.runMutation(internal.owners.preferences,args); break;
+        case "ownerRequestLink": result = await ctx.runMutation(internal.owners.requestLink,args); break;
+        case "ownerUnsubscribe": result = await ctx.runMutation(internal.owners.unsubscribe,args); break;
+        case "ownerShared": result = await ctx.runQuery(internal.owners.sharedTakeover,args); break;
         case "emailDelivery":
           result = await ctx.runMutation(internal.emailDelivery.record, args);
           break;
         case "paymentIssue":
           result = await ctx.runMutation(internal.paymentIssues.record, args);
+          break;
+        case "contentReport":
+          result = await ctx.runMutation(internal.support.reportContent, args);
           break;
         case "supportSubmit":
           result = await ctx.runMutation(internal.support.submit, args);

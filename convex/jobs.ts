@@ -1,3 +1,9 @@
+import { weeklyOwnerEmail } from "../lib/owner-email";
+import {
+  ownerBaseUrl,
+  ownerToken,
+  ownerUnsubscribeToken,
+} from "../lib/owner-secrets";
 import { emailTemplate } from "../lib/email-template";
 import {
   internalMutation,
@@ -6,7 +12,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { jobKind } from "./schema";
+import { jobKind, digestSnapshot } from "./schema";
 import { limit } from "./model";
 import { emailMessage, retryDelay, visitorPingPayload } from "../lib/delivery";
 export const claim = internalMutation({
@@ -78,6 +84,11 @@ export const data = internalQuery({
       endReason: v.optional(v.string()),
       email: v.string(),
       environment: v.string(),
+      dashboardUrl: v.optional(v.string()),
+      unsubscribeUrl: v.optional(v.string()),
+      oneClickUnsubscribeUrl: v.optional(v.string()),
+      digest: v.optional(digestSnapshot),
+      digestAllowed: v.boolean(),
     }),
   ),
   handler: async (ctx, a) => {
@@ -89,7 +100,37 @@ export const data = internalQuery({
       .query("purchases")
       .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
       .unique();
+    const access = j.kind.endsWith("_email")
+      ? await ctx.db
+          .query("ownerAccess")
+          .withIndex("by_takeover", (q) => q.eq("takeoverId", t._id))
+          .unique()
+      : null;
+    const site =
+      j.kind === "weekly_digest_email"
+        ? await ctx.db
+            .query("siteStats")
+            .withIndex("by_key", (q) => q.eq("key", "wall"))
+            .unique()
+        : null;
     return {
+      ...(access && j.kind.endsWith("_email")
+        ? {
+            dashboardUrl: `${ownerBaseUrl()}/owner#token=${ownerToken(access.seed)}`,
+            unsubscribeUrl: `${ownerBaseUrl()}/owner/unsubscribe#token=${ownerUnsubscribeToken(access.seed)}`,
+            oneClickUnsubscribeUrl: `${ownerBaseUrl()}/api/owner/unsubscribe?token=${ownerUnsubscribeToken(access.seed)}`,
+          }
+        : {}),
+      ...(j.digest ? { digest: j.digest } : {}),
+      digestAllowed:
+        site?.currentTakeoverId === t._id &&
+        t.status === "active" &&
+        !t.blocked &&
+        !!access?.weeklyDigestEnabled &&
+        !p?.paymentIssue &&
+        p?.environment === "production" &&
+        process.env.WALL_ENVIRONMENT === "production" &&
+        process.env.WEEKLY_OWNER_DIGEST_ENABLED !== "false",
       id: j._id,
       key: j.key,
       kind: j.kind,
@@ -160,12 +201,26 @@ export const dispatch = internalAction({
     const ids = await ctx.runQuery(internal.jobs.due, { now: Date.now() });
     for (const id of ids) {
       if (!(await ctx.runMutation(internal.jobs.claim, { id }))) continue;
-      const j = await ctx.runQuery(internal.jobs.data, { id });
-      if (!j) continue;
       try {
+        const raw = await ctx.runQuery(internal.jobs.data, { id });
+        if (!raw) continue;
+        if (
+          raw.kind.endsWith("_email") &&
+          (process.env.CLAIM_TOKEN_SECRET?.length ?? 0) >= 32
+        )
+          await ctx.runMutation(internal.owners.ensureAccess, {
+            takeoverId: raw.takeoverId,
+          });
+        const j = raw.kind.endsWith("_email")
+          ? await ctx.runQuery(internal.jobs.data, { id })
+          : raw;
+        if (!j) continue;
         let response: Response;
         if (j.kind.endsWith("_email")) {
-          if (!j.email) {
+          if (
+            !j.email ||
+            (j.kind === "weekly_digest_email" && !j.digestAllowed)
+          ) {
             await ctx.runMutation(internal.jobs.finish, { id, ok: true });
             continue;
           }
@@ -181,7 +236,30 @@ export const dispatch = internalAction({
             });
             continue;
           }
-          const message = emailMessage(j);
+          if (j.kind === "owner_access_email" && !j.dashboardUrl)
+            throw new Error("Owner access is not configured");
+          const message =
+            j.kind === "owner_access_email"
+              ? {
+                  subject: "Your private owner dashboard",
+                  text: "Your private link shows your takeover performance and weekly email preferences. Keep this link private; use the share button inside the dashboard for a public link.",
+                }
+              : emailMessage(j);
+          const rendered =
+            j.kind === "weekly_digest_email"
+              ? weeklyOwnerEmail(j.digest!, j.dashboardUrl!, j.unsubscribeUrl!)
+              : emailTemplate(
+                  message.subject,
+                  message.text,
+                  j.dashboardUrl
+                    ? {
+                        cta: {
+                          label: "Open your private dashboard",
+                          url: j.dashboardUrl,
+                        },
+                      }
+                    : {},
+                );
           response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -192,7 +270,15 @@ export const dispatch = internalAction({
             body: JSON.stringify({
               from: process.env.RESEND_FROM,
               to: [j.email],
-              ...emailTemplate(message.subject, message.text),
+              ...rendered,
+              ...(j.kind === "weekly_digest_email"
+                ? {
+                    headers: {
+                      "List-Unsubscribe": `<${j.oneClickUnsubscribeUrl}>`,
+                      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                    },
+                  }
+                : {}),
             }),
             signal: AbortSignal.timeout(10_000),
           });

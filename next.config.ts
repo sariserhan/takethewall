@@ -19,6 +19,10 @@ const config: NextConfig = {
         ],
       },
       {
+        source: "/owner/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, noarchive" }, { key: "Cache-Control", value: "private, no-store" }],
+      },
+      {
         source: "/reward/:path*",
         headers: [
           { key: "X-Robots-Tag", value: "noindex, noarchive" },

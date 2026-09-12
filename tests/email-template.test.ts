@@ -1,22 +1,52 @@
 import { expect, it } from "vitest";
 import { emailTemplate } from "../lib/email-template";
 it("escapes untrusted email content and preserves protected links", () => {
-  const body = '<img src=x onerror="alert(1)">\nhttps://example.com/reward/claim/abc?a=1&b=2\njavascript:alert(1)';
-  const result = emailTemplate('<script>alert(1)</script>', body);
+  const body =
+    '<img src=x onerror="alert(1)">\nhttps://example.com/reward/claim/abc?a=1&b=2\njavascript:alert(1)';
+  const result = emailTemplate("<script>alert(1)</script>", body);
   expect(result.text).toBe(body);
-  expect(result.html).not.toContain('<script>');
-  expect(result.html).not.toContain('<img src=x');
-  expect(result.html).toContain('&lt;img');
-  expect(result.html).toContain('href="https://example.com/reward/claim/abc?a=1&amp;b=2"');
+  expect(result.html).not.toContain("<script>");
+  expect(result.html).not.toContain("<img src=x");
+  expect(result.html).toContain("&lt;img");
+  expect(result.html).toContain(
+    'href="https://example.com/reward/claim/abc?a=1&amp;b=2"',
+  );
   expect(result.html).not.toContain('href="javascript:');
   expect(result.attachments[0].content_id).toBe("takethewall-logo");
   expect(result.html).toContain('src="cid:takethewall-logo"');
 });
 it("retains long messages and uses a fluid shared layout", () => {
-  const body = 'A'.repeat(10000) + '\nEND OF MESSAGE';
+  const body = "A".repeat(10000) + "\nEND OF MESSAGE";
   const result = emailTemplate("Support reply", body);
-  expect(result.html).toContain('max-width:600px');
-  expect(result.html).toContain('END OF MESSAGE');
-  expect(result.html).not.toContain('overflow:hidden');
+  expect(result.html).toContain("max-width:600px");
+  expect(result.html).toContain("END OF MESSAGE");
+  expect(result.html).not.toContain("overflow:hidden");
   expect(result.text).toBe(body);
+});
+
+it("renders escaped metric cards and safe dashboard buttons in the shared email frame", () => {
+  const result = emailTemplate("Weekly update", "Your report", {
+    eyebrow: "WEEKLY OWNER REPORT",
+    metrics: [
+      { label: "<script>views</script>", value: "12" },
+      { label: "Visitors", value: "2" },
+    ],
+    cta: {
+      label: "Open <dashboard>",
+      url: "https://takethewall.com/owner#token=abc",
+    },
+    unsubscribeUrl: "https://takethewall.com/owner/unsubscribe#token=xyz",
+    footnote: "Totals since activation.",
+  });
+  expect(result.html).toContain("max-width:600px");
+  expect(result.html).toContain('width="50%"');
+  expect(result.html).toContain("Open &lt;dashboard&gt;");
+  expect(result.html).not.toContain("<script>");
+  expect(result.text).toContain("Visitors: 2");
+  expect(result.text).toContain("Unsubscribe from weekly summaries");
+  expect(() =>
+    emailTemplate("Bad", "", {
+      cta: { label: "Bad", url: "javascript:alert(1)" },
+    }),
+  ).toThrow("Invalid email URL");
 });

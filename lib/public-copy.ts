@@ -107,7 +107,7 @@ export const publicCopy: Record<
       },
       {
         title: "Private purchase and support information",
-        body: "We store purchase email, payment references, status, and necessary support correspondence to fulfill purchases, provide notices, handle problems, and maintain operational records. Purchase is not consent to marketing. Stripe handles payment details; TakeTheWall does not store complete card numbers.",
+        body: "We store purchase email, payment references, status, and necessary support correspondence to fulfill purchases, provide notices, handle problems, and maintain operational records. Purchase is not consent to marketing. Owners can choose a weekly performance summary while their takeover remains live, and unsubscribe in the dashboard or email. Stripe handles payment details; TakeTheWall does not store complete card numbers.",
       },
       {
         title: "Reward claim information",
@@ -115,11 +115,11 @@ export const publicCopy: Record<
       },
       {
         title: "Service providers",
-        body: "Vercel serves the application, Convex stores application data and supplies realtime updates, Stripe processes payments, Resend sends transactional email, and VisitorPing receives sanitized public-wall events and supplies analytics reports. Better Auth runs with Convex to handle administrator sign-in. Cloudflare manages domain DNS. These providers process the data needed for their respective functions under their own applicable terms. Private admin and reward-claim pages have VisitorPing disabled.",
+        body: "Vercel serves the application, Convex stores application data and supplies realtime updates, Stripe processes payments, Resend sends transactional email, and VisitorPing receives sanitized public-wall events and supplies analytics reports. Better Auth runs with Convex to handle administrator sign-in. Cloudflare manages domain DNS. These providers process the data needed for their respective functions under their own applicable terms. Private admin, owner-dashboard and reward-claim pages have VisitorPing disabled.",
       },
       {
         title: "Browser storage and analytics",
-        body: "A first-party browser identifier helps estimate site, UTC-day, and reign visitors and is hashed before database storage. These are pseudonymous browser estimates, not verified people or a promise of complete anonymity. Clearing storage or changing browsers may count again. Country is inferred from hosting request metadata. Public event payloads exclude payment references, buyer emails, query strings, fragments, and claim secrets. The draft form is kept in tab session storage and removed after confirmed payment or tab closure. Claim sessions use a secure HTTP-only cookie and expire after 12 hours; the portal receives a session credential in memory for authorized realtime access.",
+        body: "A first-party browser identifier helps estimate site, UTC-day, and reign visitors and is hashed before database storage. These are pseudonymous browser estimates, not verified people or a promise of complete anonymity. Clearing storage or changing browsers may count again. Country is inferred from hosting request metadata. Public event payloads exclude payment references, buyer emails, query strings, fragments, and claim secrets. The draft form is kept in tab session storage and removed after confirmed payment or tab closure. Owner dashboards use a private email link and a secure HTTP-only cookie lasting up to 30 days. Share cards use a separate public link without dashboard credentials. Claim sessions use a secure HTTP-only cookie and expire after 12 hours; the portal receives a session credential in memory for authorized realtime access.",
       },
       {
         title: "Retention",

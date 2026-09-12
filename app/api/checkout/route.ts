@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       checkoutExpiresAt: number;
     }>("pending", {
       requestKey: "embedded:" + a.requestKey,
-      fingerprint: hash(JSON.stringify([content, buyerEmail, a.uploadKey])),
+      fingerprint: hash(JSON.stringify([content, buyerEmail, a.uploadKey, a.weeklyDigestEnabled !== false])),
       tokenHash: hash(token),
       ownerHash: clientHash(req),
       uploadKey: a.uploadKey ?? "",
@@ -65,6 +65,7 @@ export async function POST(req: Request) {
       contentType: content.contentType,
       linkType: content.linkType,
       buyerEmail,
+      weeklyDigestEnabled:a.weeklyDigestEnabled !== false,
       environment,
     });
     const session = await paymentProvider.createCheckout(

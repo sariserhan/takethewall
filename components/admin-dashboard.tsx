@@ -74,7 +74,13 @@ export function AdminDashboard() {
       {section === "overview" && <AdminHealth />}
       {stats && (
         <>
-          {!!stats.site?.numberingOffset && <p>Public numbering offset: {stats.site.numberingOffset}. Actual recorded takeovers: {stats.site.recordedTakeovers}. Audit sequence numbers remain unchanged.</p>}
+          {!!stats.site?.numberingOffset && (
+            <p>
+              Public numbering offset: {stats.site.numberingOffset}. Actual
+              recorded takeovers: {stats.site.recordedTakeovers}. Audit sequence
+              numbers remain unchanged.
+            </p>
+          )}
           <div className="admin-cards">
             {Object.entries({
               "Counted takeovers": stats.site?.totalTakeovers ?? 0,
@@ -546,6 +552,8 @@ function TicketDetail({
 }) {
   const raw = useQuery(api.admin.ticket, { id });
   const act = useMutation(api.admin.supportAction);
+  const moderateReport = useMutation(api.admin.moderate);
+  const [moderationReason, setModerationReason] = useState("");
   const [reply, setReply] = useState(""),
     [error, setError] = useState("");
   if (!raw) return null;
@@ -558,6 +566,56 @@ function TicketDetail({
         {ticket.name} · {ticket.email}
       </p>
       <p>{ticket.message}</p>
+      {ticket.takeoverId && (
+        <section className="reported-placement">
+          <h3>Reported placement</h3>
+          <pre>{ticket.reportedContent}</pre>
+          <p>Takeover record: {ticket.takeoverId}</p>
+          <label>
+            Moderation reason
+            <input
+              maxLength={1000}
+              value={moderationReason}
+              onChange={(e) => setModerationReason(e.target.value)}
+            />
+          </label>
+          <div className="admin-actions">
+            {[false, true].map((removeLive) => (
+              <button
+                key={String(removeLive)}
+                disabled={!moderationReason.trim()}
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      removeLive
+                        ? "Remove this reported placement if it is still live?"
+                        : "Disable the reported placement’s outbound link?",
+                    )
+                  )
+                    return;
+                  try {
+                    await moderateReport({
+                      takeoverId: ticket.takeoverId,
+                      reason: moderationReason,
+                      removeLive,
+                      confirmed: true,
+                    });
+                    setError("Moderation applied.");
+                  } catch (e) {
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "Could not moderate this placement.",
+                    );
+                  }
+                }}
+              >
+                {removeLive ? "Remove if still live" : "Disable outbound link"}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       <select
         aria-label="Ticket status"
         value={ticket.status}
@@ -580,28 +638,35 @@ function TicketDetail({
       {messages.map((m: { _id: string; body: string }) => (
         <p key={m._id}>{m.body}</p>
       ))}
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            await act({ id, reply });
-            setReply("");
-          } catch {
-            setError("Reply failed");
-          }
-        }}
-      >
-        <label>
-          Email reply
-          <textarea
-            required
-            maxLength={10000}
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-          />
-        </label>
-        <button>Send support email</button>
-      </form>
+      {ticket.email ? (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              await act({ id, reply });
+              setReply("");
+            } catch {
+              setError("Reply failed");
+            }
+          }}
+        >
+          <label>
+            Email reply
+            <textarea
+              required
+              maxLength={10000}
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+            />
+          </label>
+          <button>Send support email</button>
+        </form>
+      ) : (
+        <p>
+          No reply email was provided. You can still review and moderate this
+          report.
+        </p>
+      )}
       {error && <p role="alert">{error}</p>}
     </section>
   );

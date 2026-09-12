@@ -38,4 +38,10 @@ crons.interval(
   internal.anchoring.submit,
   {},
 );
+crons.weekly(
+  "current owner weekly digest",
+  { dayOfWeek: "monday", hourUTC: 9, minuteUTC: 0 },
+  internal.owners.queueWeeklyDigest,
+  {},
+);
 export default crons;
