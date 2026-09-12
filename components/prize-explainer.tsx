@@ -124,7 +124,9 @@ export function PrizeExplainer({
             <strong>${format(m.rewardUsd)}</strong>
             <small>
               {m.status === "future"
-                ? "Upcoming"
+                ? m.number === next?.number
+                  ? "In progress"
+                  : "Upcoming"
                 : m.status === "paid"
                   ? "Winner confirmed"
                   : "Verification in progress"}
