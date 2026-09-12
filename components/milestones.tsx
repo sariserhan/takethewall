@@ -83,7 +83,9 @@ export function HomepageMilestones({ demoCount }: { demoCount?: number }) {
     <>
       <PrizeExplainer
         data={
-          demoCount === undefined ? data : { ...data, currentNumber: demoCount }
+          demoCount === undefined
+            ? data
+            : { ...data, currentNumber: data.currentNumber + demoCount }
         }
         demo={demoCount !== undefined}
       />

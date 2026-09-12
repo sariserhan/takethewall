@@ -17,9 +17,9 @@ export function PrizeExplainer({
     <section className="prize-explainer" aria-labelledby="prize-title">
       {demo && (
         <p className="demo-progress-notice">
-          <strong>DEMO PROGRESS</strong> — Sample takeover count only. No number
-          is reserved and no prize is earned. Milestone links below show real
-          records.
+          <strong>DEMO PROGRESS</strong> — Displayed progress combines real
+          takeovers and demo additions. No number is reserved and no prize is
+          earned. Milestone links below show real records.
         </p>
       )}
       <div className="prize-intro">

@@ -43,15 +43,16 @@ function DemoForm({
   const [values, setValues] = useState(saved?.values ?? defaults);
   const [enabled, setEnabled] = useState(saved?.activeForCurrentOwner ?? false);
   const [previewEnabled, setPreviewEnabled] = useState(!!saved?.presentation);
-  const [presentation, setPresentation] = useState(() =>
-    saved?.presentation ?? {
-      displayName: "Demo owner",
-      description: "Sample wall content",
-      websiteUrl: "",
-      ownerSince: Date.now(),
-      previousOwnerName: "Demo previous owner",
-      takeoverCount: 0,
-    },
+  const [presentation, setPresentation] = useState(
+    () =>
+      saved?.presentation ?? {
+        displayName: "Demo owner",
+        description: "Sample wall content",
+        websiteUrl: "",
+        ownerSince: Date.now(),
+        previousOwnerName: "Demo previous owner",
+        takeoverCount: 0,
+      },
   );
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
@@ -60,10 +61,10 @@ function DemoForm({
     <section className="admin-detail">
       <h2>Demo stats</h2>
       <p>
-        Display labeled sample numbers for the current wall. Each sample has a
-        Demo badge and a notice explaining it is not measured traffic. Real
-        counting continues underneath. Changing the wall owner ends this demo
-        automatically.
+        Add labeled demo amounts to the current wall’s real counts. Each total
+        shows its real + demo breakdown. For example, 10 real visitors plus 10
+        demo visitors displays 20. Real counting continues underneath. Changing
+        the wall owner ends this demo automatically.
       </p>
       <p>
         Real ownership, payments, prize claims and permanent winner pages are
@@ -101,7 +102,7 @@ function DemoForm({
         </label>
         {Object.entries(labels).map(([key, label]) => (
           <label key={key}>
-            {label} — sample
+            {label} — demo addition
             <input
               type="number"
               min="0"
@@ -115,7 +116,10 @@ function DemoForm({
             />
           </label>
         ))}
-        <p>Demo CTR is calculated from sample clicks and impressions.</p>
+        <p>
+          Displayed CTR uses combined real + demo clicks and impressions.
+          Turning demo off reveals only the real counts.
+        </p>
         <label className="check-label">
           <input
             type="checkbox"
@@ -202,7 +206,7 @@ function DemoForm({
               />
             </label>
             <label>
-              Demo takeover count / progress
+              Demo takeover addition / progress
               <input
                 type="number"
                 required

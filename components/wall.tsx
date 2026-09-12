@@ -56,18 +56,25 @@ function Metric({
   label,
   value,
   demo = false,
+  breakdown,
 }: {
   label: string;
   value: React.ReactNode;
   demo?: boolean;
+  breakdown?: string;
 }) {
   return (
     <div className="metric">
       <span>
         {label}
-        {demo && <small className="demo-badge">Demo</small>}
+        {demo && (
+          <small className="demo-badge">
+            {breakdown ? "Includes demo" : "Demo"}
+          </small>
+        )}
       </span>
       <strong>{value}</strong>
+      {breakdown && <small className="demo-breakdown">{breakdown}</small>}
     </div>
   );
 }
@@ -181,6 +188,17 @@ function WallView({
   }, [owner?.id]);
   const numbers = (n: number | undefined) =>
     n === undefined ? "—" : n.toLocaleString("en-US");
+  const combined = (real: number | undefined, demo: number | undefined) =>
+    real === undefined ? undefined : real + (demo ?? 0);
+  const breakdown = (real: number | undefined, demo: number | undefined) =>
+    demo === undefined
+      ? undefined
+      : `${numbers(real ?? 0)} real + ${numbers(demo)} demo`;
+  const realToday = data
+    ? data.utcDate === new Date().toISOString().slice(0, 10)
+      ? data.visitorsToday
+      : 0
+    : undefined;
   const regions = topRegions(data?.regions ?? []);
   const takeWall = () => {
     setOpen(true);
@@ -250,33 +268,35 @@ function WallView({
         {sample && (
           <p className="demo-notice">
             {presentation
-              ? "DEMO PREVIEW — Content, dates and labeled counts are samples. Real ownership, payments and prize records are unchanged."
-              : "Demo mode: labeled numbers are sample data, not measured traffic. Takeover and prize counts remain real."}
+              ? "DEMO PREVIEW — Content and dates are samples. Labeled counts combine real + demo values. Real ownership, payments and prize records are unchanged."
+              : "Demo mode: labeled totals combine real traffic + demo additions. Demo additions are not measured traffic. Prize eligibility uses real records only."}
           </p>
         )}
         <section className="site-metrics" aria-label="Site analytics">
           <Metric
             label="VISITORS TODAY (UTC)"
             demo={!!sample}
-            value={numbers(
-              sample
-                ? sample.visitorsToday
-                : data
-                  ? data.utcDate === new Date().toISOString().slice(0, 10)
-                    ? data.visitorsToday
-                    : 0
-                  : undefined,
-            )}
+            breakdown={breakdown(realToday, sample?.visitorsToday)}
+            value={numbers(combined(realToday, sample?.visitorsToday))}
           />
           <Metric
             label="TOTAL VISITORS"
             demo={!!sample}
-            value={numbers(sample?.totalVisitors ?? data?.totalVisitors)}
+            breakdown={breakdown(data?.totalVisitors, sample?.totalVisitors)}
+            value={numbers(
+              combined(data?.totalVisitors, sample?.totalVisitors),
+            )}
           />
           <Metric
             label="COUNTED TAKEOVERS"
             demo={!!presentation}
-            value={numbers(presentation?.takeoverCount ?? data?.totalTakeovers)}
+            breakdown={breakdown(
+              data?.totalTakeovers,
+              presentation?.takeoverCount,
+            )}
+            value={numbers(
+              combined(data?.totalTakeovers, presentation?.takeoverCount),
+            )}
           />
           <div className="metric previous-owner-stat">
             <span>
@@ -404,26 +424,36 @@ function WallView({
           <Metric
             label="IMPRESSIONS"
             demo={!!sample}
-            value={numbers(sample?.impressions ?? owner?.impressions)}
+            breakdown={breakdown(owner?.impressions, sample?.impressions)}
+            value={numbers(combined(owner?.impressions, sample?.impressions))}
           />
           <Metric
             label="UNIQUE VISITORS"
             demo={!!sample}
-            value={numbers(sample?.uniqueVisitors ?? owner?.uniqueVisitors)}
+            breakdown={breakdown(owner?.uniqueVisitors, sample?.uniqueVisitors)}
+            value={numbers(
+              combined(owner?.uniqueVisitors, sample?.uniqueVisitors),
+            )}
           />
           <Metric
             label="CLICKS"
             demo={!!sample}
-            value={numbers(sample?.clicks ?? owner?.clicks)}
+            breakdown={breakdown(owner?.clicks, sample?.clicks)}
+            value={numbers(combined(owner?.clicks, sample?.clicks))}
           />
           <Metric
             label="CTR"
             demo={!!sample}
+            breakdown={
+              sample
+                ? "Calculated from real + demo clicks and impressions"
+                : undefined
+            }
             value={
               owner
                 ? `${ctr(
-                    sample?.impressions ?? owner.impressions,
-                    sample?.clicks ?? owner.clicks,
+                    owner.impressions + (sample?.impressions ?? 0),
+                    owner.clicks + (sample?.clicks ?? 0),
                   )
                     .toFixed(2)
                     .replace(/\.00$/, "")}%`
