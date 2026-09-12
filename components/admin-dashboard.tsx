@@ -1,4 +1,5 @@
 "use client";
+import { AdminPaymentDetails } from "./admin-payment-details";
 import { AdminGrowth } from "./admin-growth";
 import { AdminEmails } from "./admin-emails";
 import { AdminDelivery } from "./admin-delivery";
@@ -179,7 +180,11 @@ export function AdminDashboard() {
                       </small>
                     </td>
                     <td>
-                      {String(row.status ?? row.createdAt ?? "")}
+                      {section === "takeovers" ? <>
+                        <strong>{String(row.paymentStatus ?? "Payment status unavailable")}</strong>
+                        <small>Placement: {String(row.status ?? "unknown")} · {String(row.placementType ?? row.kind ?? "")}</small>
+                        {row.paymentEnvironment ? <small>{row.paymentEnvironment === "production" ? "Live Stripe" : "Test mode"}</small> : null}
+                      </> : String(row.status ?? row.createdAt ?? "")}
                       {row.unread ? <strong> · UNREAD</strong> : null}
                       {row.milestone ? (
                         <small>Milestone #{String(row.milestone)}</small>
@@ -201,7 +206,10 @@ export function AdminDashboard() {
                       ) : (
                         <details>
                           <summary>Inspect</summary>
-                          <pre>{JSON.stringify(row, null, 2)}</pre>
+                          {section === "takeovers" ? <>
+                            <AdminPaymentDetails takeoverId={String(row._id)} sessionId={typeof row.checkoutSessionId === "string" ? row.checkoutSessionId : null} checkedAt={typeof row.stripeCheckedAt === "number" ? row.stripeCheckedAt : null} />
+                            <details><summary>Raw record (kind is placement type)</summary><pre>{JSON.stringify(row, null, 2)}</pre></details>
+                          </> : <pre>{JSON.stringify(row, null, 2)}</pre>}
                           {section === "takeovers" &&
                             row.status === "active" && (
                               <button

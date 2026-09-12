@@ -19,6 +19,7 @@ type Activation = {
   createdAt: number;
   sessionId: string | null;
   environment: string;
+  paymentStatus?: string;
   expired: boolean;
   blocked: boolean;
 };
@@ -119,7 +120,7 @@ export function AdminDelivery() {
             <h4>{p.name}</h4>
             <p>
               {p.environment} ·{" "}
-              {p.expired ? "Expired checkout" : "Awaiting payment confirmation"}
+              {p.paymentStatus ?? (p.expired ? "Expired" : "Awaiting payment")}
             </p>
             <p>{p.sessionId ?? "Checkout has not been created"}</p>
             {p.sessionId && !p.blocked && !p.expired && (
@@ -139,7 +140,7 @@ export function AdminDelivery() {
                   })
                 }
               >
-                Check payment & publish if paid
+                Check Stripe status
               </button>
             )}
           </article>

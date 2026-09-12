@@ -792,3 +792,25 @@ it("resume links are private, deduplicated and suppressed after payment or expir
   await t.run(ctx => ctx.db.patch(p.purchaseId, { tokenExpiresAt: Date.now() - 1 }));
   expect(await t.query(internal.recovery.resume, { tokenHash })).toBeNull();
 });
+
+it("admin payment labels and timeline use recorded facts without exposing checkout secrets", async () => {
+  vi.stubEnv("ADMIN_USER_IDS", "admin-test");
+  const t = make(), p = await pending(t), admin = t.withIdentity({ subject: "admin-test" });
+  await t.mutation(internal.purchases.attach, { purchaseId: p.purchaseId, sessionId: "cs_timeline", checkoutUrl: "" });
+  const list = JSON.parse(await admin.query(api.admin.list, { section: "takeovers" }));
+  expect(list.rows.find((r: { _id: string }) => r._id === p.takeoverId).paymentStatus).toBe("Awaiting payment");
+  await expect(t.query(api.deliveryAdmin.timeline, { takeoverId: p.takeoverId })).rejects.toThrow();
+  await t.mutation(internal.deliveryAdmin.recordStripeCheck, { takeoverId: p.takeoverId, sessionId: "cs_timeline", environment: "test", actor: "admin-test", status: "processing" });
+  await enqueueTimelineJob();
+  async function enqueueTimelineJob() {
+    await t.run(async ctx => {
+      await ctx.db.insert("jobs", { key: "timeline-resume", kind: "checkout_resume_email", takeoverId: p.takeoverId, deliveryId: "delivery", timestamp: Date.now(), state: "sent", attempts: 0, nextAt: Date.now(), sentAt: Date.now() });
+    });
+  }
+  const timeline = await admin.query(api.deliveryAdmin.timeline, { takeoverId: p.takeoverId });
+  expect(timeline.events.map(e => e.label)).toEqual(expect.arrayContaining(["Checkout draft created", "Stripe checkout attached", "Stripe checked: processing", "Resume email queued"]));
+  expect(timeline.events.some(e => e.label.includes("accepted by Resend"))).toBe(false);
+  expect(timeline.notes.join(" ")).toContain("may have been skipped");
+  expect(JSON.stringify(timeline)).not.toContain(p.args.tokenHash);
+  expect((await t.run(ctx => ctx.db.get(p.purchaseId)))?.paidAt).toBeUndefined();
+});

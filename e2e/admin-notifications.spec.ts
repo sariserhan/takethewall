@@ -419,7 +419,7 @@ test("admin edits the notification recipient and toggle without leaving /admin",
   await page.getByRole("button", { name: "Retry email", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("original delivery key");
   await page
-    .getByRole("button", { name: "Check payment & publish if paid" })
+    .getByRole("button", { name: "Check Stripe status" })
     .click();
   await expect(page.getByRole("status")).toContainText("Nothing was published");
   expect(

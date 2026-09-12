@@ -1032,3 +1032,5 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .preview-device .preview-creative{justify-content:center}
 
 .resume-checkout-email{margin:20px 0;padding:16px;border:1px solid var(--rule);font-size:14px}.resume-checkout-email button{padding:12px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font:inherit;cursor:pointer}
+
+.admin-payment-details{min-width:220px;max-width:650px;padding:12px 0}.admin-payment-details>button{margin:8px 12px 8px 0}.checkout-timeline{list-style:none;padding:0;margin:16px 0;border-left:2px solid var(--accent)}.checkout-timeline li{padding:8px 14px;display:grid;gap:5px;overflow-wrap:anywhere}.checkout-timeline time{font-size:11px;color:var(--muted)}

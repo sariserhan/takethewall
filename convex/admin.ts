@@ -1,3 +1,4 @@
+import { paymentStatus, placementType } from "../lib/payment-status";
 import { queueAdminTakeoverEmail, notificationSettings } from "./adminNotifications";
 import { numberingOffset } from "./numbering";
 import { query, mutation } from "./_generated/server";
@@ -110,6 +111,11 @@ export const list = query({
                 logoUrl: t.logoStorageId
                   ? await ctx.storage.getUrl(t.logoStorageId)
                   : null,
+                paymentStatus: paymentStatus(t.kind, p),
+                placementType: placementType(t.kind),
+                checkoutSessionId: p?.sessionId ?? null,
+                paymentEnvironment: p?.environment ?? null,
+                stripeCheckedAt: p?.stripeCheckedAt ?? null,
                 amountCents: p?.amountCents ?? null,
                 paymentIssue: p?.paymentIssue ?? null,
                 paymentReference: p?.paymentIntentId ?? null,

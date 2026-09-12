@@ -266,6 +266,9 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_source_visitor", ["takeoverId", "visitorHash"]),
   purchases: defineTable({
+    sessionCreatedAt: v.optional(v.number()),
+    stripeStatus: v.optional(v.union(v.literal("paid"), v.literal("processing"), v.literal("expired"), v.literal("unpaid"))),
+    stripeCheckedAt: v.optional(v.number()),
     resumeSeed: v.optional(v.string()),
     resumeHash: v.optional(v.string()),
     referralSource: v.optional(v.id("takeovers")),
@@ -407,7 +410,8 @@ export default defineSchema({
     sentAt: v.optional(v.number()),
   })
     .index("by_key", ["key"])
-    .index("by_state_nextAt", ["state", "nextAt"]),
+    .index("by_state_nextAt", ["state", "nextAt"])
+    .index("by_takeover_timestamp", ["takeoverId", "timestamp"]),
   moderation: defineTable({
     removedId: v.id("takeovers"),
     restoredId: v.id("takeovers"),

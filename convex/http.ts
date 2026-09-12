@@ -26,6 +26,9 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "adminStripeCheck":
+          result = await ctx.runMutation(internal.deliveryAdmin.recordStripeCheck, args);
+          break;
         case "checkoutResumeEmail":
           result = await ctx.runMutation(internal.recovery.requestResume, args);
           break;

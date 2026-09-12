@@ -140,6 +140,7 @@ export const attach = internalMutation({
     if (!p.funnelCheckoutTracked && p.environment === "production")
       await incrementFunnel(ctx, "checkoutStarts");
     await ctx.db.patch(p._id, {
+      ...(p.sessionId ? {} : { sessionCreatedAt: Date.now() }),
       funnelCheckoutTracked: true,
       sessionId: a.sessionId,
       cleanupAt: undefined,
