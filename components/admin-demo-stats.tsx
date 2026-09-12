@@ -1,5 +1,7 @@
 "use client";
 import { useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
+import { demoCountError } from "@/lib/demo-validation";
 import { useState } from "react";
 import type { FunctionReturnType } from "convex/server";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -62,9 +64,9 @@ function DemoForm({
       <h2>Demo stats</h2>
       <p>
         Add labeled demo amounts to the current wall’s real counts. Each total
-        is labeled Includes-demo. For example, 10 real visitors plus 10
-        demo visitors displays 20. Real counting continues underneath. Changing
-        the wall owner ends this demo automatically.
+        is labeled Includes-demo. For example, 10 real visitors plus 10 demo
+        visitors displays 20. Real counting continues underneath. Changing the
+        wall owner ends this demo automatically.
       </p>
       <p>
         Real ownership, payments, prize claims and permanent winner pages are
@@ -74,6 +76,11 @@ function DemoForm({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          const countError = demoCountError(values);
+          if (countError) {
+            setMessage(countError);
+            return;
+          }
           setBusy(true);
           setMessage("");
           try {
@@ -86,7 +93,13 @@ function DemoForm({
             });
             setMessage("Demo settings saved.");
           } catch (e) {
-            setMessage(e instanceof Error ? e.message : "Could not save.");
+            setMessage(
+              e instanceof ConvexError && typeof e.data === "string"
+                ? e.data
+                : e instanceof Error
+                  ? e.message
+                  : "Could not save.",
+            );
           } finally {
             setBusy(false);
           }

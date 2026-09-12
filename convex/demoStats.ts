@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { demoCountError } from "../lib/demo-validation";
+import { v, ConvexError } from "convex/values";
 import { validateWallContent, plainText } from "../lib/content";
 import { demoValues, demoPresentation } from "./demoValues";
 import { audit, requireAdmin } from "./rewardModel";
@@ -46,20 +47,9 @@ export const save = mutation({
   handler: async (ctx, a) => {
     const actor = await requireAdmin(ctx);
     if (!a.reason.trim() || a.reason.length > 1000)
-      throw new Error("Enter a reason (up to 1,000 characters).");
-    for (const value of Object.values(a.values))
-      if (!Number.isSafeInteger(value) || value < 0 || value > 1_000_000_000)
-        throw new Error(
-          "Sample counts must be whole numbers from 0 to 1 billion.",
-        );
-    if (
-      a.values.visitorsToday > a.values.totalVisitors ||
-      a.values.uniqueVisitors > a.values.impressions ||
-      a.values.clicks > a.values.impressions
-    )
-      throw new Error(
-        "Sample totals must be consistent: today's visitors cannot exceed total visitors, and unique visitors/clicks cannot exceed impressions.",
-      );
+      throw new ConvexError("Enter a reason (up to 1,000 characters).");
+    const countError = demoCountError(a.values);
+    if (countError) throw new ConvexError(countError);
     let presentation = a.presentation;
     if (presentation) {
       if (
@@ -67,7 +57,7 @@ export const save = mutation({
         presentation.takeoverCount < 0 ||
         presentation.takeoverCount > 1_000_000_000
       )
-        throw new Error(
+        throw new ConvexError(
           "Demo takeover count must be a whole number from 0 to 1 billion.",
         );
       if (
@@ -75,7 +65,9 @@ export const save = mutation({
         presentation.ownerSince < 0 ||
         presentation.ownerSince > Date.now()
       )
-        throw new Error("Demo start time must be a valid past UTC timestamp.");
+        throw new ConvexError(
+          "Demo start time must be a valid past UTC timestamp.",
+        );
       const content = validateWallContent({
         contentType: presentation.websiteUrl ? "link" : "personal",
         websiteUrl: presentation.websiteUrl,
@@ -97,7 +89,9 @@ export const save = mutation({
       .withIndex("by_key", (q) => q.eq("key", "wall"))
       .unique();
     if (!site || site.currentTakeoverId !== a.expectedCurrentId)
-      throw new Error("The wall changed. Reload and review the current owner.");
+      throw new ConvexError(
+        "The wall changed. Reload and review the current owner.",
+      );
     const row = await ctx.db
       .query("demoStats")
       .withIndex("by_key", (q) => q.eq("key", "current"))
