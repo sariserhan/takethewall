@@ -1,3 +1,4 @@
+import { emailTemplate } from "../lib/email-template";
 import {
   internalMutation,
   internalQuery,
@@ -180,6 +181,7 @@ export const dispatch = internalAction({
             });
             continue;
           }
+          const message = emailMessage(j);
           response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -190,7 +192,7 @@ export const dispatch = internalAction({
             body: JSON.stringify({
               from: process.env.RESEND_FROM,
               to: [j.email],
-              ...emailMessage(j),
+              ...emailTemplate(message.subject, message.text),
             }),
             signal: AbortSignal.timeout(10_000),
           });

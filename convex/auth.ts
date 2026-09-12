@@ -1,3 +1,4 @@
+import { emailTemplate } from "../lib/email-template";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth/minimal";
@@ -50,8 +51,10 @@ export const createAuth = (ctx: GenericCtx<DataModel>) =>
             body: JSON.stringify({
               from: process.env.RESEND_FROM,
               to: [email],
-              subject: "TakeTheWall administrator sign-in",
-              text: `Your administrator verification code is ${otp}. It expires in ten minutes. Do not share it.`,
+              ...emailTemplate(
+                "Your administrator sign-in code",
+                `Your administrator verification code is ${otp}.\n\nIt expires in ten minutes. Do not share it.`,
+              ),
             }),
             signal: AbortSignal.timeout(10000),
           });
