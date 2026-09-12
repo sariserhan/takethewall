@@ -110,6 +110,8 @@ it("shares one lease and retains the successful snapshot through failures", asyn
     snapshot,
   });
   vi.advanceTimersByTime(30_000);
+  expect(await t.mutation(internal.visitorping.claim, {})).toBeNull();
+  vi.advanceTimersByTime(15 * 60_000 - 30_000);
   const retry = (await t.mutation(internal.visitorping.claim, {}))!;
   await t.mutation(internal.visitorping.finish, {
     attempt: retry.attempt,

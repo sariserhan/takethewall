@@ -10,7 +10,7 @@ crons.interval(
 );
 crons.interval(
   "VisitorPing aggregate report",
-  { seconds: 30 },
+  { minutes: 15 },
   internal.visitorping.refresh,
   {},
 );

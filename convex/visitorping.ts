@@ -11,6 +11,10 @@ import {
   VisitorPingReadError,
 } from "../lib/visitorping-api";
 
+// Shared operator report: 15-minute refreshes let Neon suspend between reads.
+// Public realtime counters and event collection are independent.
+const REPORT_REFRESH_MS = 15 * 60_000;
+
 // A single shared report avoids multiplying provider requests by browser count.
 export const claim = internalMutation({
   args: {},
@@ -87,7 +91,7 @@ export const finish = internalMutation({
         snapshot: args.snapshot,
         failures: 0,
         lastError: undefined,
-        nextAt: Date.now() + 30_000,
+        nextAt: Date.now() + REPORT_REFRESH_MS,
       });
     } else {
       const failures = report.failures + 1;

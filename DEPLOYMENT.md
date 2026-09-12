@@ -111,3 +111,16 @@ Checkout is embedded in the purchase overlay. Sessions use `ui_mode=embedded_pag
 The client completion callback waits for `/api/status`; only the existing verified Stripe webhook activates a takeover. No new webhook event subscriptions are needed. See [Stripe embedded Checkout](https://docs.stripe.com/checkout/embedded/quickstart?client=react) and [redirect behavior](https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form).
 
 Embedded Checkout validation: 105 unit/backend tests plus desktop/mobile browser tests with a simulated Stripe SDK and delayed server activation passed. A real Stripe iframe/payment rehearsal is pending the matching publishable key. The simulated tests do not validate card entry, wallets or 3DS with Stripe.
+
+
+## 2026-09-12 Neon compute protection
+
+External VisitorPing report polling was paused in production `canny-bee-832` by
+removing `VISITORPING_SITE_ID`. Existing snapshots, local metrics and event delivery
+remain intact. Restore `VISITORPING_SITE_ID=ca77b849-ffff-4b44-9d67-ffa2577da2e2`
+only after the 15-minute cron and successful-refresh cooldown are deployed.
+The production dry run also proposed seven unrelated indexes and a Node runtime
+update, so the full backend was not deployed as part of this focused cost fix.
+The 15-minute schedule reduces scheduled aggregate API calls from up to 5,760
+per day to 192, independently of browser count. Live event ingestion can still
+keep Neon awake; these savings are request counts, not a compute quota guarantee.
