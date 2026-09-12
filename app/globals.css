@@ -929,7 +929,7 @@ textarea {
 @media(max-width:760px){.wall-page .purchase-band{display:flex;flex-direction:column;align-items:stretch;gap:10px}.wall-page .purchase-band>p{display:block;text-align:center;font-size:13px;line-height:1.5}.prize-explainer{gap:14px}.prize-steps{gap:10px}.prize-intro p,.prize-next p,.prize-steps p{font-size:13px}}
 
 /* The live wall occupies the first screen; supporting content follows on scroll. */
-.wall-page{padding-top:0;padding-bottom:0}.wall-viewport{height:100dvh;display:flex;flex-direction:column;flex-shrink:0;box-sizing:border-box;padding:18px 0 12px;overflow:auto}.wall-viewport>.masthead,.wall-viewport>.site-metrics,.wall-viewport>.reign-metrics,.wall-viewport>.purchase-band{flex-shrink:0}.wall-viewport>.owner-section{flex:1 0 auto}.wall-page>.public-footer{padding-bottom:16px}
+.wall-page{padding-top:0;padding-bottom:0}.wall-viewport{min-height:100dvh;display:flex;flex-direction:column;flex-shrink:0;box-sizing:border-box;padding:18px 0 12px;overflow:visible}.wall-viewport>.masthead,.wall-viewport>.site-metrics,.wall-viewport>.reign-metrics,.wall-viewport>.purchase-band{flex-shrink:0}.wall-viewport>.owner-section{flex:1 0 auto}.wall-page>.public-footer{padding-bottom:16px}
 @media(max-width:760px){.wall-page{padding-top:0;padding-bottom:0}.wall-viewport{padding:12px 0 max(12px,env(safe-area-inset-bottom))}}
 
 .wall-viewport>.analytics-credit{align-self:flex-end;flex-shrink:0;padding:0 0 10px;font-size:11px;line-height:1.5;text-underline-offset:3px}
