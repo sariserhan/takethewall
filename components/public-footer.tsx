@@ -29,6 +29,9 @@ export function PublicFooter({ home = false }: { home?: boolean }) {
               {label}
             </Link>
           ))}
+          <a href="https://freeboard.lol" rel="nofollow noopener">
+            Freeboard directory ↗
+          </a>
         </nav>
         <nav className="milestone-footer" aria-label="Milestone walls">
           <span>PERMANENT WALLS</span>
