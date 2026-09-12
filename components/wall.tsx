@@ -188,176 +188,179 @@ function WallView({
       "This confirmation link is invalid or expired. Check your receipt or contact support@takethewall.com before paying again.";
   return (
     <main className="wall-page">
-      <header className="masthead">
-        <h1>TAKE THE WALL</h1>
-        <div className="strap">
-          <p>Your content takes over this page for $3.99.</p>
-          <span className="connection">
-            <i className={connected ? "online" : ""} />
-            {connected ? "LIVE" : "CONNECTING"}
-          </span>
-        </div>
-      </header>
-      {returnToken && (
-        <div className="notice" role="status">
-          <p>{statusCopy}</p>
-          {(!confirmation ||
-            confirmation.state === "pending" ||
-            statusError) && (
-            <button onClick={() => void checkStatus(returnToken)}>
-              Retry status ↻
-            </button>
-          )}
-          <button
-            aria-label="Dismiss confirmation"
-            onClick={() => {
-              setReturnToken(null);
-              tokenRef.current = null;
-              try {
-                sessionStorage.removeItem("ttw-confirmation");
-              } catch {}
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-      {cancelled && (
-        <div className="notice" role="status">
-          Checkout cancelled. Your draft is saved; no ownership change has been
-          confirmed.
-        </div>
-      )}
-      <section className="site-metrics" aria-label="Site analytics">
-        <Metric
-          label="VISITORS TODAY (UTC)"
-          value={numbers(
-            data
-              ? data.utcDate === new Date().toISOString().slice(0, 10)
-                ? data.visitorsToday
-                : 0
-              : undefined,
-          )}
-        />
-        <Metric label="TOTAL VISITORS" value={numbers(data?.totalVisitors)} />
-        <Metric
-          label="COUNTED TAKEOVERS"
-          value={numbers(data?.totalTakeovers)}
-        />
-      </section>
-      <section className="owner-section" aria-label="Current owner">
-        <p className="eyebrow">
-          CURRENT TAKEOVER{" "}
-          {owner?.takeoverNumber
-            ? `#${owner.takeoverNumber}${owner.kind === "admin_counted" ? " · ADMIN-ISSUED" : ""}`
-            : owner?.kind === "admin_placement"
-              ? "ADMIN PLACEMENT"
-              : "HOUSE PLACEMENT"}
-        </p>
-        <p className="eyebrow ownership-label" aria-live="polite">
-          {changed
-            ? "THE WALL WAS JUST TAKEN"
-            : "THIS WALL CURRENTLY BELONGS TO"}
-        </p>
-        {owner ? (
-          <a
-            key={owner.id}
-            ref={adRef}
-            className="owner-ad"
-            href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            onClick={() => {
-              if (owner.outboundLinkEnabled) void wallEvent(owner.id, "click");
-            }}
-            onAuxClick={(e) => {
-              if (e.button === 1 && owner.outboundLinkEnabled)
-                void wallEvent(owner.id, "click");
-            }}
-          >
-            {owner.logoUrl ? (
-              <Image
-                className="owner-logo"
-                src={owner.logoUrl}
-                alt={`${owner.domain} logo`}
-                width={240}
-                height={160}
-                unoptimized
-                priority
-              />
-            ) : null}
-            <h2>{owner.displayName}</h2>
-            <p>{owner.description}</p>
-            {owner.outboundLinkEnabled && (
-              <span className="visit">
-                {contentCta(owner.linkType)} <Arrow />
-              </span>
+      <div className="wall-viewport">
+        <header className="masthead">
+          <h1>TAKE THE WALL</h1>
+          <div className="strap">
+            <p>Your content takes over this page for $3.99.</p>
+            <span className="connection">
+              <i className={connected ? "online" : ""} />
+              {connected ? "LIVE" : "CONNECTING"}
+            </span>
+          </div>
+        </header>
+        {returnToken && (
+          <div className="notice" role="status">
+            <p>{statusCopy}</p>
+            {(!confirmation ||
+              confirmation.state === "pending" ||
+              statusError) && (
+              <button onClick={() => void checkStatus(returnToken)}>
+                Retry status ↻
+              </button>
             )}
-          </a>
-        ) : (
-          <div className="owner-ad loading-owner">
-            <div className="loading-mark">W.</div>
-            <h2>
-              {data === undefined
-                ? "Meeting the current owner…"
-                : "The wall is warming up."}
-            </h2>
-            <p>
-              {data === undefined
-                ? "One moment. One wall."
-                : "Please check back shortly."}
-            </p>
+            <button
+              aria-label="Dismiss confirmation"
+              onClick={() => {
+                setReturnToken(null);
+                tokenRef.current = null;
+                try {
+                  sessionStorage.removeItem("ttw-confirmation");
+                } catch {}
+              }}
+            >
+              ×
+            </button>
           </div>
         )}
-      </section>
-      <section className="reign-metrics" aria-label="Current reign analytics">
-        <Metric
-          label="CURRENT REIGN"
-          value={<Clock since={owner?.activatedAt ?? 0} />}
-        />
-        <Metric label="IMPRESSIONS" value={numbers(owner?.impressions)} />
-        <Metric
-          label="UNIQUE VISITORS"
-          value={numbers(owner?.uniqueVisitors)}
-        />
-        <Metric label="CLICKS" value={numbers(owner?.clicks)} />
-        <Metric
-          label="CTR"
-          value={
-            owner
-              ? `${ctr(owner.impressions, owner.clicks).toFixed(2).replace(/\.00$/, "")}%`
-              : "—"
-          }
-        />
-        <div className="regions">
-          <span className="eyebrow">TOP REGIONS</span>
-          {regions.length ? (
-            <ul>
-              {regions.map((r) => (
-                <li key={r.regionCode}>
-                  <span>
-                    {r.regionCode === "ZZ" ? "Unknown" : r.regionCode}
-                  </span>
-                  <span>{r.percent.toFixed(0)}%</span>
-                </li>
-              ))}
-            </ul>
+        {cancelled && (
+          <div className="notice" role="status">
+            Checkout cancelled. Your draft is saved; no ownership change has
+            been confirmed.
+          </div>
+        )}
+        <section className="site-metrics" aria-label="Site analytics">
+          <Metric
+            label="VISITORS TODAY (UTC)"
+            value={numbers(
+              data
+                ? data.utcDate === new Date().toISOString().slice(0, 10)
+                  ? data.visitorsToday
+                  : 0
+                : undefined,
+            )}
+          />
+          <Metric label="TOTAL VISITORS" value={numbers(data?.totalVisitors)} />
+          <Metric
+            label="COUNTED TAKEOVERS"
+            value={numbers(data?.totalTakeovers)}
+          />
+        </section>
+        <section className="owner-section" aria-label="Current owner">
+          <p className="eyebrow">
+            CURRENT TAKEOVER{" "}
+            {owner?.takeoverNumber
+              ? `#${owner.takeoverNumber}${owner.kind === "admin_counted" ? " · ADMIN-ISSUED" : ""}`
+              : owner?.kind === "admin_placement"
+                ? "ADMIN PLACEMENT"
+                : "HOUSE PLACEMENT"}
+          </p>
+          <p className="eyebrow ownership-label" aria-live="polite">
+            {changed
+              ? "THE WALL WAS JUST TAKEN"
+              : "THIS WALL CURRENTLY BELONGS TO"}
+          </p>
+          {owner ? (
+            <a
+              key={owner.id}
+              ref={adRef}
+              className="owner-ad"
+              href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              onClick={() => {
+                if (owner.outboundLinkEnabled)
+                  void wallEvent(owner.id, "click");
+              }}
+              onAuxClick={(e) => {
+                if (e.button === 1 && owner.outboundLinkEnabled)
+                  void wallEvent(owner.id, "click");
+              }}
+            >
+              {owner.logoUrl ? (
+                <Image
+                  className="owner-logo"
+                  src={owner.logoUrl}
+                  alt={`${owner.domain} logo`}
+                  width={240}
+                  height={160}
+                  unoptimized
+                  priority
+                />
+              ) : null}
+              <h2>{owner.displayName}</h2>
+              <p>{owner.description}</p>
+              {owner.outboundLinkEnabled && (
+                <span className="visit">
+                  {contentCta(owner.linkType)} <Arrow />
+                </span>
+              )}
+            </a>
           ) : (
-            <p>No impressions yet.</p>
+            <div className="owner-ad loading-owner">
+              <div className="loading-mark">W.</div>
+              <h2>
+                {data === undefined
+                  ? "Meeting the current owner…"
+                  : "The wall is warming up."}
+              </h2>
+              <p>
+                {data === undefined
+                  ? "One moment. One wall."
+                  : "Please check back shortly."}
+              </p>
+            </div>
           )}
-        </div>
-      </section>
-      <section className="purchase-band">
-        <strong className="price">$3.99</strong>
-        <p>
-          Your website, social profile, app, or message.
-          <br />
-          It stays until the next takeover replaces it.
-        </p>
-        <button className="button primary" onClick={takeWall}>
-          TAKE THE WALL — $3.99 <Arrow />
-        </button>
-      </section>
+        </section>
+        <section className="reign-metrics" aria-label="Current reign analytics">
+          <Metric
+            label="CURRENT REIGN"
+            value={<Clock since={owner?.activatedAt ?? 0} />}
+          />
+          <Metric label="IMPRESSIONS" value={numbers(owner?.impressions)} />
+          <Metric
+            label="UNIQUE VISITORS"
+            value={numbers(owner?.uniqueVisitors)}
+          />
+          <Metric label="CLICKS" value={numbers(owner?.clicks)} />
+          <Metric
+            label="CTR"
+            value={
+              owner
+                ? `${ctr(owner.impressions, owner.clicks).toFixed(2).replace(/\.00$/, "")}%`
+                : "—"
+            }
+          />
+          <div className="regions">
+            <span className="eyebrow">TOP REGIONS</span>
+            {regions.length ? (
+              <ul>
+                {regions.map((r) => (
+                  <li key={r.regionCode}>
+                    <span>
+                      {r.regionCode === "ZZ" ? "Unknown" : r.regionCode}
+                    </span>
+                    <span>{r.percent.toFixed(0)}%</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No impressions yet.</p>
+            )}
+          </div>
+        </section>
+        <section className="purchase-band">
+          <strong className="price">$3.99</strong>
+          <p>
+            Your website, social profile, app, or message.
+            <br />
+            It stays until the next takeover replaces it.
+          </p>
+          <button className="button primary" onClick={takeWall}>
+            TAKE THE WALL — $3.99 <Arrow />
+          </button>
+        </section>
+      </div>
       <HomepageMilestones />
       <PublicFooter home />
       <PurchaseSheet

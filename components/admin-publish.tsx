@@ -47,7 +47,10 @@ export function AdminPublish() {
                 description,
               });
               setDraft({
-                ...content,
+                contentType: content.contentType,
+                websiteUrl: content.websiteUrl,
+                displayName: content.displayName,
+                description: content.description,
                 countTowardMilestones: counted,
                 recipientEmail: email,
                 reason,

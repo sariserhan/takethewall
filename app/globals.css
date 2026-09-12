@@ -927,3 +927,7 @@ textarea {
 /* Keep the purchase explanation brief and readable before the prize details. */
 .prize-claim-summary{margin-top:12px}.prize-count{margin:0}.prize-admin-note{grid-column:1/-1;font-size:12px;line-height:1.6;margin:0;max-width:100ch}.prize-explainer .prize-intro h2{font-size:clamp(24px,2.2vw,34px)}
 @media(max-width:760px){.wall-page .purchase-band{display:flex;flex-direction:column;align-items:stretch;gap:10px}.wall-page .purchase-band>p{display:block;text-align:center;font-size:13px;line-height:1.5}.prize-explainer{gap:14px}.prize-steps{gap:10px}.prize-intro p,.prize-next p,.prize-steps p{font-size:13px}}
+
+/* The live wall occupies the first screen; supporting content follows on scroll. */
+.wall-page{padding-top:0;padding-bottom:0}.wall-viewport{height:100dvh;display:flex;flex-direction:column;flex-shrink:0;box-sizing:border-box;padding:18px 0 12px;overflow:auto}.wall-viewport>.masthead,.wall-viewport>.site-metrics,.wall-viewport>.reign-metrics,.wall-viewport>.purchase-band{flex-shrink:0}.wall-viewport>.owner-section{flex:1 0 auto}.wall-page>.public-footer{padding-bottom:16px}
+@media(max-width:760px){.wall-page{padding-top:0;padding-bottom:0}.wall-viewport{padding:12px 0 max(12px,env(safe-area-inset-bottom))}}
