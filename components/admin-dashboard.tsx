@@ -1,4 +1,5 @@
 "use client";
+import { AdminHealth } from "./admin-health";
 import Link from "next/link";
 import { LoadingSkeleton } from "./loading-skeleton";
 import { AdminPublish } from "./admin-publish";
@@ -68,6 +69,7 @@ export function AdminDashboard() {
           raw === undefined)) && (
         <LoadingSkeleton label={`Loading ${section}`} />
       )}
+      {section === "overview" && <AdminHealth />}
       {stats && (
         <>
           <div className="admin-cards">

@@ -7,6 +7,7 @@ export const current = query({
     v.null(),
     v.object({
       owner: publicOwner,
+      previousOwnerName: v.union(v.string(), v.null()),
       totalVisitors: v.number(),
       totalTakeovers: v.number(),
       visitorsToday: v.number(),
@@ -24,6 +25,15 @@ export const current = query({
     if (!s) return null;
     const t = await ctx.db.get(s.currentTakeoverId);
     if (!t) throw new Error("Missing current owner");
+    const previous =
+      s.currentActivationSequence > 0
+        ? await ctx.db
+            .query("takeovers")
+            .withIndex("by_activationSequence", (q) =>
+              q.eq("activationSequence", s.currentActivationSequence - 1),
+            )
+            .unique()
+        : null;
     const utcDate = new Date(s.updatedAt).toISOString().slice(0, 10);
     const d = await ctx.db
       .query("dailyStats")
@@ -35,6 +45,11 @@ export const current = query({
       .take(300);
     return {
       owner: await projectOwner(ctx, t),
+      previousOwnerName: previous
+        ? previous.blocked || previous.status === "rejected"
+          ? "Removed placement"
+          : previous.displayName || previous.domain || "House placement"
+        : null,
       totalVisitors: s.totalVisitors,
       totalTakeovers: s.totalTakeovers,
       visitorsToday: d?.visitors ?? 0,

@@ -35,10 +35,10 @@ test("embedded checkout stays in the overlay and waits for server activation", a
   await dialog
     .getByRole("button", { name: "Complete simulated payment" })
     .click();
-  await expect(dialog.getByText("Confirming your payment…")).toBeVisible();
-  await expect(dialog.getByText("The wall is yours.")).toHaveCount(0);
+  await expect(dialog.getByText("Checkout complete. Verifying payment…")).toBeVisible();
+  await expect(dialog.getByText("Your wall is live.")).toHaveCount(0);
   confirmed = true;
-  await expect(dialog.getByText("The wall is yours.")).toBeVisible({
+  await expect(dialog.getByText("Your wall is live.")).toBeVisible({
     timeout: 10000,
   });
   expect(new URL(page.url()).pathname).toBe("/");

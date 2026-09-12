@@ -3,6 +3,7 @@ import {
   EmbeddedCheckout,
   EmbeddedCheckoutProvider,
 } from "@stripe/react-stripe-js";
+import Link from "next/link";
 import { loadStripe } from "@stripe/stripe-js/pure";
 import { useEffect, useMemo, useState } from "react";
 export interface CheckoutSession {
@@ -54,6 +55,8 @@ export default function EmbeddedPayment({
         const result = await response.json();
         if (stopped) return;
         setStatus(result.state);
+        setError("");
+        if (["expired", "invalid"].includes(result.state)) return;
         if (["active", "replaced"].includes(result.state)) {
           try {
             sessionStorage.removeItem("ttw-draft");
@@ -82,19 +85,23 @@ export default function EmbeddedPayment({
         <div role="status">
           <h3>
             {status === "active"
-              ? "The wall is yours."
+              ? "Your wall is live."
               : status === "replaced"
                 ? "Your takeover was activated."
-                : "Confirming your payment…"}
+                : ["expired", "invalid"].includes(status)
+                  ? "We couldn’t confirm this takeover."
+                  : "Checkout complete. Verifying payment…"}
           </h3>
           <p>
             {status === "replaced"
               ? "Another takeover has already replaced yours."
               : status === "active"
-                ? "Your verified payment activated your placement."
-                : "Your placement activates after our server receives Stripe’s payment confirmation."}
+                ? "Payment verified. Your placement is published."
+                : ["expired", "invalid"].includes(status)
+                  ? "Check your receipt and contact support before trying another payment."
+                  : "We’re waiting for verified payment confirmation before publishing your wall. Please don’t pay again."}
           </p>
-          {error && (
+          {(error || ["expired", "invalid"].includes(status)) && (
             <button
               type="button"
               onClick={() => {
@@ -105,6 +112,7 @@ export default function EmbeddedPayment({
               Check payment status
             </button>
           )}
+          <Link href="/?info=support">Need help? Contact support</Link>
           <button
             type="button"
             onClick={() =>

@@ -61,7 +61,14 @@ export default async function Page({
   if (!m) notFound();
   return (
     <main className="document-page milestone-page">
-      <Link href="/">TAKE THE WALL</Link>
+      <header className="permanent-header">
+        <Link href="/" className="permanent-wordmark">
+          TAKE THE WALL
+        </Link>
+        <Link href="/" className="permanent-back">
+          ← Back to the live wall
+        </Link>
+      </header>
       <section className="milestone-content">
         <MilestonePage number={m.takeoverNumber} />
       </section>

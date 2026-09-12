@@ -1,4 +1,6 @@
 "use client";
+import { Arrow } from "./arrow";
+import { LoadingSkeleton } from "./loading-skeleton";
 import { PrizeExplainer } from "./prize-explainer";
 import Image from "next/image";
 import Link from "next/link";
@@ -170,61 +172,112 @@ export function MilestonePage({ number }: { number: number }) {
 }
 function MilestoneView({ number }: { number: number }) {
   const data = useQuery(api.rewards.overview);
-  if (!data) return <p>Loading milestone…</p>;
+  if (!data) return <LoadingSkeleton label="Loading milestone" />;
   const m = data.milestones.find((m) => m.number === number);
   if (!m) return <p>This milestone is unavailable.</p>;
   const trophy = m.snapshot;
   return (
     <>
-      <p className="eyebrow">MILESTONE #{number.toLocaleString("en-US")}</p>
-      <h1>
-        {data.promotionEnabled
-          ? `THE $${m.rewardUsd.toLocaleString("en-US")} WALL`
-          : `THE #${number.toLocaleString("en-US")} WALL`}
-      </h1>
+      <div className="permanent-heading">
+        <p className="eyebrow">
+          PERMANENT WALL / #{number.toLocaleString("en-US")}
+        </p>
+        <h1>
+          {data.promotionEnabled
+            ? `THE $${m.rewardUsd.toLocaleString("en-US")} WALL`
+            : `THE #${number.toLocaleString("en-US")} WALL`}
+        </h1>
+        <p className="permanent-lede">
+          {m.status === "future"
+            ? "The live wall changes hands. This place in history stays."
+            : m.status === "paid"
+              ? "One takeover. A permanent place in wall history."
+              : "The milestone is reached. The winner is being verified."}
+        </p>
+      </div>
       {m.status === "future" ? (
-        <>
-          <h2>NO OWNER YET</h2>
-          <p>
-            Current progress: {data.currentNumber.toLocaleString("en-US")} /{" "}
-            {number.toLocaleString("en-US")}
-          </p>
-          <progress value={Math.min(data.currentNumber, number)} max={number} />
-          <p>
-            {Math.max(0, number - data.currentNumber).toLocaleString("en-US")}{" "}
-            takeovers to go.
-          </p>
-          {data.promotionEnabled ? (
-            <>
-              <h2>THE VERIFIED WINNER RECEIVES</h2>
-              <ul>
-                <li>
-                  ${m.rewardUsd.toLocaleString("en-US")} milestone reward,
-                  subject to eligibility
-                </li>
-                <li>Permanent placement on /{number}</li>
-                <li>Your winning image and description or message</li>
-                <li>
-                  Original takeover statistics and a place in wall history
-                </li>
-              </ul>
-            </>
-          ) : (
+        <div className="permanent-future">
+          <div className="permanent-placeholder">
+            <span className="permanent-status">NO OWNER YET</span>
+            <div className="permanent-emblem" aria-hidden="true">
+              <TrophyIcon />
+            </div>
+            <h2>
+              A PLACE IN HISTORY.
+              <br />
+              WAITING FOR ITS OWNER.
+            </h2>
             <p>
-              See Reward Rules for current reward availability and eligibility.
+              This wall becomes the verified winner’s permanent page after
+              payout confirmation.
             </p>
-          )}
-          <Link className="button" href="/?take=1">
-            FIGHT FOR THE LIVE WALL — $3.99
-          </Link>
-        </>
+            <span className="permanent-address">takethewall.com/{number}</span>
+          </div>
+          <div className="permanent-details">
+            <section
+              className="permanent-progress"
+              aria-label="Milestone progress"
+            >
+              <span className="eyebrow">
+                THE ROAD TO #{number.toLocaleString("en-US")}
+              </span>
+              <div className="permanent-count">
+                <strong>{data.currentNumber.toLocaleString("en-US")}</strong>
+                <span>/ {number.toLocaleString("en-US")}</span>
+              </div>
+              <progress
+                aria-label={`Takeovers toward milestone ${number}`}
+                value={Math.min(data.currentNumber, number)}
+                max={number}
+              />
+              <p>
+                <strong>
+                  {Math.max(0, number - data.currentNumber).toLocaleString(
+                    "en-US",
+                  )}
+                </strong>{" "}
+                takeovers to go.
+              </p>
+            </section>
+            {data.promotionEnabled ? (
+              <section className="permanent-benefits">
+                <h2>THE VERIFIED WINNER RECEIVES</h2>
+                <div className="permanent-reward">
+                  <strong>${m.rewardUsd.toLocaleString("en-US")}</strong>
+                  <span>
+                    milestone reward
+                    <br />
+                    subject to eligibility
+                  </span>
+                </div>
+                <ul>
+                  <li>Permanent placement on /{number}</li>
+                  <li>Your image, name and message</li>
+                  <li>Your original takeover statistics</li>
+                </ul>
+              </section>
+            ) : (
+              <p>
+                See Reward Rules for current reward availability and
+                eligibility.
+              </p>
+            )}
+            <Link className="button permanent-cta" href="/?take=1">
+              TAKE THE LIVE WALL — $3.99 <Arrow />
+            </Link>
+            <p className="permanent-purchase-note">
+              A purchase takes the live wall. A milestone starts a claim,
+              subject to verification.
+            </p>
+          </div>
+        </div>
       ) : m.status !== "paid" ? (
-        <>
+        <div className="permanent-verifying">
           <h2>MILESTONE REACHED</h2>
           <p>Winner verification in progress.</p>
           <p>Provisional recipient: takeover #{m.candidateNumber}</p>
           <Sequence milestone={m} />
-        </>
+        </div>
       ) : trophy ? (
         <>
           <div className="trophy-ad">
@@ -305,9 +358,9 @@ function MilestoneView({ number }: { number: number }) {
           </details>
         </>
       ) : null}
-      <p>
+      <p className="permanent-rules">
         <Link href={`/rewards?version=${encodeURIComponent(m.rulesVersion)}`}>
-          Reward Rules {m.rulesVersion}
+          Read the Reward Rules
         </Link>{" "}
         · Subject to eligibility.
       </p>

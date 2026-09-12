@@ -814,3 +814,28 @@ it("rehearsal preparation rejects production and preserves existing settings", a
     existing.mutation(internal.rehearsal.prepare, {}),
   ).rejects.toThrow("already has");
 });
+
+it("public previous owner follows only the last activation and hides removed content", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  let wall = await t.query(api.wall.current, {});
+  expect(wall?.previousOwnerName).toBeNull();
+  const args = { contentType: "personal" as const, websiteUrl: "", displayName: "Previous owner", description: "Hello", countTowardMilestones: false, recipientEmail: "", reason: "Test", requestKey: "previous-1", expectedCurrentId: wall!.owner.id };
+  const first = await admin.mutation(api.admin.publish, args);
+  await admin.mutation(api.admin.publish, { ...args, displayName: "Current owner", requestKey: "previous-2", expectedCurrentId: first });
+  wall = await t.query(api.wall.current, {});
+  expect(wall?.previousOwnerName).toBe("Previous owner");
+  await t.run(ctx => ctx.db.patch(first, { blocked: true }));
+  expect((await t.query(api.wall.current, {}))?.previousOwnerName).toBe("Removed placement");
+});
+
+it("health diagnostics require admin access and expose configuration presence, never secrets", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  vi.stubEnv("RESEND_API_KEY", "private-resend-test-value");
+  await expect(t.query(api.health.overview, {})).rejects.toThrow("Administrator access required");
+  const result = await t.withIdentity(adminIdentity).query(api.health.overview, {});
+  expect(result).not.toContain("private-resend-test-value");
+  expect(JSON.parse(result)).toMatchObject({wallInitialized: true, lastPaymentAt: null, failedMail: 0, failedJobs: 0});
+});

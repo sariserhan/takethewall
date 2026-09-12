@@ -35,14 +35,6 @@ export function PublicFooter({ home = false }: { home?: boolean }) {
             </Link>
           ))}
         </nav>
-        <a
-          className="analytics-credit"
-          href="https://visitorping.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Live analytics powered by <strong>VisitorPing</strong> ↗
-        </a>
       </footer>
       {home && <InfoOverlay />}
       <Script

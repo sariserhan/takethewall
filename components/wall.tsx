@@ -119,11 +119,15 @@ function WallView({
     if (!returnToken) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize browser storage or a verified network result after hydration.
     void checkStatus(returnToken);
-    const delayed = window.setTimeout(
+    const delayed = window.setInterval(
       () => void checkStatus(returnToken),
-      12_000,
+      4000,
     );
-    return () => clearTimeout(delayed);
+    const stop = window.setTimeout(() => window.clearInterval(delayed), 60_000);
+    return () => {
+      window.clearInterval(delayed);
+      window.clearTimeout(stop);
+    };
   }, [returnToken, owner?.id]);
   useEffect(() => {
     if (!owner?.id) return;
@@ -174,7 +178,7 @@ function WallView({
     statusCopy =
       "Confirmation is taking longer than expected. Please don’t pay again. Retry your status below.";
   else if (confirmation?.state === "active")
-    statusCopy = "The wall is yours. For now.";
+    statusCopy = "Your wall is live. Payment verified and placement published.";
   else if (confirmation?.state === "replaced")
     statusCopy = `Your takeover went live. Someone else has already taken the wall. Your reign: ${duration(confirmation.durationMs ?? 0)}.`;
   else if (confirmation?.state === "pending")
@@ -245,6 +249,12 @@ function WallView({
             label="COUNTED TAKEOVERS"
             value={numbers(data?.totalTakeovers)}
           />
+          <div className="metric previous-owner-stat">
+            <span>PREVIOUS OWNER</span>
+            <strong>
+              {data ? (data.previousOwnerName ?? "None yet") : "—"}
+            </strong>
+          </div>
         </section>
         <section className="owner-section" aria-label="Current owner">
           <p className="eyebrow">
@@ -315,7 +325,24 @@ function WallView({
         <section className="reign-metrics" aria-label="Current reign analytics">
           <Metric
             label="CURRENT REIGN"
-            value={<Clock since={owner?.activatedAt ?? 0} />}
+            value={
+              <>
+                <Clock since={owner?.activatedAt ?? 0} />
+                {owner?.activatedAt && (
+                  <time
+                    className="owner-since"
+                    dateTime={new Date(owner.activatedAt).toISOString()}
+                  >
+                    Owner since{" "}
+                    {new Date(owner.activatedAt)
+                      .toISOString()
+                      .replace("T", " ")
+                      .slice(0, 19)}{" "}
+                    UTC
+                  </time>
+                )}
+              </>
+            }
           />
           <Metric label="IMPRESSIONS" value={numbers(owner?.impressions)} />
           <Metric
@@ -349,6 +376,14 @@ function WallView({
             )}
           </div>
         </section>
+        <a
+          className="analytics-credit"
+          href="https://visitorping.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Live analytics powered by <strong>VisitorPing</strong> ↗
+        </a>
         <section className="purchase-band">
           <strong className="price">$3.99</strong>
           <p>
