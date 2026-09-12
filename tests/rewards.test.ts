@@ -249,83 +249,103 @@ it("rejects anonymous, non-admin and unverified admin-email access", async () =>
     await t.withIdentity(adminIdentity).query(api.admin.identity, {}),
   ).toBe("admin-1");
 });
-it("requires separate payout send and confirmation and freezes the winning content", async () => {
-  const t = await setup();
-  await activate(t, 1);
-  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
-  const admin = t.withIdentity(adminIdentity);
-  const { c, token, code, session } = await login(t);
-  await t.mutation(internal.claimAuth.verify, {
-    token,
-    code,
-    session,
-    ipHash: "ip",
-  });
-  await t.mutation(api.rewards.submit, {
-    session,
-    legalName: "Private",
-    country: "US",
-    region: "CA",
-    dob: "1990-01-01",
-    declaration: "",
-    acceptRules: true,
-  });
-  await admin.mutation(api.admin.claimAction, {
-    claimId: c._id,
-    action: "approve",
-    expectedStatus: "under_review",
-    body: "Eligibility reviewed",
-    confirmed: true,
-  });
-  await expect(
-    admin.mutation(api.admin.claimAction, {
+it.each(["paid", "admin"])(
+  "%s issuance requires payout send and confirmation and freezes the winning content",
+  async (mode) => {
+    const t = await setup();
+    if (mode === "paid") await activate(t, 1);
+    else {
+      vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+      const wall = await t.query(api.wall.current, {});
+      await t.withIdentity(adminIdentity).mutation(api.admin.publish, {
+        contentType: "personal",
+        websiteUrl: "",
+        displayName: "Person 1",
+        description: "Rehearsal",
+        countTowardMilestones: true,
+        recipientEmail: "recipient@example.com",
+        reason: "Prize rehearsal",
+        requestKey: "full-rehearsal",
+        expectedCurrentId: wall!.owner.id,
+      });
+    }
+    vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+    const admin = t.withIdentity(adminIdentity);
+    const { c, token, code, session } = await login(t);
+    await t.mutation(internal.claimAuth.verify, {
+      token,
+      code,
+      session,
+      ipHash: "ip",
+    });
+    await t.mutation(api.rewards.submit, {
+      session,
+      legalName: "Private",
+      country: "US",
+      region: "CA",
+      dob: "1990-01-01",
+      declaration: "",
+      acceptRules: true,
+    });
+    await admin.mutation(api.admin.claimAction, {
+      claimId: c._id,
+      action: "approve",
+      expectedStatus: "under_review",
+      body: "Eligibility reviewed",
+      confirmed: true,
+    });
+    await expect(
+      admin.mutation(api.admin.claimAction, {
+        claimId: c._id,
+        action: "confirm",
+        expectedStatus: "approved",
+        confirmed: true,
+      }),
+    ).rejects.toThrow();
+    await t.run(async (ctx) => {
+      const s = (await ctx.db.query("rewardSettings").first())!;
+      await ctx.db.patch(s._id, {
+        value: { ...s.value, payoutsEnabled: true },
+      });
+    });
+    await admin.mutation(api.admin.claimAction, {
+      claimId: c._id,
+      action: "sent",
+      expectedStatus: "approved",
+      reference: "wire-reference",
+      confirmed: true,
+    });
+    expect(
+      (await t.query(api.rewards.overview, {})).milestones[0].snapshot,
+    ).toBeNull();
+    await admin.mutation(api.admin.claimAction, {
       claimId: c._id,
       action: "confirm",
       expectedStatus: "approved",
       confirmed: true,
-    }),
-  ).rejects.toThrow();
-  await t.run(async (ctx) => {
-    const s = (await ctx.db.query("rewardSettings").first())!;
-    await ctx.db.patch(s._id, { value: { ...s.value, payoutsEnabled: true } });
-  });
-  await admin.mutation(api.admin.claimAction, {
-    claimId: c._id,
-    action: "sent",
-    expectedStatus: "approved",
-    reference: "wire-reference",
-    confirmed: true,
-  });
-  expect(
-    (await t.query(api.rewards.overview, {})).milestones[0].snapshot,
-  ).toBeNull();
-  await admin.mutation(api.admin.claimAction, {
-    claimId: c._id,
-    action: "confirm",
-    expectedStatus: "approved",
-    confirmed: true,
-  });
-  let m = (await t.query(api.rewards.overview, {})).milestones[0];
-  expect(m).toMatchObject({
-    status: "paid",
-    snapshot: { displayName: "Person 1", statsFrozen: false },
-  });
-  await activate(t, 2);
-  vi.advanceTimersByTime(120_001);
-  await t.mutation(internal.rewards.maintain, {});
-  m = (await t.query(api.rewards.overview, {})).milestones[0];
-  expect(m.snapshot?.statsFrozen).toBe(true);
-  const snapshot = m.snapshot;
-  await t.run((ctx) =>
-    ctx.db.patch(c.takeoverId, {
-      impressions: 999,
-      displayName: "Changed record",
-    }),
-  );
-  expect(
-    (await t.query(api.rewards.overview, {})).milestones[0].snapshot,
-  ).toEqual(snapshot);
-});
+    });
+    let m = (await t.query(api.rewards.overview, {})).milestones[0];
+    expect(m).toMatchObject({
+      status: "paid",
+      snapshot: { displayName: "Person 1", statsFrozen: false },
+    });
+    await activate(t, 2);
+    vi.advanceTimersByTime(120_001);
+    await t.mutation(internal.rewards.maintain, {});
+    m = (await t.query(api.rewards.overview, {})).milestones[0];
+    expect(m.snapshot?.statsFrozen).toBe(true);
+    const snapshot = m.snapshot;
+    await t.run((ctx) =>
+      ctx.db.patch(c.takeoverId, {
+        impressions: 999,
+        displayName: "Changed record",
+      }),
+    );
+    expect(
+      (await t.query(api.rewards.overview, {})).milestones[0].snapshot,
+    ).toEqual(snapshot);
+  },
+);
 it("refund before payout cascades and repeated webhook processing is idempotent", async () => {
   const t = await setup();
   const p = await activate(t, 1);
@@ -767,4 +787,30 @@ it("admin can initialize an empty wall and unsafe destinations are rejected", as
     totalTakeovers: 0,
     owner: { domain: "example.com" },
   });
+});
+
+it("rehearsal preparation rejects production and preserves existing settings", async () => {
+  const t = make();
+  vi.stubEnv("CONVEX_CLOUD_URL", "https://canny-bee-832.convex.cloud");
+  await expect(t.mutation(internal.rehearsal.prepare, {})).rejects.toThrow(
+    "only available",
+  );
+  vi.stubEnv("CONVEX_CLOUD_URL", "https://aromatic-falcon-454.convex.cloud");
+  vi.stubEnv("WALL_ENVIRONMENT", "production");
+  await expect(t.mutation(internal.rehearsal.prepare, {})).rejects.toThrow(
+    "only available",
+  );
+  vi.stubEnv("WALL_ENVIRONMENT", "test");
+  expect(await t.mutation(internal.rehearsal.prepare, {})).toEqual({
+    ready: true,
+    milestones: [1, 2, 3],
+  });
+  await t.mutation(internal.rehearsal.prepare, {});
+  expect(
+    await t.run((ctx) => ctx.db.query("rewardSettings").collect()),
+  ).toHaveLength(1);
+  const existing = await setup();
+  await expect(
+    existing.mutation(internal.rehearsal.prepare, {}),
+  ).rejects.toThrow("already has");
 });

@@ -24,6 +24,7 @@ import type * as model from "../model.js";
 import type * as operations from "../operations.js";
 import type * as paymentIssues from "../paymentIssues.js";
 import type * as purchases from "../purchases.js";
+import type * as rehearsal from "../rehearsal.js";
 import type * as rewardModel from "../rewardModel.js";
 import type * as rewardSchema from "../rewardSchema.js";
 import type * as rewards from "../rewards.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   operations: typeof operations;
   paymentIssues: typeof paymentIssues;
   purchases: typeof purchases;
+  rehearsal: typeof rehearsal;
   rewardModel: typeof rewardModel;
   rewardSchema: typeof rewardSchema;
   rewards: typeof rewards;
