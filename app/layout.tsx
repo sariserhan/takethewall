@@ -1,3 +1,5 @@
+import Script from "next/script";
+
 import type { Metadata } from "next";
 import "@fontsource/anton/latin-400.css";
 import "@fontsource/dm-sans/latin-400.css";
@@ -28,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>{children}<Script src="https://cdn.visitorping.com/site/vp_KMTZX9SH.js" strategy="afterInteractive" crossOrigin="anonymous" /></body>
     </html>
   );
 }
