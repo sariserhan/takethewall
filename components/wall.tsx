@@ -91,6 +91,7 @@ function WallView({
     [changed, setChanged] = useState(false);
   const sample = data?.demoStats;
   const presentation = data?.demoPresentation;
+  const demoPreviousOwner = sample?.previousOwnerName ?? presentation?.previousOwnerName;
   const since = presentation?.ownerSince ?? data?.owner.activatedAt ?? 0;
   const owner = data?.owner,
     adRef = useRef<HTMLAnchorElement>(null),
@@ -288,14 +289,10 @@ function WallView({
           <div className="metric previous-owner-stat">
             <span>
               PREVIOUS OWNER
-              {presentation && <small className="demo-badge">Demo</small>}
+              {demoPreviousOwner && <small className="demo-badge">Demo</small>}
             </span>
             <strong>
-              {presentation
-                ? presentation.previousOwnerName || "None in demo"
-                : data
-                  ? (data.previousOwnerName ?? "None yet")
-                  : "—"}
+              {demoPreviousOwner || (data ? (data.previousOwnerName ?? "None yet") : "—")}
             </strong>
           </div>
         </section>

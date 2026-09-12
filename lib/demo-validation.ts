@@ -5,7 +5,7 @@ export function demoCountError(values: {
   uniqueVisitors: number;
   clicks: number;
 }): string | null {
-  for (const value of Object.values(values)) {
+  for (const value of [values.visitorsToday, values.totalVisitors, values.impressions, values.uniqueVisitors, values.clicks]) {
     if (!Number.isSafeInteger(value) || value < 0 || value > 1_000_000_000)
       return "Demo additions must be whole numbers from 0 to 1 billion.";
   }

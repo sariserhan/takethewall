@@ -42,7 +42,11 @@ function DemoForm({
   saved: FunctionReturnType<typeof api.demoStats.read>;
 }) {
   const save = useMutation(api.demoStats.save);
-  const [values, setValues] = useState(saved?.values ?? defaults);
+  const [values, setValues] = useState({
+    ...defaults,
+    ...saved?.values,
+    previousOwnerName: saved?.values.previousOwnerName ?? saved?.presentation?.previousOwnerName ?? "",
+  });
   const [enabled, setEnabled] = useState(saved?.activeForCurrentOwner ?? false);
   const [previewEnabled, setPreviewEnabled] = useState(!!saved?.presentation);
   const [presentation, setPresentation] = useState(
@@ -89,7 +93,7 @@ function DemoForm({
               values,
               reason,
               expectedCurrentId: ownerId,
-              ...(previewEnabled ? { presentation } : {}),
+              ...(previewEnabled ? { presentation: { ...presentation, previousOwnerName: values.previousOwnerName } } : {}),
             });
             setMessage("Demo settings saved.");
           } catch (e) {
@@ -133,6 +137,16 @@ function DemoForm({
           Displayed CTR uses combined real + demo clicks and impressions.
           Turning demo off reveals only the real counts.
         </p>
+        <label>
+          Previous owner — demo display
+          <input
+            maxLength={60}
+            value={values.previousOwnerName}
+            placeholder="Leave blank to show the real previous owner"
+            onChange={(e) => setValues({ ...values, previousOwnerName: e.target.value })}
+          />
+        </label>
+        <p>Shows a labeled previous-owner name without enabling content preview. Leave blank to use real ownership history.</p>
         <label className="check-label">
           <input
             type="checkbox"
@@ -201,19 +215,6 @@ function DemoForm({
                   setPresentation({
                     ...presentation,
                     ownerSince: Date.parse(e.target.value + "Z"),
-                  })
-                }
-              />
-            </label>
-            <label>
-              Demo previous owner
-              <input
-                maxLength={60}
-                value={presentation.previousOwnerName}
-                onChange={(e) =>
-                  setPresentation({
-                    ...presentation,
-                    previousOwnerName: e.target.value,
                   })
                 }
               />

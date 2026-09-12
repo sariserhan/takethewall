@@ -845,12 +845,14 @@ it("demo stats are admin-only, separate from real counters, and expire on owner 
   vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
   const admin = t.withIdentity(adminIdentity);
   const before = (await t.query(api.wall.current, {}))!;
-  const values = {visitorsToday:12,totalVisitors:100,impressions:50,uniqueVisitors:25,clicks:5};
+  const values = {visitorsToday:12,totalVisitors:100,impressions:50,uniqueVisitors:25,clicks:5,previousOwnerName:"Sample previous owner"};
   const args = {enabled:true,values,reason:"Labeled launch demo",expectedCurrentId:before.owner.id};
   await expect(t.mutation(api.demoStats.save,args)).rejects.toThrow("Administrator access required");
   await expect(t.query(api.demoStats.read,{})).rejects.toThrow("Administrator access required");
   await expect(admin.mutation(api.demoStats.save,{...args,values:{...values,clicks:51}})).rejects.toThrow("consistent");
+  await expect(admin.mutation(api.demoStats.save,{...args,values:{...values,previousOwnerName:"x".repeat(61)}})).rejects.toThrow("Previous owner");
   await admin.mutation(api.demoStats.save,args);
+  expect(await admin.query(api.demoStats.read,{})).toMatchObject({values});
   expect(await t.query(api.wall.current,{})).toEqual({...before,demoStats:values});
   await admin.mutation(api.demoStats.save,{...args,enabled:false});
   expect((await t.query(api.wall.current,{}))?.demoStats).toBeNull();

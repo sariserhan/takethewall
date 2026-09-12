@@ -50,6 +50,14 @@ export const save = mutation({
       throw new ConvexError("Enter a reason (up to 1,000 characters).");
     const countError = demoCountError(a.values);
     if (countError) throw new ConvexError(countError);
+    const values = { ...a.values };
+    if (values.previousOwnerName !== undefined) {
+      try {
+        values.previousOwnerName = plainText(values.previousOwnerName, 60, false);
+      } catch {
+        throw new ConvexError("Previous owner must be plain text, up to 60 characters.");
+      }
+    }
     let presentation = a.presentation;
     if (presentation) {
       if (
@@ -98,7 +106,7 @@ export const save = mutation({
       .unique();
     const next = {
       enabled: a.enabled,
-      values: a.values,
+      values,
       presentation,
       takeoverId: site.currentTakeoverId,
       updatedAt: Date.now(),
