@@ -30,7 +30,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         <AdminSignIn />
       </Unauthenticated>
       <Authenticated>
-        <button onClick={() => void authClient.signOut()}>Sign out</button>
+        <div className="admin-session-actions">
+          <button type="button" onClick={() => void authClient.signOut()}>
+            Sign out
+          </button>
+        </div>
         {children}
       </Authenticated>
     </ConvexBetterAuthProvider>
