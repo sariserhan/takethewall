@@ -493,3 +493,34 @@ it("cleans confirmed abandoned purchases but retains unresolved Stripe sessions"
   await t.mutation(internal.operations.cleanup, {});
   expect(await t.run((ctx) => ctx.db.get(unresolved.purchaseId))).toBeNull();
 });
+
+it.each([
+  "https://example.com",
+  "https://apps.apple.com/app/id123",
+  "https://instagram.com/example",
+])("accepts linked placements without an image: %s", async (websiteUrl) => {
+  const t = make();
+  await seed(t);
+  const args = {
+    requestKey: "optional-image",
+    fingerprint: "fp",
+    tokenHash: "token",
+    ownerHash: "owner",
+    uploadKey: "",
+    websiteUrl,
+    description: "No image needed",
+    buyerEmail: "buyer@example.com",
+    environment: "test" as const,
+  };
+  const result = await t.mutation(internal.purchases.pending, args);
+  expect(
+    (await t.run((ctx) => ctx.db.get(result.takeoverId)))?.logoStorageId,
+  ).toBeUndefined();
+  await expect(
+    t.mutation(internal.purchases.pending, {
+      ...args,
+      requestKey: "bad-image",
+      uploadKey: "missing-upload",
+    }),
+  ).rejects.toThrow("Upload expired");
+});

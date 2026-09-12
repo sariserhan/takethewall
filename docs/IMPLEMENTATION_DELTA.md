@@ -1525,3 +1525,8 @@ Do not stop after scaffolding.
 Do not ask another product question unless there is a genuine contradiction that cannot be resolved from these requirements or the existing repository.
 
 Any deviation from a business-critical value above must be recorded in `IMPLEMENTATION_STATUS.md` with the reason.
+
+
+## Homepage refinement override — September 12, 2026
+
+The user subsequently made images optional for every placement type. Public information (including How it works, Terms, Privacy, Content policy and About the numbers) opens in homepage overlays through a single footer. All five milestone pages remain separate and are linked in that footer. The wall uses the available viewport with responsive mobile layout and natural overflow on short screens. This supersedes earlier requirements for mandatory linked-placement logos and separate public information pages.

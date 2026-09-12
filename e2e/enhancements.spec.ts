@@ -24,7 +24,7 @@ test("personal placements need no website and preserve the purchase preview", as
   ).toBe(true);
 });
 
-test("all legal and informational pages render with metadata and working milestone routes", async ({
+test("informational routes open homepage overlays and milestones remain separate", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -38,18 +38,20 @@ test("all legal and informational pages render with metadata and working milesto
     "disclaimer",
     "disclosure",
     "rewards",
+    "how-it-works",
+    "content-policy",
+    "numbers",
   ]) {
     const response = await page.goto("/" + path);
     expect(response?.status()).toBe(200);
-    await expect(page.locator("h1")).toBeVisible();
-    await expect(page).toHaveTitle(/TakeTheWall/);
+    await expect(page.getByRole("dialog")).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/");
+    await expect(page).toHaveTitle(/Take The Wall/);
     if (path === "rewards") {
       await expect(
-        page
-          .locator("p")
-          .filter({
-            hasText: "Submit an initial claim within seven calendar days.",
-          }),
+        page.getByRole("dialog").locator("p").filter({
+          hasText: "Submit an initial claim within seven calendar days.",
+        }),
       ).toBeVisible();
       await expect(page.getByText("Loading Reward Rules…")).toHaveCount(0);
     }
@@ -98,4 +100,78 @@ test("private admin and claim pages do not leak records or send analytics", asyn
   await expect(page.getByText("Legal name", { exact: true })).toHaveCount(0);
   expect(events).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("one footer opens information in-place and includes every milestone", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.locator("footer")).toHaveCount(1);
+  for (const title of [
+    "How it works",
+    "About",
+    "Support",
+    "Contact",
+    "Reward Rules",
+    "About the numbers",
+    "Terms",
+    "Privacy",
+    "Content policy",
+    "Disclaimer",
+    "Disclosure",
+  ]) {
+    await page
+      .locator("footer")
+      .getByRole("link", { name: title, exact: true })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: title, exact: true }),
+    ).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/");
+    await page.keyboard.press("Escape");
+    await expect(page.locator("dialog[open]")).toHaveCount(0);
+  }
+  for (const n of [100, 1000, 10000, 100000, 1000000])
+    await expect(page.locator(`footer a[href="/${n}"]`)).toBeVisible();
+  expect(
+    await page
+      .locator("main")
+      .evaluate((el) => el.getBoundingClientRect().height >= innerHeight - 1),
+  ).toBe(true);
+});
+
+test("website checkout needs no image and legal overlays preserve its draft", async ({
+  page,
+}) => {
+  await page.goto("/?take=1");
+  const sheet = page.getByRole("dialog", { name: "MAKE IT YOURS." });
+  await sheet.getByLabel("Website URL").fill("https://example.com");
+  await sheet.getByLabel("Buyer email").fill("buyer@example.com");
+  await sheet.getByRole("link", { name: "Terms", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Terms", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel("Website URL")).toHaveValue(
+    "https://example.com",
+  );
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe(
+    "hidden",
+  );
+  await page.route("**/api/checkout", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "Checkout endpoint reached without image",
+      }),
+    }),
+  );
+  await sheet.locator('button[type="submit"]').click();
+  await expect(sheet.getByRole("alert")).toContainText(
+    "Checkout endpoint reached without image",
+  );
+  await sheet.getByRole("button", { name: "Close dialog" }).click();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
 });

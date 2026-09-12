@@ -93,30 +93,6 @@ export function HomepageMilestones() {
           </small>
         </section>
       )}
-      <section className="permanent-walls">
-        <h2>PERMANENT WALLS</h2>
-        <div>
-          {data.milestones.map((m) => (
-            <Link key={m.number} href={`/${m.number}`}>
-              <span>
-                <TrophyIcon /> #{m.number.toLocaleString("en-US")}
-              </span>
-              <strong>
-                {data.promotionEnabled
-                  ? `The $${m.rewardUsd.toLocaleString("en-US")} Wall`
-                  : `Milestone #${m.number.toLocaleString("en-US")}`}
-              </strong>
-              <small>
-                {m.status === "paid"
-                  ? m.snapshot?.displayName
-                  : m.status === "future"
-                    ? `${Math.max(0, m.number - data.currentNumber).toLocaleString("en-US")} to go`
-                    : "Verification in progress"}
-              </small>
-            </Link>
-          ))}
-        </div>
-      </section>
       {active && (
         <>
           <button

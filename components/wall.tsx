@@ -15,7 +15,6 @@ import { api } from "@/convex/_generated/api";
 import { ctr, duration, topRegions } from "@/lib/validation";
 import { captureReturn, wallEvent } from "@/lib/client-events";
 import { PurchaseSheet } from "./purchase-sheet";
-import { Legal, type LegalPage } from "./legal";
 import type { FunctionReturnType } from "convex/server";
 type WallData = FunctionReturnType<typeof api.wall.current>;
 const url = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -73,7 +72,6 @@ function WallView({
   connected: boolean;
 }) {
   const [open, setOpen] = useState(false),
-    [legal, setLegal] = useState<LegalPage | null>(null),
     [confirmation, setConfirmation] = useState<Confirmation | null>(null),
     [statusError, setStatusError] = useState(false),
     [cancelled, setCancelled] = useState(false),
@@ -189,7 +187,7 @@ function WallView({
     statusCopy =
       "This confirmation link is invalid or expired. Check your receipt or contact support@takethewall.com before paying again.";
   return (
-    <main>
+    <main className="wall-page">
       <header className="masthead">
         <h1>TAKE THE WALL</h1>
         <div className="strap">
@@ -282,9 +280,7 @@ function WallView({
                 unoptimized
                 priority
               />
-            ) : (
-              <span className="missing-logo">{owner.domain}</span>
-            )}
+            ) : null}
             <h2>{owner.displayName}</h2>
             <p>{owner.description}</p>
             {owner.outboundLinkEnabled && (
@@ -358,37 +354,7 @@ function WallView({
         </button>
       </section>
       {data && <HomepageMilestones />}
-      <footer>
-        <a
-          href="https://visitorping.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Live analytics powered by <strong>VisitorPing</strong> <Arrow />
-        </a>
-        <div className="footer-links">
-          <details>
-            <summary>About the numbers</summary>
-            <p>
-              Estimated browsers, not verified people. Daily counts reset at
-              midnight UTC. Clearing storage can create another visitor. Bot
-              filtering is best effort. Clicks can exceed impressions; CTR is
-              not capped. Only paid activations count as takeovers.{" "}
-              {owner?.kind === "initial_house"
-                ? "Current owner is the initial house placement."
-                : owner?.kind === "moderation_restoration"
-                  ? "Current owner is a moderation restoration."
-                  : ""}
-            </p>
-          </details>
-          {(["Terms", "Privacy", "Content policy"] as const).map((p) => (
-            <button key={p} onClick={() => setLegal(p)}>
-              {p}
-            </button>
-          ))}
-        </div>
-      </footer>
-      <PublicFooter />
+      <PublicFooter home />
       <PurchaseSheet
         key={
           confirmation?.state === "active" || confirmation?.state === "replaced"
@@ -405,7 +371,6 @@ function WallView({
           if (owner) void wallEvent(owner.id, "checkout_started");
         }}
       />
-      <Legal page={legal} onClose={() => setLegal(null)} />
     </main>
   );
 }

@@ -55,3 +55,12 @@ Specification: [consolidated delta](docs/IMPLEMENTATION_DELTA.md). Deployment an
 ## Webhook registration follow-up
 
 Stripe and Resend webhooks are now registered and their signing secrets are present locally. Added the Resend signature-verified receiver, private delivery audit records and regression tests. Signed local requests pass for both handlers; public delivery is blocked by `takethewall.com` DNS resolution. See [provider test results](docs/PROVIDER_TEST_RESULTS.md) for exact test scope and remaining deployment work.
+
+
+## Homepage refinements — September 12, 2026
+
+- Images are optional for website, app, social and personal placements, including checkout validation and backend purchase creation. Supplied image references still require a valid upload.
+- The homepage fills the available viewport and width, with natural scrolling on short screens and no fixed mobile purchase button covering content.
+- One footer includes How it works, all public information/legal overlays and the five separate milestone pages (#100 through #1,000,000). Existing information URLs redirect to their homepage overlay; Reward Rules version links retain their version.
+- Nested legal overlays preserve checkout drafts and background scroll locking.
+- Validation: lint, typecheck, 98 unit/backend tests, production build and 10 desktop/mobile enhancement browser tests passed. The optional-image backend change was synchronized to the cloud development deployment; production deployment remains separate.

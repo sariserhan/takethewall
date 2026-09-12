@@ -18,14 +18,19 @@ export function Dialog({
     const d = ref.current;
     if (!d) return;
     if (open) {
-      d.showModal();
+      if (!d.open) d.showModal();
       document.body.style.overflow = "hidden";
     } else {
       d.close();
-      document.body.style.overflow = "";
+      document.body.style.overflow = document.querySelector("dialog[open]")
+        ? "hidden"
+        : "";
     }
     return () => {
-      document.body.style.overflow = "";
+      d.close();
+      document.body.style.overflow = document.querySelector("dialog[open]")
+        ? "hidden"
+        : "";
     };
   }, [open]);
   return (

@@ -1,5 +1,4 @@
-import { DocumentPage, documentMetadata } from "@/components/document-page";
-export const metadata = documentMetadata("disclaimer");
+import { redirect } from "next/navigation";
 export default function Page() {
-  return <DocumentPage info="disclaimer" />;
+  redirect("/?info=disclaimer");
 }

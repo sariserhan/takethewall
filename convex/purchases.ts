@@ -70,7 +70,7 @@ export const pending = internalMutation({
       .withIndex("by_key", (q) => q.eq("key", a.uploadKey))
       .unique();
     if (
-      (content.contentType !== "personal" && !upload?.storageId) ||
+      (!!a.uploadKey && !upload?.storageId) ||
       (upload && upload.ownerHash !== a.ownerHash) ||
       (upload && upload.expiresAt <= Date.now())
     )

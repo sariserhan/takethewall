@@ -32,7 +32,7 @@ test("one wall, actual metrics, accessible sheet, preview, and legal dialogs", a
     "A little piece of the internet.",
   );
   await page.getByLabel("Buyer email").fill("buyer@example.com");
-  await page.getByLabel("Logo PNG").setInputFiles({
+  await page.getByLabel(/^Logo /).setInputFiles({
     name: "logo.svg",
     mimeType: "image/svg+xml",
     buffer: Buffer.from("<svg/>"),
@@ -40,7 +40,7 @@ test("one wall, actual metrics, accessible sheet, preview, and legal dialogs", a
   await expect(sheet.getByRole("alert")).toContainText("PNG, JPEG, or WEBP");
   await sheet.getByRole("button", { name: "Close dialog" }).click();
   await expect(sheet).not.toBeVisible();
-  await page.getByRole("button", { name: "Privacy", exact: true }).click();
+  await page.getByRole("link", { name: "Privacy", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Privacy" })).toContainText(
     "Private purchase and support information",
   );
@@ -88,7 +88,7 @@ test("valid logo is decoded and uploaded through the server", async ({
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /TAKE THE WALL —/ }).click();
-  await page.getByLabel("Logo PNG").setInputFiles("public/visitorping.png");
+  await page.getByLabel(/^Logo /).setInputFiles("public/visitorping.png");
   await expect(page.getByAltText("Your logo preview")).toBeVisible({
     timeout: 20000,
   });

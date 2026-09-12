@@ -1,6 +1,7 @@
 "use client";
 import { contentCta, validateWallContent } from "@/lib/content";
 import Image from "next/image";
+import Link from "next/link";
 import { Arrow } from "./arrow";
 import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
@@ -94,8 +95,6 @@ export function PurchaseSheet({
     try {
       validateWallContent(draft);
       validateEmail(draft.buyerEmail);
-      if (draft.contentType !== "personal" && !draft.uploadKey)
-        throw new Error("Choose your logo before paying.");
       setBusy(true);
       const requestKey = draft.requestKey || crypto.randomUUID();
       const saved = { ...draft, requestKey };
@@ -214,7 +213,9 @@ export function PurchaseSheet({
                   : draft.category === "social"
                     ? "Image/avatar"
                     : "Logo"}{" "}
-              <span className="field-hint">PNG, JPEG or WEBP · 2 MB max</span>
+              <span className="field-hint">
+                Optional · PNG, JPEG or WEBP · 2 MB max
+              </span>
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -272,16 +273,10 @@ export function PurchaseSheet({
           </button>
           <p className="field-note">
             Checkout does not reserve a takeover number. By paying, you accept
-            the{" "}
-            <a href="/terms" target="_blank" rel="noreferrer">
-              Terms
-            </a>{" "}
-            and{" "}
-            <a href="/rewards" target="_blank" rel="noreferrer">
-              Reward Rules
-            </a>
-            . No guaranteed duration, audience, impressions or clicks. No
-            refunds for a short reign or low traffic.
+            the <Link href="/terms">Terms</Link> and{" "}
+            <Link href="/rewards">Reward Rules</Link>. No guaranteed duration,
+            audience, impressions or clicks. No refunds for a short reign or low
+            traffic.
           </p>
         </form>
         <aside className="preview">
@@ -295,13 +290,7 @@ export function PurchaseSheet({
                 alt="Your logo preview"
                 unoptimized
               />
-            ) : (
-              <div className="preview-placeholder">
-                YOUR
-                <br />
-                LOGO
-              </div>
-            )}
+            ) : null}
             <h3>
               {draft.displayName ||
                 (draft.contentType === "personal" ? "YOUR NAME" : domain)}

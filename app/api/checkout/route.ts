@@ -23,9 +23,11 @@ export async function POST(req: Request) {
     const a = await jsonBody(req);
     if (
       !opaqueId(a.requestKey) ||
-      (a.contentType !== "personal" && !opaqueId(a.uploadKey))
+      (a.uploadKey !== "" &&
+        a.uploadKey !== undefined &&
+        !opaqueId(a.uploadKey))
     )
-      throw new HttpError("Choose a logo before paying.");
+      throw new HttpError("Invalid checkout or image reference.");
     const content = validateWallContent(a);
     if (content.contentType !== "personal")
       await publicDestination(content.websiteUrl);
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
       fingerprint: hash(JSON.stringify([content, buyerEmail, a.uploadKey])),
       tokenHash: hash(token),
       ownerHash: clientHash(req),
-      uploadKey: a.uploadKey,
+      uploadKey: a.uploadKey ?? "",
       websiteUrl: content.websiteUrl,
       description: content.description,
       displayName: content.displayName,
