@@ -56,18 +56,14 @@ function Clock({ since }: { since: number }) {
 function Metric({
   label,
   value,
-  demo = false,
-  breakdown,
 }: {
   label: string;
   value: React.ReactNode;
-  demo?: boolean;
-  breakdown?: string;
 }) {
   return (
     <div className="metric">
       <span>
-        <StatHelp label={label} detail={demo ? breakdown : undefined} />
+        <StatHelp label={label} />
       </span>
       <strong>{value}</strong>
     </div>
@@ -187,10 +183,6 @@ function WallView({
     n === undefined ? "—" : n.toLocaleString("en-US");
   const combined = (real: number | undefined, demo: number | undefined) =>
     real === undefined ? undefined : real + (demo ?? 0);
-  const breakdown = (real: number | undefined, demo: number | undefined) =>
-    demo === undefined
-      ? undefined
-      : `${numbers(real ?? 0)} real + ${numbers(demo)} demo`;
   const realToday = data
     ? data.utcDate === new Date().toISOString().slice(0, 10)
       ? data.visitorsToday
@@ -265,25 +257,16 @@ function WallView({
         <section className="site-metrics" aria-label="Site analytics">
           <Metric
             label="VISITORS TODAY (UTC)"
-            demo={!!sample}
-            breakdown={breakdown(realToday, sample?.visitorsToday)}
             value={numbers(combined(realToday, sample?.visitorsToday))}
           />
           <Metric
             label="TOTAL VISITORS"
-            demo={!!sample}
-            breakdown={breakdown(data?.totalVisitors, sample?.totalVisitors)}
             value={numbers(
               combined(data?.totalVisitors, sample?.totalVisitors),
             )}
           />
           <Metric
             label="COUNTED TAKEOVERS"
-            demo={demoTakeoverCount !== undefined}
-            breakdown={breakdown(
-              data?.totalTakeovers,
-              demoTakeoverCount,
-            )}
             value={
               <>
                 {numbers(combined(data?.totalTakeovers, demoTakeoverCount))}                
@@ -388,7 +371,6 @@ function WallView({
         <section className="reign-metrics" aria-label="Current reign analytics">
           <Metric
             label="CURRENT REIGN"
-            demo={!!presentation}
             value={
               <>
                 <Clock since={since} />
@@ -410,32 +392,20 @@ function WallView({
           />
           <Metric
             label="IMPRESSIONS"
-            demo={!!sample}
-            breakdown={breakdown(owner?.impressions, sample?.impressions)}
             value={numbers(combined(owner?.impressions, sample?.impressions))}
           />
           <Metric
             label="UNIQUE VISITORS"
-            demo={!!sample}
-            breakdown={breakdown(owner?.uniqueVisitors, sample?.uniqueVisitors)}
             value={numbers(
               combined(owner?.uniqueVisitors, sample?.uniqueVisitors),
             )}
           />
           <Metric
             label="CLICKS"
-            demo={!!sample}
-            breakdown={breakdown(owner?.clicks, sample?.clicks)}
             value={numbers(combined(owner?.clicks, sample?.clicks))}
           />
           <Metric
             label="CTR"
-            demo={!!sample}
-            breakdown={
-              sample
-                ? "Calculated from real + demo clicks and impressions"
-                : undefined
-            }
             value={
               owner
                 ? `${ctr(

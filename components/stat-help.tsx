@@ -26,13 +26,7 @@ const explanations: Record<string, string> = {
     "Where views of the current owner's content came from, grouped by region. Percentages are shares of impressions, not unique people. Location is approximate; Unknown means a region could not be determined.",
 };
 
-export function StatHelp({
-  label,
-  detail,
-}: {
-  label: string;
-  detail?: string;
-}) {
+export function StatHelp({ label }: { label: string }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLSpanElement>(null);
@@ -92,7 +86,6 @@ export function StatHelp({
       >
         <strong>{label}</strong>
         <span>{explanations[label]}</span>
-        {detail && <span className="stat-help-detail">{detail}</span>}
       </span>
     </span>
   );
