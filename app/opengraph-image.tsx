@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-export const alt = "TAKE THE WALL. $3.99. LAST PAYER OWNS IT.";
+export const alt = "Take The Wall. One page. One owner. Who’s next?";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export default function Image() {
@@ -18,9 +18,29 @@ export default function Image() {
         justifyContent: "space-between",
       }}
     >
-      <div style={{ fontSize: 100, letterSpacing: -6 }}>TAKE THE WALL</div>
-      <div style={{ fontSize: 180, lineHeight: 1 }}>$3.99</div>
-      <div style={{ fontSize: 44 }}>LAST PAYER OWNS IT.</div>
+      <div style={{ fontSize: 42, letterSpacing: -1 }}>TAKE THE WALL</div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          fontSize: 108,
+          lineHeight: 1,
+          letterSpacing: -5,
+        }}
+      >
+        <div>ONE PAGE.</div>
+        <div>ONE OWNER.</div>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ fontSize: 60, letterSpacing: -2 }}>WHO’S NEXT? →</div>
+        <div style={{ fontSize: 26 }}>takethewall.com</div>
+      </div>
     </div>,
     size,
   );

@@ -1,6 +1,12 @@
 # Take The Wall
 
-One live wall. One owner. A verified $3.99 USD purchase replaces the current owner.
+**One page. One owner. The next takeover replaces it.**
+
+[See who owns the wall →](https://takethewall.com/)
+
+Take The Wall is a public internet experiment. A website, app, social profile, or message occupies the wall until someone else takes it over. What would you put there?
+
+Browsing is free. A verified $3.99 USD purchase replaces the current owner; there is no guaranteed duration or audience.
 
 ## Run locally
 

@@ -4,8 +4,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     url: "/",
-    title: "Take The Wall — One Wall. One Owner. $3.99.",
-    description: "Pay $3.99. Take the wall. Keep it until someone else does.",
+    title: "Take The Wall — One page. One owner. Who’s next?",
+    description: "One page. One owner. A project, a message, or something unexpected. See who owns the wall.",
     type: "website",
   },
 };
