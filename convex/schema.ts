@@ -2,6 +2,7 @@ import { demoValues, demoPresentation } from "./demoValues";
 import { rewardTables, emailSenderFields } from "./rewardSchema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+export const ownerFeedback = v.union(v.literal("yes"), v.literal("no"), v.literal("unsure"));
 export const kind = v.union(
   v.literal("paid"),
   v.literal("admin_counted"),
@@ -165,6 +166,8 @@ export default defineSchema({
     revision: v.number(),
   }).index("by_key", ["key"]),
   ownerAccess: defineTable({
+    feedback: v.optional(ownerFeedback),
+    feedbackAt: v.optional(v.number()),
     takeoverId: v.id("takeovers"),
     seed: v.string(),
     tokenHash: v.string(),
@@ -174,7 +177,8 @@ export default defineSchema({
   })
     .index("by_takeover", ["takeoverId"])
     .index("by_token", ["tokenHash"])
-    .index("by_unsubscribe", ["unsubscribeHash"]),
+    .index("by_unsubscribe", ["unsubscribeHash"])
+    .index("by_feedbackAt", ["feedbackAt"]),
   demoStats: defineTable({
     key: v.literal("current"),
     enabled: v.boolean(),

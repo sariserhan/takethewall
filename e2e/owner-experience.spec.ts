@@ -31,7 +31,7 @@ const dashboard = {
     { regionCode: "GB", impressions: 30 },
   ],
 };
-async function wallFixture(page: Page) {
+async function wallFixture(page: Page, impressions = 120) {
   await page.route("**/api/context", (r) =>
     r.fulfill({ status: 503, body: "" }),
   );
@@ -50,7 +50,7 @@ async function wallFixture(page: Page) {
       for (const c of msg.modifications ?? [])
         if (c.type === "QueryUpdated" && ids.has(c.queryId))
           c.value = {
-            owner,
+            owner: { ...owner, impressions },
             totalVisitors: 42,
             totalTakeovers: 16,
             numberingOffset: 15,
@@ -85,9 +85,9 @@ test("desktop/mobile preview is reviewed before creating checkout", async ({
   await sheet
     .getByLabel("Optional message")
     .fill("A little corner of the internet.");
-  await sheet.getByLabel("Buyer email").fill("buyer@example.com");
   await sheet.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
-  await expect(sheet).toContainText("Check your content before you pay.");
+  await expect(sheet).toContainText("Check your content, then add your email");
+  await sheet.getByLabel("Buyer email").fill("buyer@example.com");
   expect(calls).toBe(0);
   await sheet.getByRole("button", { name: "Mobile", exact: true }).click();
   await expect(sheet.locator(".preview-device")).toHaveClass(/mobile/);
@@ -460,15 +460,16 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
   await expect(page).toHaveURL(/\/\?take=1$/);
   const dialog = page.getByRole("dialog", { name: "MAKE IT YOURS." });
   await expect(dialog.getByLabel("Display name")).toHaveValue("Raven Studio");
-  await expect(dialog.getByLabel("Buyer email")).toHaveValue(
-    "owner@example.com",
-  );
   await expect(dialog.getByLabel("Optional message")).toHaveValue(
     "A little corner of the internet.",
   );
   expect(repeats).toBe(1);
   expect(payments).toBe(0);
   await dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
+  await expect(dialog.getByLabel("Buyer email")).toHaveValue(
+    "owner@example.com",
+  );
+
   await expect(
     dialog.getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" }),
   ).toBeVisible();
@@ -635,4 +636,57 @@ test("dialogs restore keyboard focus and contain navigation", async ({
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
   ).toBe(true);
+});
+
+test("ended owners can save private feedback and change their answer", async ({
+  page,
+}, info) => {
+  let answer: string | null = null;
+  await page.route("**/api/owner", async (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON();
+      expect(body.action).toBe("feedback");
+      expect(body).not.toHaveProperty("takeoverId");
+      answer = body.answer;
+      return route.fulfill({ json: { ok: true } });
+    }
+    return route.fulfill({
+      json: {
+        dashboard: {
+          ...dashboard,
+          feedbackEligible: true,
+          feedback: answer,
+          active: false,
+          replacedAt: owner.activatedAt + 3600000,
+          previousOwnerName: "Paper Planes",
+        },
+      },
+    });
+  });
+  await page.goto("/owner");
+  const feedback = page.getByRole("region", { name: "Takeover feedback" });
+  await feedback.getByRole("button", { name: "Yes", exact: true }).click();
+  await expect(
+    feedback.getByRole("button", { name: "Yes", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await feedback.getByRole("button", { name: "Not sure", exact: true }).click();
+  await page.reload();
+  await expect(feedback).toContainText("Your saved answer: Not sure.");
+  await expect(page.getByText("You replaced", { exact: false })).toContainText(
+    "Paper Planes",
+  );
+  await page.screenshot({
+    path: `/tmp/owner-feedback-${info.project.name}.png`,
+  });
+});
+test("a live wall with zero views explains its counters", async ({ page }) => {
+  await wallFixture(page, 0);
+  await page.goto("/");
+  await expect(
+    page.getByText(
+      "This placement is live. Recorded views and clicks will appear here as they arrive.",
+    ),
+  ).toBeVisible();
+  await expect(page.locator(".owner-ad h2")).toContainText("Raven Studio");
+  await expect(page.getByText("No regional breakdown yet.")).toBeVisible();
 });

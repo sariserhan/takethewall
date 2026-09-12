@@ -207,7 +207,9 @@ it("weekly digests are deduplicated, use recorded totals, and have stable retry 
   const request = JSON.parse(fetchMock.mock.calls[0][1].body);
   expect(request.to).toEqual(["first@example.com"]);
   expect(request.html).toContain("YOUR WEEKLY OWNER REPORT");
-  expect(request.from).toBe("Take The Wall — Weekly Digest <digest@takethewall.com>");
+  expect(request.from).toBe(
+    "Take The Wall — Weekly Digest <digest@takethewall.com>",
+  );
   expect(request.reply_to).toBe("support@takethewall.com");
   expect(request.html).toContain("Open your private dashboard");
   expect(request.text).toContain("Totals since");
@@ -488,7 +490,9 @@ it("admin notifications capture activation once and dispatch privately without o
   expect(send).toHaveBeenCalledTimes(1);
   const message = JSON.parse(send.mock.calls[0][1].body);
   expect(message.to).toEqual(["serhan.sari@yahoo.com"]);
-  expect(message.from).toBe("Take The Wall — Notifications <notifications@takethewall.com>");
+  expect(message.from).toBe(
+    "Take The Wall — Notifications <notifications@takethewall.com>",
+  );
   expect(message.reply_to).toBe("support@takethewall.com");
   expect(message.text).toContain("production@example.com");
   expect(message.text).not.toContain("Changed later");
@@ -708,18 +712,116 @@ it("repeat prepares a private prefilled draft without activating or charging and
     t.mutation(internal.owners.repeat, { token, ownerHash: "repeat-ip" }),
   ).rejects.toThrow("cannot be reused");
 });
-it("owner email preferences keep weekly and confirmed milestone subscriptions independent",async()=>{
- const {t,token,access}=await setup();
- await t.mutation(internal.owners.preferences,{token,milestoneAlertsEnabled:true});
- expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("pending");
- const subscriber=(await t.run(ctx=>ctx.db.query("milestoneSubscribers").collect()))[0];
- const {alertConfirmation}=await import("../lib/alert-secrets");
- await t.mutation(internal.milestoneAlerts.manage,{token:alertConfirmation(subscriber.seed),action:"confirm"});
- expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("on");
- await t.mutation(internal.owners.preferences,{token,weeklyDigestEnabled:false});
- expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("on");
- await t.mutation(internal.owners.preferences,{token,milestoneAlertsEnabled:false});
- expect((await t.query(internal.owners.dashboard,{token})).milestoneAlerts).toBe("off");
- expect((await t.run(ctx=>ctx.db.get(access._id)))?.weeklyDigestEnabled).toBe(false);
- await expect(t.mutation(internal.owners.preferences,{token:"f".repeat(64),milestoneAlertsEnabled:true})).rejects.toThrow("Invalid private link");
+it("owner email preferences keep weekly and confirmed milestone subscriptions independent", async () => {
+  const { t, token, access } = await setup();
+  await t.mutation(internal.owners.preferences, {
+    token,
+    milestoneAlertsEnabled: true,
+  });
+  expect(
+    (await t.query(internal.owners.dashboard, { token })).milestoneAlerts,
+  ).toBe("pending");
+  const subscriber = (
+    await t.run((ctx) => ctx.db.query("milestoneSubscribers").collect())
+  )[0];
+  const { alertConfirmation } = await import("../lib/alert-secrets");
+  await t.mutation(internal.milestoneAlerts.manage, {
+    token: alertConfirmation(subscriber.seed),
+    action: "confirm",
+  });
+  expect(
+    (await t.query(internal.owners.dashboard, { token })).milestoneAlerts,
+  ).toBe("on");
+  await t.mutation(internal.owners.preferences, {
+    token,
+    weeklyDigestEnabled: false,
+  });
+  expect(
+    (await t.query(internal.owners.dashboard, { token })).milestoneAlerts,
+  ).toBe("on");
+  await t.mutation(internal.owners.preferences, {
+    token,
+    milestoneAlertsEnabled: false,
+  });
+  expect(
+    (await t.query(internal.owners.dashboard, { token })).milestoneAlerts,
+  ).toBe("off");
+  expect(
+    (await t.run((ctx) => ctx.db.get(access._id)))?.weeklyDigestEnabled,
+  ).toBe(false);
+  await expect(
+    t.mutation(internal.owners.preferences, {
+      token: "f".repeat(64),
+      milestoneAlertsEnabled: true,
+    }),
+  ).rejects.toThrow("Invalid private link");
+});
+
+it("feedback requires private access to an ended paid takeover and stays private", async () => {
+  const { t, id, token, publish, admin } = await setup();
+  await expect(
+    t.mutation(internal.owners.feedback, {
+      token: "a".repeat(64),
+      answer: "yes",
+    }),
+  ).rejects.toThrow("Invalid private link");
+  await expect(
+    t.mutation(internal.owners.feedback, { token, answer: "yes" }),
+  ).rejects.toThrow("after a paid reign ends");
+  await t.run(async (ctx) => {
+    await ctx.db.patch(id, { kind: "paid" });
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", id))
+      .unique();
+    await ctx.db.patch(purchase!._id, { paidAt: Date.now(), amountCents: 399 });
+  });
+  await expect(
+    t.mutation(internal.owners.feedback, { token, answer: "yes" }),
+  ).rejects.toThrow("after a paid reign ends");
+  await publish("second");
+  expect(
+    (await t.query(internal.owners.dashboard, { token })).feedbackEligible,
+  ).toBe(true);
+  await t.mutation(internal.owners.feedback, { token, answer: "yes" });
+  await t.mutation(internal.owners.feedback, { token, answer: "no" });
+  const dashboard = await t.query(internal.owners.dashboard, { token });
+  expect(dashboard.feedback).toBe("no");
+  const shared = await t.query(internal.owners.sharedTakeover, {
+    publicId: dashboard.publicId,
+  });
+  expect(shared).not.toHaveProperty("feedback");
+  await expect(t.query(api.owners.recentFeedback, {})).rejects.toThrow();
+  expect(await admin.query(api.owners.recentFeedback, {})).toMatchObject([
+    { name: "first", answer: "no", environment: "test" },
+  ]);
+});
+it("share stories use the recorded predecessor and redact moderated content", async () => {
+  const { t, id, publish, token } = await setup();
+  const second = await publish("second");
+  await t.mutation(internal.owners.ensureAccess, { takeoverId: second });
+  const secondRow = await t.run((ctx) => ctx.db.get(second));
+  const shared = await t.query(internal.owners.sharedTakeover, {
+    publicId: secondRow!.publicTakeoverId!,
+  });
+  expect(shared?.previousOwnerName).toBe("first");
+  await publish("third");
+  expect(
+    (
+      await t.query(internal.owners.sharedTakeover, {
+        publicId: secondRow!.publicTakeoverId!,
+      })
+    )?.previousOwnerName,
+  ).toBe("first");
+  await t.run((ctx) => ctx.db.patch(id, { blocked: true }));
+  expect(
+    (
+      await t.query(internal.owners.sharedTakeover, {
+        publicId: secondRow!.publicTakeoverId!,
+      })
+    )?.previousOwnerName,
+  ).toBe("Removed placement");
+  expect(
+    (await t.query(internal.owners.dashboard, { token })).previousOwnerName,
+  ).toBe("visitorping.com");
 });

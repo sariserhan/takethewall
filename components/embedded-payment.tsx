@@ -1,5 +1,5 @@
 "use client";
-import {trackVerifiedTakeover} from "@/lib/visitorping-client";
+import { trackVerifiedTakeover } from "@/lib/visitorping-client";
 import {
   EmbeddedCheckout,
   EmbeddedCheckoutProvider,
@@ -22,6 +22,9 @@ export default function EmbeddedPayment({
 }) {
   const [complete, setComplete] = useState(false);
   const [status, setStatus] = useState("pending");
+  const [previousOwnerName, setPreviousOwnerName] = useState<string | null>(
+    null,
+  );
   const [publicId, setPublicId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -62,6 +65,7 @@ export default function EmbeddedPayment({
         if (["expired", "invalid"].includes(result.state)) return;
         if (["active", "replaced"].includes(result.state)) {
           trackVerifiedTakeover(result.visitorPing);
+          setPreviousOwnerName(result.previousOwnerName ?? null);
           if (typeof result.publicId === "string") setPublicId(result.publicId);
           try {
             sessionStorage.removeItem("ttw-draft");
@@ -117,7 +121,12 @@ export default function EmbeddedPayment({
               Check payment status
             </button>
           )}
-          {publicId && <TakeoverShare publicId={publicId} />}
+          {publicId && (
+            <TakeoverShare
+              publicId={publicId}
+              previousOwnerName={previousOwnerName}
+            />
+          )}
           <Link href="/?info=support">Need help? Contact support</Link>
           <button
             type="button"

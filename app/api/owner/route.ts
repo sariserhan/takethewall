@@ -99,6 +99,15 @@ export async function POST(req: Request) {
         { headers: { "Cache-Control": "private, no-store" } },
       );
     }
+    if (a.action === "feedback") {
+      const token = jar.get("ttw-owner")?.value;
+      if (!token)
+        throw new HttpError("Open your private email link first.", 401);
+      if (!["yes", "no", "unsure"].includes(a.answer))
+        throw new HttpError("Choose a feedback answer.");
+      await backend("ownerFeedback", { token, answer: a.answer });
+      return Response.json({ ok: true });
+    }
     if (a.action === "edit") {
       const token = jar.get("ttw-owner")?.value;
       if (!token)

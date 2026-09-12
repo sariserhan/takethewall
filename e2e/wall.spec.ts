@@ -31,7 +31,7 @@ test("one wall, actual metrics, accessible sheet, preview, and legal dialogs", a
   await expect(sheet.locator(".preview-ad p")).toHaveText(
     "A little piece of the internet.",
   );
-  await page.getByLabel("Buyer email").fill("buyer@example.com");
+  await expect(page.getByLabel("Buyer email")).toHaveCount(0);
   await page.getByLabel(/^Logo /).setInputFiles({
     name: "logo.svg",
     mimeType: "image/svg+xml",

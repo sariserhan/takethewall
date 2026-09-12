@@ -56,6 +56,9 @@ http.route({
         case "ownerRepeat":
           result = await ctx.runMutation(internal.owners.repeat, args);
           break;
+        case "ownerFeedback":
+          result = await ctx.runMutation(internal.owners.feedback, args);
+          break;
         case "ownerEdit":
           result = await ctx.runMutation(internal.owners.edit, args);
           break;

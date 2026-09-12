@@ -1,4 +1,5 @@
 export interface SharedTakeover {
+  previousOwnerName?: string | null;
   owner: {
     id: string;
     contentType: string;
@@ -24,6 +25,8 @@ export interface SharedTakeover {
   editorial?: string;
 }
 export interface OwnerDashboard extends SharedTakeover {
+  feedback?: "yes" | "no" | "unsure" | null;
+  feedbackEligible?: boolean;
   contentRevision: number;
   weeklyDigestEnabled: boolean;
   milestoneAlerts?: "on" | "pending" | "off";

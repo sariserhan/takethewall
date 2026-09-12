@@ -26,6 +26,7 @@ test("embedded checkout stays in the overlay and waits for server activation", a
       json: {
         state: confirmed ? "active" : "pending",
         durationMs: null,
+        previousOwnerName: confirmed ? "Paper Planes" : null,
         ...(confirmed ? { publicId: "ttw_" + "a".repeat(32) } : {}),
       },
     }),
@@ -34,8 +35,9 @@ test("embedded checkout stays in the overlay and waits for server activation", a
   const dialog = page.getByRole("dialog", { name: "MAKE IT YOURS." });
   await dialog.getByRole("button", { name: "Me / Message" }).click();
   await dialog.getByLabel("Display name").fill("EMBEDDED CHECKOUT TEST");
-  await dialog.getByLabel("Buyer email").fill("test@example.com");
+  await expect(dialog.getByLabel("Buyer email")).toHaveCount(0);
   await dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
+  await dialog.getByLabel("Buyer email").fill("test@example.com");
   await dialog
     .getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" })
     .click();
@@ -50,6 +52,9 @@ test("embedded checkout stays in the overlay and waits for server activation", a
   await expect(dialog.getByText("Your wall is live.")).toBeVisible({
     timeout: 10000,
   });
+  await expect(
+    dialog.getByText("You replaced", { exact: false }),
+  ).toContainText("Paper Planes");
   await expect(
     dialog.getByRole("button", { name: "Copy caption" }),
   ).toBeVisible();

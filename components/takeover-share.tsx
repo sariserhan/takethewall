@@ -5,11 +5,13 @@ import { Dialog } from "./dialog";
 import { useState } from "react";
 export function TakeoverShare({
   publicId,
+  previousOwnerName,
   name = "My takeover",
   editorial = false,
   revision = 0,
 }: {
   publicId: string;
+  previousOwnerName?: string | null;
   name?: string;
   editorial?: boolean;
   revision?: number;
@@ -18,7 +20,7 @@ export function TakeoverShare({
     [message, setMessage] = useState("");
   const path = `/takeover/${publicId}?via=share`;
   const caption = () =>
-    `${editorial ? name + " took the wall." : "I took the wall!"} One wall. One owner. $3.99 to take over until the next owner replaces you. ${new URL(path, window.location.origin).href}`;
+    `${editorial ? name + " took the wall." : "I took the wall!"}${previousOwnerName ? " I replaced " + previousOwnerName + "." : ""} One wall. One owner. $3.99 to take over until the next owner replaces you. ${new URL(path, window.location.origin).href}`;
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -32,6 +34,12 @@ export function TakeoverShare({
   return (
     <section className="growth-share" aria-label="Share this takeover">
       <h2>{editorial ? "Social post kit" : "Share my takeover"}</h2>
+      {previousOwnerName && (
+        <p className="replacement-story">
+          {editorial ? name + " replaced " : "You replaced "}
+          <strong>{previousOwnerName}</strong>.
+        </p>
+      )}
       <Image
         src={`/takeover/${publicId}/card?format=${format}&v=${revision}`}
         alt={`Share card for ${name}`}
@@ -104,7 +112,13 @@ export function TakeoverShare({
   );
 }
 
-export function PublishedShare({ publicId }: { publicId: string }) {
+export function PublishedShare({
+  publicId,
+  previousOwnerName,
+}: {
+  publicId: string;
+  previousOwnerName?: string | null;
+}) {
   const [open, setOpen] = useState(true);
   return (
     <>
@@ -116,7 +130,10 @@ export function PublishedShare({ publicId }: { publicId: string }) {
         onClose={() => setOpen(false)}
         title="YOUR TAKEOVER IS PUBLISHED."
       >
-        <TakeoverShare publicId={publicId} />
+        <TakeoverShare
+          publicId={publicId}
+          previousOwnerName={previousOwnerName}
+        />
       </Dialog>
     </>
   );

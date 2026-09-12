@@ -27,11 +27,14 @@ export async function GET(
       status: 404,
       headers: { "Cache-Control": "no-store" },
     });
-  const qr = await QRCode.toDataURL(`${ownerBaseUrl()}/takeover/${publicId}?via=share`, {
-    errorCorrectionLevel: "M",
-    margin: 4,
-    width: tall ? 220 : 160,
-  });
+  const qr = await QRCode.toDataURL(
+    `${ownerBaseUrl()}/takeover/${publicId}?via=share`,
+    {
+      errorCorrectionLevel: "M",
+      margin: 4,
+      width: tall ? 220 : 160,
+    },
+  );
   let logo: string | undefined;
   if (data.owner.logoUrl) {
     try {
@@ -125,6 +128,11 @@ export async function GET(
           >
             {owner.displayName || owner.domain}
           </span>
+          {data.previousOwnerName && (
+            <span style={{ fontSize: 22, overflowWrap: "break-word" }}>
+              I replaced {data.previousOwnerName}.
+            </span>
+          )}
           <span style={{ fontSize: 27, color: "#68685f" }}>
             {owner.description}
           </span>

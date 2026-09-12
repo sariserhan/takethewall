@@ -8,6 +8,7 @@ export function AdminGrowth() {
   const page = useQuery(api.growth.adminHistory, {
     ...(before ? { before } : {}),
   });
+  const feedback = useQuery(api.owners.recentFeedback, {});
   const enabled = useQuery(api.growth.visibility, {});
   const toggle = useMutation(api.growth.setHistoryVisibility);
   const [selected, setSelected] = useState(""),
@@ -16,6 +17,31 @@ export function AdminGrowth() {
   return (
     <section>
       <h2>Growth & sharing</h2>
+      <details className="owner-feedback">
+        <summary>
+          Owner feedback · {feedback?.length ?? "…"} recent responses
+        </summary>
+        <p>
+          Latest 50 answers to “Was your takeover worth $3.99?” Test responses
+          are labeled separately.
+        </p>
+        {feedback?.length === 0 && <p>No owner feedback yet.</p>}
+        {feedback?.map((row, i) => (
+          <p key={row.publicId ?? i}>
+            <strong>{row.name}</strong> —{" "}
+            {row.answer === "unsure"
+              ? "Not sure"
+              : row.answer === "yes"
+                ? "Yes"
+                : "No"}{" "}
+            · {new Date(row.at).toISOString().slice(0, 16).replace("T", " ")}{" "}
+            UTC ·{" "}
+            {row.environment === "production"
+              ? "Live purchase"
+              : "Test purchase"}
+          </p>
+        ))}
+      </details>
       <p>
         Prepare posts from public takeover content, inspect referral results,
         and review pages for search.

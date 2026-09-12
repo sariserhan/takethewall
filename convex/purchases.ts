@@ -1,3 +1,4 @@
+import { previousOwnerName } from "./model";
 import { sha } from "../lib/audit";
 import { incrementFunnel } from "./funnel";
 import { queueAdminTakeoverEmail } from "./adminNotifications";
@@ -334,6 +335,7 @@ export const confirmation = internalMutation({
     owner: v.union(publicOwner, v.null()),
     durationMs: v.union(v.number(), v.null()),
     publicId: v.optional(v.string()),
+    previousOwnerName: v.optional(v.union(v.string(), v.null())),
     analyticsAllowed: v.optional(v.boolean()),
   }),
   handler: async (ctx, a) => {
@@ -350,6 +352,7 @@ export const confirmation = internalMutation({
     return {
       state:
         t.status === "active" ? ("active" as const) : ("replaced" as const),
+      previousOwnerName: await previousOwnerName(ctx, t),
       analyticsAllowed: p.environment === "production" && !t.blocked,
       publicId: !t.blocked ? t.publicTakeoverId : undefined,
       owner: await projectOwner(ctx, t),

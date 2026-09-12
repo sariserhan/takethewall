@@ -40,7 +40,12 @@ export function TakeoverPreview({
           ))}
         </div>
       </div>
-      <div className={`preview-device ${device}`}>
+      <p className="preview-size">
+        {device === "desktop"
+          ? "Desktop · wide layout"
+          : "Mobile · portrait layout"}
+      </p>
+      <div className={`preview-device ${device}`} data-preview-device={device}>
         <div className="preview-masthead">TAKE THE WALL</div>
         <div className="preview-context">THIS WALL BELONGS TO</div>
         <div className="preview-creative">
@@ -65,8 +70,8 @@ export function TakeoverPreview({
       </div>
       <p className="field-note">
         {editing
-          ? `Content preview at ${device} proportions. Saving updates your live content without starting a new takeover.`
-          : `Content preview at ${device} proportions. Your number and start time are assigned after payment; this preview does not reserve the wall.`}
+          ? `Approximate ${device} layout. Images fit inside their space without cropping. Saving updates your live content without starting a new takeover.`
+          : `Approximate ${device} layout. Images fit inside their space without cropping. Your number and start time are assigned after payment; this preview does not reserve the wall.`}
       </p>
     </section>
   );

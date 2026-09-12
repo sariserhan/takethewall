@@ -34,6 +34,7 @@ it.each([
         clicks: 0,
         kind: "paid",
       },
+      previousOwnerName: "Paper Planes",
       active: false,
       replacedAt: 2,
       publicId: id,

@@ -70,6 +70,7 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 interface Confirmation {
+  previousOwnerName?: string | null;
   publicId?: string;
   state: "pending" | "active" | "replaced" | "invalid" | "expired";
   durationMs: number | null;
@@ -236,6 +237,7 @@ function WallView({
               <PublishedShare
                 key={confirmation.publicId}
                 publicId={confirmation.publicId}
+                previousOwnerName={confirmation.previousOwnerName}
               />
             )}
             {(!confirmation ||
@@ -449,10 +451,18 @@ function WallView({
                 ))}
               </ul>
             ) : (
-              <p>No impressions yet.</p>
+              <p>{owner ? "No regional breakdown yet." : "Waiting for analytics."}</p>
             )}
           </div>
         </section>
+        {(!connected || !owner || owner.impressions === 0) && (
+          <p className="analytics-status" role="status">
+            {!connected
+              ? owner ? "Reconnecting. Showing the last received counts while your placement stays visible." : "Connecting to the wall. Counts will appear when data is available."
+              : !owner ? "Waiting for the wall’s analytics. Unavailable counts are shown as a dash, not zero."
+              : "This placement is live. Recorded views and clicks will appear here as they arrive."}
+          </p>
+        )}
         <a
           className="analytics-credit"
           href="https://visitorping.com"

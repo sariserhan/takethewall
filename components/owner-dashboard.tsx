@@ -1,5 +1,5 @@
 "use client";
-import {RegionLabel} from "./region-label";
+import { RegionLabel } from "./region-label";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -202,6 +202,63 @@ export function OwnerDashboardView() {
         </p>
       </section>
       {error && <p role="alert">{error}</p>}
+      {data.feedbackEligible && (
+        <section className="owner-feedback" aria-label="Takeover feedback">
+          <h2>Was your takeover worth $3.99?</h2>
+          <p>
+            One optional question. Your answer is private and helps us improve
+            the wall.
+          </p>
+          <div className="owner-share-actions">
+            {(["yes", "no", "unsure"] as const).map((answer) => (
+              <button
+                key={answer}
+                disabled={busy}
+                aria-pressed={data.feedback === answer}
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  try {
+                    await request("feedback", { answer });
+                    setData({ ...data, feedback: answer });
+                    setNotice(
+                      "Thanks — your feedback is saved. You can change your answer here.",
+                    );
+                  } catch (e) {
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "Could not save feedback. Please try again.",
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {answer === "yes" ? "Yes" : answer === "no" ? "No" : "Not sure"}
+              </button>
+            ))}
+          </div>
+          {data.feedback && (
+            <p>
+              Your saved answer:{" "}
+              {data.feedback === "unsure"
+                ? "Not sure"
+                : data.feedback === "yes"
+                  ? "Yes"
+                  : "No"}
+              .
+            </p>
+          )}
+        </section>
+      )}
+      {owner.impressions === 0 && (
+        <p className="analytics-status">
+          {data.active
+            ? "Your placement is live. No views have been recorded yet. Share your public takeover link to invite people to see it."
+            : "No views were recorded for this reign. These are measured results, not a promise of exposure."}
+        </p>
+      )}
       <section className="owner-stats" aria-label="Your takeover analytics">
         {[
           ["CURRENT REIGN", reign],
@@ -314,6 +371,11 @@ export function OwnerDashboardView() {
         </section>
         <section className="owner-share-card">
           <h2>Share your moment.</h2>
+          {data.previousOwnerName && (
+            <p>
+              You replaced <strong>{data.previousOwnerName}</strong>.
+            </p>
+          )}
           <p>
             Show people your takeover. This public link never contains your
             dashboard access key.
@@ -350,7 +412,7 @@ export function OwnerDashboardView() {
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(
-                    `I took the wall! One wall. One owner. $3.99 to take over until the next owner replaces you. ${data.shareUrl}`,
+                    `I took the wall!${data.previousOwnerName ? " I replaced " + data.previousOwnerName + "." : ""} One wall. One owner. $3.99 to take over until the next owner replaces you. ${data.shareUrl}`,
                   );
                 } catch {
                   /* The public link remains selectable below. */
@@ -470,7 +532,7 @@ export function OwnerDashboardView() {
                 .slice(0, 5)
                 .map((r) => (
                   <li key={r.regionCode}>
-                    <RegionLabel code={r.regionCode}/>
+                    <RegionLabel code={r.regionCode} />
                     <strong>
                       {r.impressions.toLocaleString("en-US")} views
                     </strong>

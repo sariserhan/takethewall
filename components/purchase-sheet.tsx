@@ -83,11 +83,11 @@ export function PurchaseSheet({
     setError("");
     try {
       validateWallContent(draft);
-      validateEmail(draft.buyerEmail);
       if (!reviewing) {
         setReviewing(true);
         return;
       }
+      validateEmail(draft.buyerEmail);
       setBusy(true);
       const requestKey = draft.requestKey || crypto.randomUUID();
       const saved = { ...draft, requestKey };
@@ -147,12 +147,39 @@ export function PurchaseSheet({
         )
       ) : reviewing ? (
         <form className="purchase-review" onSubmit={submit}>
-          <p className="sheet-intro">Check your content before you pay.</p>
-          <TakeoverPreview draft={draft} />
-          <p>
-            Your private dashboard link and service emails go to{" "}
-            <strong>{draft.buyerEmail}</strong>.
+          <p className="sheet-intro">
+            Check your content, then add your email to continue to payment.
           </p>
+          <TakeoverPreview draft={draft} />
+          <fieldset disabled={busy} className="purchase-contact">
+            <legend>Where should we send your receipt?</legend>
+            <label>
+              Buyer email
+              <input
+                type="email"
+                maxLength={254}
+                autoComplete="email"
+                placeholder="you@example.com"
+                required
+                value={draft.buyerEmail}
+                onChange={(e) => change({ buyerEmail: e.target.value })}
+              />
+            </label>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={draft.weeklyDigestEnabled}
+                onChange={(e) =>
+                  change({ weeklyDigestEnabled: e.target.checked })
+                }
+              />
+              Email me a weekly stats summary while I own the wall.
+            </label>
+            <p className="field-note">
+              For your receipt, activation and replacement notices, plus your
+              private owner dashboard. Private. No account. No marketing.
+            </p>
+          </fieldset>
           {error && (
             <p role="alert" className="form-error">
               {error}
@@ -275,33 +302,6 @@ export function PurchaseSheet({
                     onChange={(e) => change({ description: e.target.value })}
                   />
                 </label>
-                <label>
-                  Buyer email
-                  <input
-                    type="email"
-                    maxLength={254}
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                    required
-                    value={draft.buyerEmail}
-                    onChange={(e) => change({ buyerEmail: e.target.value })}
-                  />
-                </label>
-                <label className="check-label">
-                  <input
-                    type="checkbox"
-                    checked={draft.weeklyDigestEnabled}
-                    onChange={(e) =>
-                      change({ weeklyDigestEnabled: e.target.checked })
-                    }
-                  />
-                  Email me a weekly stats summary while I own the wall.
-                </label>
-                <p className="field-note">
-                  For your receipt, activation and replacement notices, plus
-                  your private owner dashboard. Private. No account. No
-                  marketing.
-                </p>
               </fieldset>
               {error && (
                 <p className="form-error" role="alert">

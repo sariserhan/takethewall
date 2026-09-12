@@ -27,7 +27,10 @@ export async function projectOwner(ctx: QueryCtx, t: Doc<"takeovers">) {
     contentType: t.contentType ?? "link",
     linkType: t.linkType ?? "website",
     displayName: t.displayName ?? t.domain,
-    takeoverNumber: t.takeoverNumber === undefined ? null : t.takeoverNumber + await numberingOffset(ctx),
+    takeoverNumber:
+      t.takeoverNumber === undefined
+        ? null
+        : t.takeoverNumber + (await numberingOffset(ctx)),
     outboundLinkEnabled:
       t.outboundLinkEnabled !== false && t.contentType !== "personal",
     websiteUrl: t.websiteUrl,
@@ -132,3 +135,21 @@ export async function enqueue(
   });
 }
 export const zeros = { impressions: 0, uniqueVisitors: 0, clicks: 0 };
+
+// Resolve the actual preceding activation, never public demo overrides.
+export async function previousOwnerName(
+  ctx: QueryCtx,
+  takeover: Doc<"takeovers">,
+) {
+  if (!takeover.activationSequence) return null;
+  const previous = await ctx.db
+    .query("takeovers")
+    .withIndex("by_activationSequence", (q) =>
+      q.eq("activationSequence", takeover.activationSequence! - 1),
+    )
+    .unique();
+  if (!previous) return null;
+  if (previous.blocked || previous.status === "rejected")
+    return "Removed placement";
+  return previous.displayName || previous.domain || "House placement";
+}

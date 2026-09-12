@@ -1,3 +1,7 @@
+import { ownerFeedback } from "./schema";
+import { query } from "./_generated/server";
+import { previousOwnerName } from "./model";
+import { requireAdmin } from "./rewardModel";
 import { indexable } from "./growth";
 import { emailAllowed } from "./emailPolicy";
 import { requestSubscription } from "./milestoneAlerts";
@@ -11,6 +15,7 @@ import { audit } from "./rewardModel";
 import { validateEmail } from "../lib/validation";
 import { sha } from "../lib/audit";
 const shared = {
+  previousOwnerName: v.union(v.string(), v.null()),
   owner: publicOwner,
   active: v.boolean(),
   replacedAt: v.union(v.number(), v.null()),
@@ -30,6 +35,8 @@ export const dashboard = internalQuery({
   args: { token: v.string() },
   returns: v.object({
     ...shared,
+    feedback: v.union(ownerFeedback, v.null()),
+    feedbackEligible: v.boolean(),
     contentRevision: v.number(),
     weeklyDigestEnabled: v.boolean(),
     milestoneAlerts: v.union(
@@ -71,7 +78,14 @@ export const dashboard = internalQuery({
         : subscriber?.email && !subscriber.unsubscribedAt
           ? ("pending" as const)
           : ("off" as const),
+      feedback: access.feedback ?? null,
+      feedbackEligible:
+        t.replacedAt !== undefined &&
+        site.currentTakeoverId !== t._id &&
+        t.kind === "paid" &&
+        !!purchase?.paidAt,
       contentRevision: t.contentRevision ?? 0,
+      previousOwnerName: await previousOwnerName(ctx, t),
       owner: await projectOwner(ctx, t),
       active: site.currentTakeoverId === t._id && !t.blocked,
       replacedAt: t.replacedAt ?? null,
@@ -225,6 +239,7 @@ export const sharedTakeover = internalQuery({
       return null;
     const site = await getSite(ctx);
     return {
+      previousOwnerName: await previousOwnerName(ctx, t),
       owner: await projectOwner(ctx, t),
       active: site.currentTakeoverId === t._id,
       replacedAt: t.replacedAt ?? null,
@@ -427,5 +442,71 @@ export const repeat = internalMutation({
       buyerEmail: p?.buyerEmail ?? "",
       weeklyDigestEnabled: access.weeklyDigestEnabled,
     };
+  },
+});
+
+export const feedback = internalMutation({
+  args: { token: v.string(), answer: ownerFeedback },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    const access = await ownerAccess(ctx, a.token);
+    const takeover = await ctx.db.get(access.takeoverId);
+    const site = await getSite(ctx);
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", access.takeoverId))
+      .unique();
+    if (
+      !takeover ||
+      takeover.replacedAt === undefined ||
+      site.currentTakeoverId === takeover._id ||
+      takeover.kind !== "paid" ||
+      !purchase?.paidAt
+    )
+      throw new Error("Feedback is available after a paid reign ends.");
+    await limit(ctx, "owner-feedback:" + access._id, 10, 3600_000);
+    await ctx.db.patch(access._id, {
+      feedback: a.answer,
+      feedbackAt: Date.now(),
+    });
+    return null;
+  },
+});
+export const recentFeedback = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      name: v.string(),
+      publicId: v.union(v.string(), v.null()),
+      answer: ownerFeedback,
+      at: v.number(),
+      environment: v.string(),
+    }),
+  ),
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const rows = await ctx.db
+      .query("ownerAccess")
+      .withIndex("by_feedbackAt", (q) => q.gt("feedbackAt", 0))
+      .order("desc")
+      .take(50);
+    const results = [];
+    for (const row of rows) {
+      if (!row.feedback || !row.feedbackAt) continue;
+      const takeover = await ctx.db.get(row.takeoverId);
+      const purchase = await ctx.db
+        .query("purchases")
+        .withIndex("by_takeoverId", (q) => q.eq("takeoverId", row.takeoverId))
+        .unique();
+      if (!takeover) continue;
+      results.push({
+        name: takeover.displayName || takeover.domain,
+        publicId: takeover.publicTakeoverId ?? null,
+        answer: row.feedback,
+        at: row.feedbackAt,
+        environment: purchase?.environment ?? "unknown",
+      });
+    }
+    return results;
   },
 });

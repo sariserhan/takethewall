@@ -55,7 +55,7 @@ export function finalOwnerEmail(d: FinalReportSnapshot, dashboardUrl?: string) {
         : "Another confirmed purchase took the wall.";
   return emailTemplate(
     `Your final takeover report${number}`,
-    `${d.displayName}, your reign has ended. ${reason} Here is what your takeover achieved.`,
+    `${d.displayName}, your reign has ended. ${reason} Here is what your takeover achieved.${dashboardUrl ? " Open your private report to view your results. If you purchased this placement, you can also answer one optional question: was your takeover worth $3.99?" : ""}`,
     {
       eyebrow: "YOUR FINAL OWNER REPORT",
       metrics: [

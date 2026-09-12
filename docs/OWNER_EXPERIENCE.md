@@ -105,3 +105,15 @@ All application email sending now uses the shared mapping in `lib/email-routing.
 Each sender includes a recognizable Take The Wall display name. The existing verified Resend domain and API key are reused; no additional secret or per-address environment variable is needed. Email templates, recipients, and unsubscribe behavior remain unchanged. Stripe's own payment receipt emails are configured separately in Stripe.
 
 Both outboxes pin sender and Reply-To on the first delivery attempt so retries retain the same headers. Previously attempted jobs without a pinned sender use the existing `RESEND_FROM` and prior Reply-To behavior; keep that legacy variable unchanged until those jobs finish or leave their 23-hour retry window. New messages do not use it, and health checks no longer require it. Admin manual retries preserve the same routing snapshot.
+
+## Preview, sharing, and post-reign feedback
+
+The purchase form previews content before collecting an email address. The review step asks for the receipt email and weekly-summary preference; backend checkout validation still requires a valid email. Editing and returning to the review preserves the draft. Desktop and mobile preview modes use different proportions and fit images without cropping; they are approximate layouts, not reserved placements.
+
+Confirmation, owner dashboards, and generated share cards can identify the actual preceding activation. This is resolved from activation history, never demo overrides. A blocked predecessor is labeled “Removed placement”; missing history omits the statement.
+
+The homepage distinguishes unavailable data from zero recorded views, keeps the placement visible during reconnection, and explains an empty regional breakdown. These messages do not change analytics counters or polling.
+
+After a paid reign ends, its private owner dashboard asks “Was your takeover worth $3.99?” with Yes, No, or Not sure. The answer is optional, editable, rate-limited, and stored on that takeover’s owner-access record. Neither public share queries nor cards expose feedback. Active owners and unpaid/admin-issued placements cannot submit paid-purchase feedback. Final-report emails point owners to the existing private dashboard; no extra feedback email is scheduled.
+
+Admin → Growth shows the latest 50 responses with timestamps and live/test purchase labels. This is a recent-response list, not an all-time satisfaction score. Production needs the backend schema/functions and frontend deployed together.
