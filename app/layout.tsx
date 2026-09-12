@@ -6,7 +6,7 @@ import "@fontsource/dm-sans/latin-700.css";
 import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://takethewall.com",
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://takethewall.com",
   ),
   title: "Take The Wall — One Wall. One Owner. $3.99.",
   description:
