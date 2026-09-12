@@ -7,13 +7,14 @@ import "@fontsource/dm-sans/latin-700.css";
 import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
-  title: "Take The Wall — One Wall. One Owner. $3.99.",
+  title: "Take The Wall — One page. One owner. Who’s next?",
   description:
-    "Pay $3.99 and take over the only ad on the page. Keep it until somebody else pays $3.99.",
+    "One public page, one owner at a time. See what’s on the wall and who takes over next.",
   referrer: "no-referrer",
   openGraph: {
-    title: "Take The Wall — One Wall. One Owner. $3.99.",
-    description: "Pay $3.99. Take the wall. Keep it until someone else does.",
+    title: "Take The Wall — One page. One owner. Who’s next?",
+    description:
+      "One page. One owner. A project, a message, or something unexpected. See who owns the wall.",
     type: "website",
     siteName: "Take The Wall",
   },
