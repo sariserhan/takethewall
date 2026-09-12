@@ -69,12 +69,11 @@ function Metric({
         {label}
         {demo && (
           <small className="demo-badge">
-            {breakdown ? "Includes demo" : "Demo"}
+            {breakdown ? "Includes-demo" : "Demo"}
           </small>
         )}
       </span>
       <strong>{value}</strong>
-      {breakdown && <small className="demo-breakdown">{breakdown}</small>}
     </div>
   );
 }

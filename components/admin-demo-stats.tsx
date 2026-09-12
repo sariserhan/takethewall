@@ -62,7 +62,7 @@ function DemoForm({
       <h2>Demo stats</h2>
       <p>
         Add labeled demo amounts to the current wall’s real counts. Each total
-        shows its real + demo breakdown. For example, 10 real visitors plus 10
+        is labeled Includes-demo. For example, 10 real visitors plus 10
         demo visitors displays 20. Real counting continues underneath. Changing
         the wall owner ends this demo automatically.
       </p>

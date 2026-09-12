@@ -89,9 +89,8 @@ for (const extended of [false, true]) {
     await expect(
       metric("COUNTED TAKEOVERS").locator(".demo-badge"),
     ).toHaveCount(extended ? 1 : 0);
-    await expect(
-      metric("TOTAL VISITORS").locator(".demo-breakdown"),
-    ).toHaveText("10 real + 500 demo");
+    await expect(metric("TOTAL VISITORS").locator(".demo-badge")).toHaveText("Includes-demo");
+    await expect(page.locator(".demo-breakdown")).toHaveCount(0);
     await expect(metric("IMPRESSIONS").locator("strong")).toHaveText("250");
     await expect(metric("CLICKS").locator("strong")).toHaveText("25");
     await expect(metric("CTR").locator("strong")).toHaveText("10%");
