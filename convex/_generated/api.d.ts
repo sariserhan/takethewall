@@ -15,6 +15,8 @@ import type * as auditTrail from "../auditTrail.js";
 import type * as auth from "../auth.js";
 import type * as claimAuth from "../claimAuth.js";
 import type * as crons from "../crons.js";
+import type * as demoStats from "../demoStats.js";
+import type * as demoValues from "../demoValues.js";
 import type * as documents from "../documents.js";
 import type * as emailDelivery from "../emailDelivery.js";
 import type * as health from "../health.js";
@@ -48,6 +50,8 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   claimAuth: typeof claimAuth;
   crons: typeof crons;
+  demoStats: typeof demoStats;
+  demoValues: typeof demoValues;
   documents: typeof documents;
   emailDelivery: typeof emailDelivery;
   health: typeof health;

@@ -52,10 +52,21 @@ function Clock({ since }: { since: number }) {
   }, []);
   return <>{since && now ? duration(now - since) : "00:00:00"}</>;
 }
-function Metric({ label, value }: { label: string; value: React.ReactNode }) {
+function Metric({
+  label,
+  value,
+  demo = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  demo?: boolean;
+}) {
   return (
     <div className="metric">
-      <span>{label}</span>
+      <span>
+        {label}
+        {demo && <small className="demo-badge">Demo</small>}
+      </span>
       <strong>{value}</strong>
     </div>
   );
@@ -77,6 +88,7 @@ function WallView({
     [cancelled, setCancelled] = useState(false),
     [returnToken, setReturnToken] = useState<string | null>(null),
     [changed, setChanged] = useState(false);
+  const sample = data?.demoStats;
   const owner = data?.owner,
     adRef = useRef<HTMLAnchorElement>(null),
     previous = useRef<string | null>(null),
@@ -233,18 +245,31 @@ function WallView({
             been confirmed.
           </div>
         )}
+        {sample && (
+          <p className="demo-notice">
+            Demo mode: labeled numbers are sample data, not measured traffic.
+            Takeover and prize counts remain real.
+          </p>
+        )}
         <section className="site-metrics" aria-label="Site analytics">
           <Metric
             label="VISITORS TODAY (UTC)"
+            demo={!!sample}
             value={numbers(
-              data
-                ? data.utcDate === new Date().toISOString().slice(0, 10)
-                  ? data.visitorsToday
-                  : 0
-                : undefined,
+              sample
+                ? sample.visitorsToday
+                : data
+                  ? data.utcDate === new Date().toISOString().slice(0, 10)
+                    ? data.visitorsToday
+                    : 0
+                  : undefined,
             )}
           />
-          <Metric label="TOTAL VISITORS" value={numbers(data?.totalVisitors)} />
+          <Metric
+            label="TOTAL VISITORS"
+            demo={!!sample}
+            value={numbers(sample?.totalVisitors ?? data?.totalVisitors)}
+          />
           <Metric
             label="COUNTED TAKEOVERS"
             value={numbers(data?.totalTakeovers)}
@@ -344,17 +369,32 @@ function WallView({
               </>
             }
           />
-          <Metric label="IMPRESSIONS" value={numbers(owner?.impressions)} />
+          <Metric
+            label="IMPRESSIONS"
+            demo={!!sample}
+            value={numbers(sample?.impressions ?? owner?.impressions)}
+          />
           <Metric
             label="UNIQUE VISITORS"
-            value={numbers(owner?.uniqueVisitors)}
+            demo={!!sample}
+            value={numbers(sample?.uniqueVisitors ?? owner?.uniqueVisitors)}
           />
-          <Metric label="CLICKS" value={numbers(owner?.clicks)} />
+          <Metric
+            label="CLICKS"
+            demo={!!sample}
+            value={numbers(sample?.clicks ?? owner?.clicks)}
+          />
           <Metric
             label="CTR"
+            demo={!!sample}
             value={
               owner
-                ? `${ctr(owner.impressions, owner.clicks).toFixed(2).replace(/\.00$/, "")}%`
+                ? `${ctr(
+                    sample?.impressions ?? owner.impressions,
+                    sample?.clicks ?? owner.clicks,
+                  )
+                    .toFixed(2)
+                    .replace(/\.00$/, "")}%`
                 : "—"
             }
           />

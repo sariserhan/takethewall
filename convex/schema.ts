@@ -1,3 +1,4 @@
+import { demoValues } from "./demoValues";
 import { rewardTables } from "./rewardSchema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -34,6 +35,13 @@ export const visitorPingSnapshot = v.object({
   clicks: v.number(),
 });
 export default defineSchema({
+  demoStats: defineTable({
+    key: v.literal("current"),
+    enabled: v.boolean(),
+    takeoverId: v.id("takeovers"),
+    values: demoValues,
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
   ...rewardTables,
   takeoverAudit: defineTable({
     takeoverNumber: v.number(),

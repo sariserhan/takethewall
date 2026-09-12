@@ -1,4 +1,5 @@
 "use client";
+import { AdminDemoStats } from "./admin-demo-stats";
 import { AdminHealth } from "./admin-health";
 import Link from "next/link";
 import { LoadingSkeleton } from "./loading-skeleton";
@@ -10,6 +11,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 const sections = [
   "overview",
   "publish",
+  "demo stats",
   "takeovers",
   "milestones",
   "claims",
@@ -28,7 +30,7 @@ export function AdminDashboard() {
   const [before, setBefore] = useState<string | undefined>();
   const raw = useQuery(
     api.admin.list,
-    !["overview", "settings", "publish"].includes(section)
+    !["overview", "settings", "publish", "demo stats"].includes(section)
       ? { section, cursor: before }
       : "skip",
   );
@@ -65,7 +67,7 @@ export function AdminDashboard() {
       </nav>
       {error && <p role="alert">{error}</p>}
       {((section === "overview" && overview === undefined) ||
-        (!["overview", "settings", "publish"].includes(section) &&
+        (!["overview", "settings", "publish", "demo stats"].includes(section) &&
           raw === undefined)) && (
         <LoadingSkeleton label={`Loading ${section}`} />
       )}
@@ -102,6 +104,7 @@ export function AdminDashboard() {
         </>
       )}
       {section === "publish" && <AdminPublish />}
+      {section === "demo stats" && <AdminDemoStats />}
       {section === "settings" && <Settings />}
       {page && (
         <>

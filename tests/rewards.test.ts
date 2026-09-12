@@ -839,3 +839,29 @@ it("health diagnostics require admin access and expose configuration presence, n
   expect(result).not.toContain("private-resend-test-value");
   expect(JSON.parse(result)).toMatchObject({wallInitialized: true, lastPaymentAt: null, failedMail: 0, failedJobs: 0});
 });
+
+it("demo stats are admin-only, separate from real counters, and expire on owner change", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  const before = (await t.query(api.wall.current, {}))!;
+  const values = {visitorsToday:12,totalVisitors:100,impressions:50,uniqueVisitors:25,clicks:5};
+  const args = {enabled:true,values,reason:"Labeled launch demo",expectedCurrentId:before.owner.id};
+  await expect(t.mutation(api.demoStats.save,args)).rejects.toThrow("Administrator access required");
+  await expect(t.query(api.demoStats.read,{})).rejects.toThrow("Administrator access required");
+  await expect(admin.mutation(api.demoStats.save,{...args,values:{...values,clicks:51}})).rejects.toThrow("consistent");
+  await admin.mutation(api.demoStats.save,args);
+  expect(await t.query(api.wall.current,{})).toEqual({...before,demoStats:values});
+  await admin.mutation(api.demoStats.save,{...args,enabled:false});
+  expect((await t.query(api.wall.current,{}))?.demoStats).toBeNull();
+  await admin.mutation(api.demoStats.save,args);
+  await admin.mutation(api.admin.publish,{contentType:"personal",websiteUrl:"",displayName:"Next real owner",description:"Hello",countTowardMilestones:false,recipientEmail:"",reason:"Replacement",requestKey:"demo-replacement",expectedCurrentId:before.owner.id});
+  const after = (await t.query(api.wall.current,{}))!;
+  expect(after.demoStats).toBeNull();
+  expect(after.totalVisitors).toBe(before.totalVisitors);
+  expect(after.totalTakeovers).toBe(before.totalTakeovers);
+  expect(after.owner.impressions).toBe(0);
+  await expect(admin.mutation(api.demoStats.save,args)).rejects.toThrow("wall changed");
+  const events=await t.run(ctx=>ctx.db.query("adminAudit").collect());
+  expect(events.filter(e=>e.action==="DEMO_STATS_UPDATED")).toHaveLength(3);
+});

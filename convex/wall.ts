@@ -1,4 +1,5 @@
 import { query, internalMutation, internalQuery } from "./_generated/server";
+import { demoValues } from "./demoValues";
 import { v } from "convex/values";
 import { getSite, projectOwner, publicOwner, zeros } from "./model";
 export const current = query({
@@ -7,6 +8,7 @@ export const current = query({
     v.null(),
     v.object({
       owner: publicOwner,
+      demoStats: v.union(v.null(), demoValues),
       previousOwnerName: v.union(v.string(), v.null()),
       totalVisitors: v.number(),
       totalTakeovers: v.number(),
@@ -43,7 +45,13 @@ export const current = query({
       .query("takeoverRegions")
       .withIndex("by_takeoverId_regionCode", (q) => q.eq("takeoverId", t._id))
       .take(300);
+    const demo = await ctx.db
+      .query("demoStats")
+      .withIndex("by_key", (q) => q.eq("key", "current"))
+      .unique();
     return {
+      demoStats:
+        demo?.enabled && demo.takeoverId === t._id ? demo.values : null,
       owner: await projectOwner(ctx, t),
       previousOwnerName: previous
         ? previous.blocked || previous.status === "rejected"
