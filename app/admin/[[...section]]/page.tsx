@@ -10,6 +10,7 @@ export default async function Page({
     section.length > 1 ||
     ![
       "",
+      "publish",
       "takeovers",
       "milestones",
       "claims",

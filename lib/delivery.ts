@@ -47,7 +47,7 @@ export function emailMessage(a: {
   );
   return {
     subject: "Your takeover ended",
-    text: `Your advertisement for ${a.domain} was activated at ${at} and ended at ${new Date(a.replacedAt ?? a.activatedAt).toISOString()}, after ${seconds} seconds. ${a.endReason === "moderation" ? "It was removed under our content policy." : "Another confirmed purchase took the wall."} This describes your recorded reign. View the current wall at https://takethewall.com.`,
+    text: `Your advertisement for ${a.domain} was activated at ${at} and ended at ${new Date(a.replacedAt ?? a.activatedAt).toISOString()}, after ${seconds} seconds. ${a.endReason === "moderation" ? "It was removed under our content policy." : a.endReason === "admin" ? "An administrator published a new wall placement." : "Another confirmed purchase took the wall."} This describes your recorded reign. View the current wall at https://takethewall.com.`,
   };
 }
 export const retryDelay = (attempt: number) =>

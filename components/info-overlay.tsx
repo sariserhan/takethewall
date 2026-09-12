@@ -113,8 +113,9 @@ export function InfoOverlay() {
               <li>
                 <h3>Follow your place in history</h3>
                 <p>
-                  Each paid activation gets a number. Milestone rewards, where
-                  available, require eligibility review and confirmed payout.{" "}
+                  Paid activations and counted admin-issued placements get a
+                  number. Milestone rewards, where available, require
+                  eligibility review and confirmed payout.{" "}
                   <Link href="/?info=rewards">Read the Reward Rules</Link>.
                 </p>
               </li>
@@ -128,9 +129,10 @@ export function InfoOverlay() {
               filtering is best effort.
             </p>
             <p>
-              Clicks can exceed impressions; CTR is not capped. Only paid
-              activations count as takeovers. House placements and moderation
-              restorations do not receive a paid number.
+              Clicks can exceed impressions; CTR is not capped. Paid activations
+              and explicitly counted admin-issued placements count as takeovers.
+              Admin-issued entries record $0 collected. House placements and
+              moderation restorations do not receive a paid number.
             </p>
             <p>
               Live counters come from Convex. VisitorPing provides separate

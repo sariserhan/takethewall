@@ -10,8 +10,12 @@ import {
 import { disableCurrent } from "./operations";
 import { linkToken } from "../lib/claim-secrets";
 import { cascade } from "./rewards";
-import { plainText } from "../lib/content";
-import { limit } from "./model";
+import { plainText, validateWallContent } from "../lib/content";
+import { limit, zeros, daily, enqueue } from "./model";
+import { auditHash } from "../lib/audit";
+import { validateEmail } from "../lib/validation";
+import { onActivation } from "./rewardModel";
+import { internal } from "./_generated/api";
 import { canonical, sha } from "../lib/audit";
 import { settingsValue } from "./rewardSchema";
 export const identity = query({
@@ -721,5 +725,168 @@ export const saveSettings = mutation({
       hash,
     });
     return null;
+  },
+});
+
+// Admin issuance is a separate authorization path, never a Stripe bypass flag.
+export const publish = mutation({
+  args: {
+    contentType: v.union(v.literal("link"), v.literal("personal")),
+    websiteUrl: v.string(),
+    displayName: v.string(),
+    description: v.string(),
+    countTowardMilestones: v.boolean(),
+    recipientEmail: v.string(),
+    reason: v.string(),
+    requestKey: v.string(),
+    expectedCurrentId: v.union(v.id("takeovers"), v.null()),
+  },
+  returns: v.id("takeovers"),
+  handler: async (ctx, a) => {
+    const actor = await requireAdmin(ctx);
+    const requestKey = "admin:" + actor + ":" + plainText(a.requestKey, 100);
+    const content = validateWallContent(a);
+    const reason = plainText(a.reason, 1000);
+    const email = a.countTowardMilestones
+      ? validateEmail(a.recipientEmail)
+      : "";
+    const fingerprint = sha(
+      canonical({ content, reason, email, counted: a.countTowardMilestones }),
+    );
+    const prior = await ctx.db
+      .query("purchases")
+      .withIndex("by_requestKey", (q) => q.eq("requestKey", requestKey))
+      .unique();
+    if (prior) {
+      if (prior.fingerprint !== fingerprint)
+        throw new Error(
+          "This publish request was already used with different content.",
+        );
+      return prior.takeoverId;
+    }
+    await limit(ctx, "admin-publish:" + actor, 30);
+    const site = await ctx.db
+      .query("siteStats")
+      .withIndex("by_key", (q) => q.eq("key", "wall"))
+      .unique();
+    if ((site?.currentTakeoverId ?? null) !== a.expectedCurrentId)
+      throw new Error(
+        "The wall changed. Review the current owner before publishing again.",
+      );
+    if (
+      a.countTowardMilestones &&
+      site &&
+      (site.auditMigrationCursor !== undefined ||
+        (site.totalTakeovers > 0 && !site.auditHash))
+    )
+      throw new Error(
+        "Complete the history migration before issuing a counted takeover.",
+      );
+    const now = Date.now(),
+      sequence = site ? site.currentActivationSequence + 1 : 0;
+    const previous = site ? await ctx.db.get(site.currentTakeoverId) : null;
+    const id = await ctx.db.insert("takeovers", {
+      ...content,
+      kind: a.countTowardMilestones ? "admin_counted" : "admin_placement",
+      status: "active",
+      blocked: false,
+      createdAt: now,
+      activatedAt: now,
+      activationSequence: sequence,
+      ...zeros,
+    });
+    // Retain an explicit $0 issuance/recipient record for retries and reward claims.
+    // No paidAt, Checkout session, payment intent or payment event is fabricated.
+    await ctx.db.insert("purchases", {
+      takeoverId: id,
+      buyerEmail: email,
+      requestKey,
+      fingerprint,
+      tokenHash: sha(requestKey),
+      tokenExpiresAt: 0,
+      checkoutExpiresAt: 0,
+      environment:
+        process.env.WALL_ENVIRONMENT === "production" ? "production" : "test",
+      createdAt: now,
+      contactDeleteAt: now + 365 * 86400_000,
+      amountCents: 0,
+      currency: "usd",
+      issuedByAdmin: actor,
+      issuedAt: now,
+    });
+    if (previous) {
+      await ctx.db.patch(previous._id, {
+        status: "replaced",
+        replacedAt: now,
+        endReason: "admin",
+      });
+      if (previous.kind === "paid" || previous.kind === "admin_counted")
+        await enqueue(ctx, "replacement_email", previous._id);
+    }
+    const siteId =
+      site?._id ??
+      (await ctx.db.insert("siteStats", {
+        key: "wall",
+        currentTakeoverId: id,
+        currentActivationSequence: sequence,
+        totalVisitors: 0,
+        totalTakeovers: 0,
+        updatedAt: now,
+      }));
+    await ctx.db.patch(siteId, {
+      currentTakeoverId: id,
+      currentActivationSequence: sequence,
+      updatedAt: now,
+    });
+    if (a.countTowardMilestones) {
+      const number = (site?.totalTakeovers ?? 0) + 1;
+      const payload = {
+        takeoverNumber: number,
+        publicTakeoverId: "ttw_" + crypto.randomUUID().replaceAll("-", ""),
+        activatedAt: now,
+        amountCents: 0,
+        currency: "usd",
+        contentHash: auditHash({
+          type: content.contentType,
+          linkType: content.linkType,
+          destinationUrl: content.websiteUrl,
+          displayName: content.displayName,
+          description: content.description,
+          imageStorageId: null,
+        }),
+        previousAuditHash: site?.auditHash ?? "",
+      };
+      const hash = auditHash(payload);
+      await ctx.db.insert("takeoverAudit", {
+        ...payload,
+        takeoverId: id,
+        auditHash: hash,
+      });
+      await ctx.db.patch(id, {
+        takeoverNumber: number,
+        publicTakeoverId: payload.publicTakeoverId,
+        previousAuditHash: payload.previousAuditHash,
+        auditHash: hash,
+      });
+      await ctx.db.patch(siteId, { totalTakeovers: number, auditHash: hash });
+      const day = await daily(ctx);
+      await ctx.db.patch(day._id, { takeovers: day.takeovers + 1 });
+      await onActivation(ctx, number);
+      if (number % 100 === 0)
+        await ctx.scheduler.runAfter(0, internal.auditTrail.checkpoint, {});
+      await enqueue(ctx, "activation_email", id);
+      await enqueue(ctx, "takeover_activated", id);
+    }
+    await audit(
+      ctx,
+      actor,
+      "ADMIN_PUBLISH",
+      id,
+      { reason, counted: a.countTowardMilestones, amountCents: 0 },
+      a.countTowardMilestones
+        ? "Admin-issued counted takeover; $0 collected."
+        : "Admin placement; excluded from milestone count.",
+    );
+    return id;
   },
 });

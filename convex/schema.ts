@@ -3,6 +3,8 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 export const kind = v.union(
   v.literal("paid"),
+  v.literal("admin_counted"),
+  v.literal("admin_placement"),
   v.literal("initial_house"),
   v.literal("moderation_restoration"),
 );
@@ -70,7 +72,11 @@ export default defineSchema({
     status,
     sourceTakeoverId: v.optional(v.id("takeovers")),
     endReason: v.optional(
-      v.union(v.literal("purchase"), v.literal("moderation")),
+      v.union(
+        v.literal("purchase"),
+        v.literal("moderation"),
+        v.literal("admin"),
+      ),
     ),
     blocked: v.boolean(),
     createdAt: v.number(),
@@ -101,6 +107,8 @@ export default defineSchema({
     checkoutExpiresAt: v.number(),
     expiredConfirmed: v.optional(v.boolean()),
     cleanupAt: v.optional(v.number()),
+    issuedByAdmin: v.optional(v.string()),
+    issuedAt: v.optional(v.number()),
     paidAt: v.optional(v.number()),
     amountCents: v.optional(v.number()),
     currency: v.optional(v.string()),

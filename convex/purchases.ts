@@ -269,7 +269,7 @@ export const activate = internalMutation({
     if (takeoverNumber % 100 === 0)
       await ctx.scheduler.runAfter(0, internal.auditTrail.checkpoint, {});
     await enqueue(ctx, "activation_email", t._id);
-    if (previous.kind === "paid")
+    if (previous.kind === "paid" || previous.kind === "admin_counted")
       await enqueue(ctx, "replacement_email", previous._id);
     await enqueue(ctx, "checkout_completed", t._id);
     await enqueue(ctx, "takeover_activated", t._id);

@@ -140,7 +140,7 @@ export async function disableCurrent(
     operatorReference: a.operatorReference,
     timestamp: now,
   });
-  if (removed.kind === "paid")
+  if (removed.kind === "paid" || removed.kind === "admin_counted")
     await enqueue(ctx, "replacement_email", removed._id);
   return restoredId;
 }

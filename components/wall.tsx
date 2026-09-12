@@ -240,14 +240,19 @@ function WallView({
           )}
         />
         <Metric label="TOTAL VISITORS" value={numbers(data?.totalVisitors)} />
-        <Metric label="PAID TAKEOVERS" value={numbers(data?.totalTakeovers)} />
+        <Metric
+          label="COUNTED TAKEOVERS"
+          value={numbers(data?.totalTakeovers)}
+        />
       </section>
       <section className="owner-section" aria-label="Current owner">
         <p className="eyebrow">
           CURRENT TAKEOVER{" "}
           {owner?.takeoverNumber
-            ? `#${owner.takeoverNumber}`
-            : "HOUSE PLACEMENT"}
+            ? `#${owner.takeoverNumber}${owner.kind === "admin_counted" ? " · ADMIN-ISSUED" : ""}`
+            : owner?.kind === "admin_placement"
+              ? "ADMIN PLACEMENT"
+              : "HOUSE PLACEMENT"}
         </p>
         <p className="eyebrow ownership-label" aria-live="polite">
           {changed

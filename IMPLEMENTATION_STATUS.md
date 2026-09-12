@@ -64,3 +64,10 @@ Stripe and Resend webhooks are now registered and their signing secrets are pres
 - One footer includes How it works, all public information/legal overlays and the five separate milestone pages (#100 through #1,000,000). Existing information URLs redirect to their homepage overlay; Reward Rules version links retain their version.
 - Nested legal overlays preserve checkout drafts and background scroll locking.
 - Validation: lint, typecheck, 98 unit/backend tests, production build and 10 desktop/mobile enhancement browser tests passed. The optional-image backend change was synchronized to the cloud development deployment; production deployment remains separate.
+
+
+## Admin publishing with optional milestone counting
+
+`/admin/publish` lets a verified allowlisted administrator preview and publish website, app, social-profile or personal-message content without Stripe. The default uncounted mode replaces the wall but leaves numbering and prizes unchanged. Counted mode requires a recipient email, assigns the next number, appends a canonical $0 audit record and invokes the existing milestone/claim and checkpoint logic. Reward feature switches still apply.
+
+Admin issuances record their actor, reason and $0 amount; they have no Stripe identifiers or paid timestamp. Counters are labeled counted takeovers, and the homepage labels admin-issued entries. The ordinary paid Checkout path retains its payment checks. Each publishing request is idempotent and checks the expected current owner before changing the wall. Existing historical records and reward snapshots are not edited. Validation: 101 unit/backend tests, lint, typecheck and production build passed; backend synchronized to development.

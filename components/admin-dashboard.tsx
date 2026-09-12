@@ -1,11 +1,13 @@
 "use client";
 import Link from "next/link";
+import { AdminPublish } from "./admin-publish";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 const sections = [
   "overview",
+  "publish",
   "takeovers",
   "milestones",
   "claims",
@@ -23,7 +25,7 @@ export function AdminDashboard({ section }: { section: string }) {
   const [before, setBefore] = useState<string | undefined>();
   const raw = useQuery(
     api.admin.list,
-    !["overview", "settings"].includes(section)
+    !["overview", "settings", "publish"].includes(section)
       ? { section, cursor: before }
       : "skip",
   );
@@ -55,7 +57,7 @@ export function AdminDashboard({ section }: { section: string }) {
         <>
           <div className="admin-cards">
             {Object.entries({
-              "Paid takeovers": stats.site?.totalTakeovers ?? 0,
+              "Counted takeovers": stats.site?.totalTakeovers ?? 0,
               "Visitors today": stats.today?.visitors ?? 0,
               "Gross revenue today":
                 "$" + ((stats.today?.revenueCents ?? 0) / 100).toFixed(2),
@@ -82,6 +84,7 @@ export function AdminDashboard({ section }: { section: string }) {
           )}
         </>
       )}
+      {section === "publish" && <AdminPublish />}
       {section === "settings" && <Settings />}
       {page && (
         <>

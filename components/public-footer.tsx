@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Script from "next/script";
 import { MILESTONES } from "@/lib/config";
 import { InfoOverlay } from "./info-overlay";
 export const infoLinks = [
@@ -43,6 +44,11 @@ export function PublicFooter({ home = false }: { home?: boolean }) {
         </a>
       </footer>
       {home && <InfoOverlay />}
+      <Script
+        src="https://cdn.visitorping.com/site/vp_KMTZX9SH.js"
+        strategy="afterInteractive"
+        crossOrigin="anonymous"
+      />
     </>
   );
 }

@@ -625,3 +625,146 @@ it("deduplicates Resend callbacks and preserves out-of-order delivery history", 
   expect(rows).toHaveLength(2);
   expect(rows.map((r) => r.action)).toEqual(["EMAIL_DELIVERED", "EMAIL_SENT"]);
 });
+
+it("admin publishing enforces verified access and does not count ordinary placements", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const current = await t.query(api.wall.current, {});
+  const args = {
+    contentType: "link" as const,
+    websiteUrl: "https://instagram.com/example",
+    displayName: "Example",
+    description: "Hello",
+    countTowardMilestones: false,
+    recipientEmail: "",
+    reason: "House promotion",
+    requestKey: "admin-test-1",
+    expectedCurrentId: current!.owner.id,
+  };
+  for (const client of [
+    t,
+    t.withIdentity({ ...adminIdentity, email: "other@example.com" }),
+    t.withIdentity({ ...adminIdentity, emailVerified: false }),
+  ])
+    await expect(client.mutation(api.admin.publish, args)).rejects.toThrow(
+      "Administrator access required",
+    );
+  const admin = t.withIdentity(adminIdentity);
+  const id = await admin.mutation(api.admin.publish, args);
+  expect(await admin.mutation(api.admin.publish, args)).toBe(id);
+  const wall = await t.query(api.wall.current, {});
+  expect(wall).toMatchObject({
+    totalTakeovers: 0,
+    owner: {
+      id,
+      kind: "admin_placement",
+      linkType: "instagram",
+      takeoverNumber: null,
+    },
+  });
+  expect(
+    await t.run((ctx) => ctx.db.query("takeoverAudit").collect()),
+  ).toHaveLength(0);
+  expect(
+    await t.run((ctx) => ctx.db.query("rewardClaims").collect()),
+  ).toHaveLength(0);
+  await expect(
+    admin.mutation(api.admin.publish, { ...args, requestKey: "stale" }),
+  ).rejects.toThrow("The wall changed");
+  await expect(
+    admin.mutation(api.admin.publish, { ...args, description: "Changed" }),
+  ).rejects.toThrow("different content");
+});
+
+it("counted admin issuance opens a claim and joins paid hashes without inventing revenue or Stripe payments", async () => {
+  const t = await setup();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  const initial = await t.query(api.wall.current, {});
+  const args = {
+    contentType: "personal" as const,
+    websiteUrl: "",
+    displayName: "Sponsored recipient",
+    description: "Hello",
+    countTowardMilestones: true,
+    recipientEmail: "recipient@example.com",
+    reason: "Sponsored entry",
+    requestKey: "counted-test",
+    expectedCurrentId: initial!.owner.id,
+  };
+  await expect(
+    admin.mutation(api.admin.publish, { ...args, recipientEmail: "" }),
+  ).rejects.toThrow();
+  const id = await admin.mutation(api.admin.publish, args);
+  await admin.mutation(api.admin.publish, args);
+  expect(await firstClaim(t)).toMatchObject({
+    takeoverId: id,
+    takeoverNumber: 1,
+    email: "recipient@example.com",
+    status: "pending_claim",
+  });
+  expect(await t.query(api.wall.current, {})).toMatchObject({
+    totalTakeovers: 1,
+    owner: { kind: "admin_counted", takeoverNumber: 1 },
+  });
+  const issuance = await t.run((ctx) =>
+    ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", id))
+      .unique(),
+  );
+  expect(issuance).toMatchObject({ amountCents: 0, issuedByAdmin: "admin-1" });
+  expect(issuance?.paidAt).toBeUndefined();
+  expect(issuance?.sessionId).toBeUndefined();
+  expect(issuance?.paymentIntentId).toBeUndefined();
+  expect(
+    await t.run((ctx) => ctx.db.query("paymentEvents").collect()),
+  ).toHaveLength(0);
+  await activate(t, 7);
+  const history = await t.query(api.auditTrail.entries, {});
+  expect(history.entries.map((x) => x.amountCents)).toEqual([0, 399]);
+  expect(history.entries[1].previousAuditHash).toBe(
+    history.entries[0].auditHash,
+  );
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({
+    valid: true,
+  });
+  const day = await t.run((ctx) => ctx.db.query("dailyStats").first());
+  expect(day).toMatchObject({ takeovers: 2, revenueCents: 399 });
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query("takeovers")
+        .withIndex("by_status", (q) => q.eq("status", "active"))
+        .collect(),
+    ),
+  ).toHaveLength(1);
+  const audits = await t.run((ctx) => ctx.db.query("adminAudit").collect());
+  expect(audits.filter((x) => x.action === "ADMIN_PUBLISH")).toHaveLength(1);
+});
+
+it("admin can initialize an empty wall and unsafe destinations are rejected", async () => {
+  const t = make();
+  vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
+  const admin = t.withIdentity(adminIdentity);
+  const args = {
+    contentType: "link" as const,
+    websiteUrl: "javascript:alert(1)",
+    displayName: "Example",
+    description: "",
+    countTowardMilestones: false,
+    recipientEmail: "",
+    reason: "Launch",
+    requestKey: "initial",
+    expectedCurrentId: null,
+  };
+  await expect(admin.mutation(api.admin.publish, args)).rejects.toThrow();
+  await admin.mutation(api.admin.publish, {
+    ...args,
+    websiteUrl: "https://example.com",
+  });
+  expect(await t.query(api.wall.current, {})).toMatchObject({
+    totalTakeovers: 0,
+    owner: { domain: "example.com" },
+  });
+});

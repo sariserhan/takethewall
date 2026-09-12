@@ -89,6 +89,9 @@ test("private admin and claim pages do not leak records or send analytics", asyn
   await expect(page.getByText("Paid takeovers", { exact: true })).toHaveCount(
     0,
   );
+  await page.goto("/admin/publish");
+  await expect(page.getByRole("heading", { name: "ADMIN SIGN IN" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Preview placement" })).toHaveCount(0);
   await page.goto("/reward/portal");
   await expect(
     page.getByRole("heading", { name: "SIGN IN TO YOUR CLAIM" }),

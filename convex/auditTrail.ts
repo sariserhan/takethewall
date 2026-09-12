@@ -23,12 +23,13 @@ export const migrate = internalMutation({
       cursor = site.auditMigrationCursor ?? -1;
     for (const t of rows) {
       cursor = t.activationSequence ?? cursor;
-      if (t.kind !== "paid" || !t.activatedAt) continue;
+      if ((t.kind !== "paid" && t.kind !== "admin_counted") || !t.activatedAt)
+        continue;
       const p = await ctx.db
         .query("purchases")
         .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
         .unique();
-      if (!p?.paidAt) continue;
+      if (!p?.paidAt && !p?.issuedAt) continue;
       number++;
       const publicTakeoverId =
         t.publicTakeoverId ?? "ttw_" + crypto.randomUUID().replaceAll("-", "");
