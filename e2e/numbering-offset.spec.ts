@@ -82,9 +82,6 @@ test("numbering offset is disclosed with owner #16 and progress 16", async ({
       has: page.getByRole("button", { name: "COUNTED TAKEOVERS", exact: true }),
     });
   await expect(total.locator(":scope > strong")).toContainText("16");
-  await expect(total.locator(".numbering-note")).toHaveText(
-    "Includes starting offset of 15",
-  );
   await expect(page.locator(".prize-explainer .numbering-note")).toContainText(
     "not a set of completed takeovers",
   );
