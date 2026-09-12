@@ -101,3 +101,13 @@ Terms, Privacy, Disclaimer, Disclosure and versioned Reward Rules are implemente
 The implemented endpoint is `https://takethewall.com/api/webhooks/resend`. Set its signing secret as `RESEND_WEBHOOK_SECRET` in Vercel (and `.env.local` for local tests). Subscribe to `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained`, `email.failed`, and `email.suppressed`; `email.scheduled` is also supported. `email.received` is acknowledged but ignored because inbound-mail handling is not implemented.
 
 The handler verifies the unmodified request body with Svix, rejects stale/invalid signatures, bounds payload size, and records only the email ID, event type and event time in the protected admin audit log. Duplicate event IDs are idempotent; out-of-order events remain separate historical entries. It does not store email bodies, recipients, OTPs or claim links, and it does not automatically resend failed messages or create a suppression list. Persistence failures return 500 for provider retry. The signing secret belongs in Next.js/Vercel; sending credentials remain in Convex.
+
+## Embedded Stripe Checkout
+
+Set `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` on Vercel (and locally for rehearsal): `pk_test_…` with test keys, `pk_live_…` with live keys. It must belong to the same Stripe account as STRIPE_SECRET_KEY. The API validates the environment prefix before creating a purchase.
+
+Checkout is embedded in the purchase overlay. Sessions use `ui_mode=embedded_page`, `redirect_on_completion=if_required`, and the existing opaque return-token URL for payment methods requiring redirects. Client secrets are returned only in a no-store API response and held in browser component memory. The server stores the session ID; retried creation uses the same Stripe idempotency key. Existing hosted sessions remain valid and are not modified.
+
+The client completion callback waits for `/api/status`; only the existing verified Stripe webhook activates a takeover. No new webhook event subscriptions are needed. See [Stripe embedded Checkout](https://docs.stripe.com/checkout/embedded/quickstart?client=react) and [redirect behavior](https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form).
+
+Embedded Checkout validation: 105 unit/backend tests plus desktop/mobile browser tests with a simulated Stripe SDK and delayed server activation passed. A real Stripe iframe/payment rehearsal is pending the matching publishable key. The simulated tests do not validate card entry, wallets or 3DS with Stripe.

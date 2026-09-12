@@ -1,6 +1,12 @@
 "use client";
 import { contentCta, validateWallContent } from "@/lib/content";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import type { CheckoutSession } from "./embedded-payment";
+const EmbeddedPayment = dynamic(() => import("./embedded-payment"), {
+  ssr: false,
+  loading: () => <p role="status">Loading secure payment…</p>,
+});
 import Link from "next/link";
 import { Arrow } from "./arrow";
 import { useEffect, useState } from "react";
@@ -41,6 +47,7 @@ export function PurchaseSheet({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false);
+  const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   // Hydrate a browser-only saved draft after server rendering.
   useEffect(() => {
     try {
@@ -110,14 +117,18 @@ export function PurchaseSheet({
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error ?? "Couldn't start checkout. Try again.");
-      const destination = new URL(data.url);
       if (
-        destination.hostname !== "checkout.stripe.com" ||
-        destination.protocol !== "https:"
+        typeof data.clientSecret !== "string" ||
+        typeof data.publishableKey !== "string" ||
+        typeof data.token !== "string"
       )
-        throw new Error("Unexpected checkout destination");
+        throw new Error("Checkout is unavailable. Please try again.");
       onCheckout();
-      window.location.assign(destination.toString());
+      try {
+        sessionStorage.setItem("ttw-confirmation", data.token);
+      } catch {}
+      setCheckout(data);
+      setBusy(false);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Couldn't start checkout. Try again.",
@@ -138,180 +149,197 @@ export function PurchaseSheet({
       title="MAKE IT YOURS."
       wide
     >
-      <p className="sheet-intro">
-        One payment. Your ad goes live. Until someone else takes it.
-      </p>
-      <div className="purchase-grid">
-        <form onSubmit={submit} className="purchase-form">
-          <fieldset disabled={busy}>
-            <legend>WHAT DO YOU WANT TO PUT ON THE WALL?</legend>
-            <div className="content-choices">
-              {(["website", "app", "social", "personal"] as const).map(
-                (category) => (
-                  <button
-                    type="button"
-                    aria-pressed={draft.category === category}
-                    key={category}
-                    onClick={() =>
-                      change({
-                        category,
-                        contentType:
-                          category === "personal" ? "personal" : "link",
-                      })
-                    }
-                  >
-                    {
-                      {
-                        website: "Website",
-                        app: "App",
-                        social: "Social",
-                        personal: "Me / Message",
-                      }[category]
-                    }
-                  </button>
-                ),
-              )}
-            </div>
-            <label>
-              Display name{" "}
-              {draft.contentType !== "personal" && (
-                <span className="field-hint">
-                  Optional; defaults to the domain
-                </span>
-              )}
-              <input
-                maxLength={60}
-                required={draft.contentType === "personal"}
-                value={draft.displayName}
-                onChange={(e) => change({ displayName: e.target.value })}
-              />
-            </label>
-            {draft.contentType !== "personal" && (
-              <>
+      {checkout ? (
+        open && (
+          <EmbeddedPayment
+            session={checkout}
+            onClose={(verified) => {
+              if (verified) {
+                setCheckout(null);
+                setDraft(empty);
+              }
+              onClose();
+            }}
+          />
+        )
+      ) : (
+        <>
+          <p className="sheet-intro">
+            One payment. Your ad goes live. Until someone else takes it.
+          </p>
+          <div className="purchase-grid">
+            <form onSubmit={submit} className="purchase-form">
+              <fieldset disabled={busy}>
+                <legend>WHAT DO YOU WANT TO PUT ON THE WALL?</legend>
+                <div className="content-choices">
+                  {(["website", "app", "social", "personal"] as const).map(
+                    (category) => (
+                      <button
+                        type="button"
+                        aria-pressed={draft.category === category}
+                        key={category}
+                        onClick={() =>
+                          change({
+                            category,
+                            contentType:
+                              category === "personal" ? "personal" : "link",
+                          })
+                        }
+                      >
+                        {
+                          {
+                            website: "Website",
+                            app: "App",
+                            social: "Social",
+                            personal: "Me / Message",
+                          }[category]
+                        }
+                      </button>
+                    ),
+                  )}
+                </div>
                 <label>
-                  {draft.category === "app"
-                    ? "App Store / Google Play URL"
-                    : draft.category === "social"
-                      ? "Profile/channel URL"
-                      : "Website URL"}
+                  Display name{" "}
+                  {draft.contentType !== "personal" && (
+                    <span className="field-hint">
+                      Optional; defaults to the domain
+                    </span>
+                  )}
                   <input
-                    type="url"
-                    autoComplete="url"
-                    placeholder="https://your-website.com"
-                    required
-                    value={draft.websiteUrl}
-                    onChange={(e) => change({ websiteUrl: e.target.value })}
+                    maxLength={60}
+                    required={draft.contentType === "personal"}
+                    value={draft.displayName}
+                    onChange={(e) => change({ displayName: e.target.value })}
                   />
                 </label>
-              </>
-            )}
-            <label>
-              {draft.category === "personal"
-                ? "Optional avatar/image"
-                : draft.category === "app"
-                  ? "App icon"
-                  : draft.category === "social"
-                    ? "Image/avatar"
-                    : "Logo"}{" "}
-              <span className="field-hint">
-                Optional · PNG, JPEG or WEBP · 2 MB max
-              </span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(e) => void upload(e.target.files?.[0])}
-                disabled={uploading}
-              />
-            </label>
-            {uploading && (
-              <p role="status">Checking and uploading your logo…</p>
-            )}
-            <label>
-              {draft.contentType === "personal"
-                ? "Optional message"
-                : "Description"}{" "}
-              <span className="field-hint">
-                {[...draft.description].length}/120
-              </span>
-              <textarea
-                rows={3}
-                maxLength={120}
-                placeholder="Make your 120 characters count."
-                value={draft.description}
-                onChange={(e) => change({ description: e.target.value })}
-              />
-            </label>
-            <label>
-              Buyer email
-              <input
-                type="email"
-                maxLength={254}
-                autoComplete="email"
-                placeholder="you@example.com"
-                required
-                value={draft.buyerEmail}
-                onChange={(e) => change({ buyerEmail: e.target.value })}
-              />
-            </label>
-            <p className="field-note">
-              For your receipt, activation and replacement notices. Private. No
-              account. No marketing.
-            </p>
-          </fieldset>
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          <button
-            className="button pay"
-            disabled={busy || uploading}
-            type="submit"
-          >
-            {busy ? "Preparing checkout…" : "PAY $3.99 & TAKE THE WALL"}
-            <Arrow />
-          </button>
-          <p className="field-note">
-            Checkout does not reserve a takeover number. By paying, you accept
-            the <Link href="/terms">Terms</Link> and{" "}
-            <Link href="/rewards">Reward Rules</Link>. No guaranteed duration,
-            audience, impressions or clicks. No refunds for a short reign or low
-            traffic.
-          </p>
-        </form>
-        <aside className="preview">
-          <span className="eyebrow">YOUR WALL PREVIEW</span>
-          <div className="preview-ad">
-            {draft.logoUrl ? (
-              <Image
-                src={draft.logoUrl}
-                width={140}
-                height={140}
-                alt="Your logo preview"
-                unoptimized
-              />
-            ) : null}
-            <h3>
-              {draft.displayName ||
-                (draft.contentType === "personal" ? "YOUR NAME" : domain)}
-            </h3>
-            <p>
-              {draft.description ||
-                "Your big moment. Your little corner of the internet."}
-            </p>
-            {draft.contentType !== "personal" && (
-              <span className="visit">
-                {contentCta()} <Arrow />
-              </span>
-            )}
+                {draft.contentType !== "personal" && (
+                  <>
+                    <label>
+                      {draft.category === "app"
+                        ? "App Store / Google Play URL"
+                        : draft.category === "social"
+                          ? "Profile/channel URL"
+                          : "Website URL"}
+                      <input
+                        type="url"
+                        autoComplete="url"
+                        placeholder="https://your-website.com"
+                        required
+                        value={draft.websiteUrl}
+                        onChange={(e) => change({ websiteUrl: e.target.value })}
+                      />
+                    </label>
+                  </>
+                )}
+                <label>
+                  {draft.category === "personal"
+                    ? "Optional avatar/image"
+                    : draft.category === "app"
+                      ? "App icon"
+                      : draft.category === "social"
+                        ? "Image/avatar"
+                        : "Logo"}{" "}
+                  <span className="field-hint">
+                    Optional · PNG, JPEG or WEBP · 2 MB max
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => void upload(e.target.files?.[0])}
+                    disabled={uploading}
+                  />
+                </label>
+                {uploading && (
+                  <p role="status">Checking and uploading your logo…</p>
+                )}
+                <label>
+                  {draft.contentType === "personal"
+                    ? "Optional message"
+                    : "Description"}{" "}
+                  <span className="field-hint">
+                    {[...draft.description].length}/120
+                  </span>
+                  <textarea
+                    rows={3}
+                    maxLength={120}
+                    placeholder="Make your 120 characters count."
+                    value={draft.description}
+                    onChange={(e) => change({ description: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Buyer email
+                  <input
+                    type="email"
+                    maxLength={254}
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    required
+                    value={draft.buyerEmail}
+                    onChange={(e) => change({ buyerEmail: e.target.value })}
+                  />
+                </label>
+                <p className="field-note">
+                  For your receipt, activation and replacement notices. Private.
+                  No account. No marketing.
+                </p>
+              </fieldset>
+              {error && (
+                <p className="form-error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button
+                className="button pay"
+                disabled={busy || uploading}
+                type="submit"
+              >
+                {busy ? "Preparing checkout…" : "PAY $3.99 & TAKE THE WALL"}
+                <Arrow />
+              </button>
+              <p className="field-note">
+                Checkout does not reserve a takeover number. By paying, you
+                accept the <Link href="/terms">Terms</Link> and{" "}
+                <Link href="/rewards">Reward Rules</Link>. No guaranteed
+                duration, audience, impressions or clicks. No refunds for a
+                short reign or low traffic.
+              </p>
+            </form>
+            <aside className="preview">
+              <span className="eyebrow">YOUR WALL PREVIEW</span>
+              <div className="preview-ad">
+                {draft.logoUrl ? (
+                  <Image
+                    src={draft.logoUrl}
+                    width={140}
+                    height={140}
+                    alt="Your logo preview"
+                    unoptimized
+                  />
+                ) : null}
+                <h3>
+                  {draft.displayName ||
+                    (draft.contentType === "personal" ? "YOUR NAME" : domain)}
+                </h3>
+                <p>
+                  {draft.description ||
+                    "Your big moment. Your little corner of the internet."}
+                </p>
+                {draft.contentType !== "personal" && (
+                  <span className="visit">
+                    {contentCta()} <Arrow />
+                  </span>
+                )}
+              </div>
+              <div className="preview-footer">
+                It could be yours for
+                <br />
+                <strong>1 second or 100 days.</strong>
+              </div>
+            </aside>
           </div>
-          <div className="preview-footer">
-            It could be yours for
-            <br />
-            <strong>1 second or 100 days.</strong>
-          </div>
-        </aside>
-      </div>
+        </>
+      )}
     </Dialog>
   );
 }

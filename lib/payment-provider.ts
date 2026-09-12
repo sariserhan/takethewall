@@ -11,7 +11,7 @@ export interface PaymentProvider {
   createCheckout(
     args: Parameters<typeof checkoutParameters>[0],
     idempotencyKey: string,
-  ): Promise<{ id: string; url: string | null }>;
+  ): Promise<{ id: string; url: string | null; clientSecret: string | null }>;
   verifyWebhook(body: string, signature: string): Stripe.Event;
   getPayment(id: string): Promise<Stripe.PaymentIntent>;
   refundPayment(
@@ -36,7 +36,7 @@ export const paymentProvider: PaymentProvider = {
     const s = await stripe.checkout.sessions.create(checkoutParameters(args), {
       idempotencyKey,
     });
-    return { id: s.id, url: s.url };
+    return { id: s.id, url: s.url, clientSecret: s.client_secret };
   },
   verifyWebhook(body, signature) {
     const event = getStripe().webhooks.constructEvent(

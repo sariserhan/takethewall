@@ -27,6 +27,7 @@ beforeEach(() => {
   vi.stubEnv("WALL_SERVER_SECRET", "x".repeat(40));
   vi.stubEnv("CONVEX_HTTP_URL", "https://local.convex.site");
   vi.stubEnv("WALL_ENVIRONMENT", "test");
+  vi.stubEnv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "pk_test_example");
   create.mockReset();
   retrieve.mockReset();
 });
@@ -121,7 +122,8 @@ describe("real route boundaries", () => {
     vi.stubGlobal("fetch", fetcher);
     create.mockResolvedValue({
       id: "cs_test_1",
-      url: "https://checkout.stripe.com/c/pay/test",
+      url: null,
+      client_secret: "cs_test_1_secret_example",
     });
     const data = {
       websiteUrl: "https://example.com",
@@ -152,7 +154,14 @@ describe("real route boundaries", () => {
       { idempotencyKey: "takeover:purchase123" },
     );
     const params = create.mock.calls[0][0];
-    expect(params.success_url).not.toContain(data.buyerEmail);
+    expect(params.return_url).not.toContain(data.buyerEmail);
+    expect(params.ui_mode).toBe("embedded_page");
+    expect(params.success_url).toBeUndefined();
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toMatchObject({
+      clientSecret: "cs_test_1_secret_example",
+      publishableKey: "pk_test_example",
+    });
     expect(params.metadata).not.toHaveProperty("email");
   });
 });

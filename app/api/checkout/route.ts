@@ -39,6 +39,13 @@ export async function POST(req: Request) {
         "Live checkout is unavailable in this environment",
         503,
       );
+    const publishableKey = env("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+    if (
+      !publishableKey.startsWith(
+        environment === "production" ? "pk_live_" : "pk_test_",
+      )
+    )
+      throw new HttpError("Payment configuration is unavailable.", 503);
     const token = statusToken(a.requestKey),
       siteUrl = env("NEXT_PUBLIC_SITE_URL").replace(/\/$/, "");
     const pending = await backend<{
@@ -47,7 +54,7 @@ export async function POST(req: Request) {
       checkoutUrl: string | null;
       checkoutExpiresAt: number;
     }>("pending", {
-      requestKey: a.requestKey,
+      requestKey: "embedded:" + a.requestKey,
       fingerprint: hash(JSON.stringify([content, buyerEmail, a.uploadKey])),
       tokenHash: hash(token),
       ownerHash: clientHash(req),
@@ -60,7 +67,6 @@ export async function POST(req: Request) {
       buyerEmail,
       environment,
     });
-    if (pending.checkoutUrl) return Response.json({ url: pending.checkoutUrl });
     const session = await paymentProvider.createCheckout(
       {
         takeoverId: pending.takeoverId,
@@ -73,13 +79,16 @@ export async function POST(req: Request) {
       },
       "takeover:" + pending.purchaseId,
     );
-    if (!session.url) throw new HttpError("Checkout unavailable", 503);
+    if (!session.clientSecret) throw new HttpError("Checkout unavailable", 503);
     await backend("attach", {
       purchaseId: pending.purchaseId,
       sessionId: session.id,
-      checkoutUrl: session.url,
+      checkoutUrl: "",
     });
-    return Response.json({ url: session.url });
+    return Response.json(
+      { clientSecret: session.clientSecret, publishableKey, token },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (e) {
     return failure(e);
   }

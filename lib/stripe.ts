@@ -48,8 +48,9 @@ export function checkoutParameters(a: {
     ],
     allow_promotion_codes: false,
     adaptive_pricing: { enabled: false },
-    success_url: `${a.siteUrl}/?purchase=${a.token}`,
-    cancel_url: `${a.siteUrl}/?cancelled=1`,
+    ui_mode: "embedded_page",
+    redirect_on_completion: "if_required",
+    return_url: `${a.siteUrl}/?purchase=${a.token}`,
     expires_at: Math.floor(a.expiresAt / 1000),
   };
 }

@@ -57,8 +57,9 @@ describe("Checkout and webhook boundary", () => {
         { quantity: 1, price_data: { unit_amount: 399, currency: "usd" } },
       ],
       allow_promotion_codes: false,
-      success_url: "https://takethewall.com/?purchase=opaque",
-      cancel_url: "https://takethewall.com/?cancelled=1",
+      ui_mode: "embedded_page",
+      redirect_on_completion: "if_required",
+      return_url: "https://takethewall.com/?purchase=opaque",
     });
     expect(p.metadata).not.toHaveProperty("email");
   });
