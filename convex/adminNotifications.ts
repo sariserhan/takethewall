@@ -1,7 +1,19 @@
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { enqueue, getSite } from "./model";
 import { ownerBaseUrl } from "../lib/owner-secrets";
+
+export async function notificationSettings(ctx: QueryCtx) {
+  const row = await ctx.db
+    .query("notificationSettings")
+    .withIndex("by_key", (q) => q.eq("key", "current"))
+    .unique();
+  return {
+    enabled: row?.enabled ?? true,
+    recipient: row?.recipient ?? "serhan.sari@yahoo.com",
+    revision: row?.revision ?? 0,
+  };
+}
 
 // Capture the activation transaction so retries cannot report subsequently edited content.
 export async function queueAdminTakeoverEmail(
@@ -9,6 +21,8 @@ export async function queueAdminTakeoverEmail(
   id: Id<"takeovers">,
 ) {
   if (process.env.WALL_ENVIRONMENT !== "production") return;
+  const preferences = await notificationSettings(ctx);
+  if (!preferences.enabled) return;
   const t = await ctx.db.get(id);
   if (!t?.activatedAt) return;
   const p = await ctx.db
@@ -62,6 +76,7 @@ export async function queueAdminTakeoverEmail(
       : [`Wall: ${ownerBaseUrl()}`]),
   ].join("\n\n");
   await ctx.db.patch(job._id, {
+    adminRecipient: preferences.recipient,
     adminNotice: {
       subject: `New takeover ${number} — ${t.displayName ?? t.domain}`,
       body,

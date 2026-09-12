@@ -45,7 +45,7 @@ export function emailTemplate(
             .metrics!.slice(i * 2, i * 2 + 2)
             .map(
               (m) =>
-                `<td width="50%" valign="top" style="padding:16px 12px;border:1px solid #babbb0;"><span style="font-size:11px;text-transform:uppercase;color:#68685f;">${escapeHtml(m.label)}</span><br><strong style="font-size:30px;line-height:1.4;">${escapeHtml(m.value)}</strong></td>`,
+                `<td ${i * 2 + 1 >= presentation.metrics!.length ? 'colspan="2" width="100%"' : 'width="50%"'} valign="top" style="padding:16px 12px;border:1px solid #babbb0;"><span style="font-size:11px;text-transform:uppercase;color:#68685f;">${escapeHtml(m.label)}</span><br><strong style="font-size:30px;line-height:1.4;">${escapeHtml(m.value)}</strong></td>`,
             )
             .join("")}</tr>`,
       ).join("")}</table>`

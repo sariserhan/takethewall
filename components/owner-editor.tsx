@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { OwnerDashboard } from "@/lib/owner-types";
 import { validateWallContent } from "@/lib/content";
-import { validateFile } from "@/lib/validation";
+import { ImageUpload } from "./image-upload";
 import { Dialog } from "./dialog";
 import { TakeoverPreview } from "./takeover-preview";
 
@@ -17,6 +17,7 @@ export function OwnerEditor({
     [review, setReview] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [imagePending, setImagePending] = useState(false);
   const [revision, setRevision] = useState(0);
   const [draft, setDraft] = useState({
     contentType: "link",
@@ -37,6 +38,7 @@ export function OwnerEditor({
       uploadKey: "",
       removeImage: false,
     });
+    setImagePending(false);
     setRevision(data.contentRevision ?? 0);
     setReview(false);
     setError("");
@@ -46,34 +48,9 @@ export function OwnerEditor({
     setDraft((d) => ({ ...d, [key]: value }));
     setReview(false);
   }
-  async function upload(file: File) {
-    setBusy(true);
-    setError("");
-    try {
-      validateFile(file);
-      const form = new FormData();
-      form.set("logo", file);
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: form,
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Image upload failed.");
-      setDraft((d) => ({
-        ...d,
-        logoUrl: result.logoUrl,
-        uploadKey: result.uploadKey,
-        removeImage: false,
-      }));
-      setReview(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Image upload failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (busy || imagePending) return;
     setError("");
     try {
       validateWallContent(draft);
@@ -181,19 +158,16 @@ export function OwnerEditor({
                   onChange={(e) => field("description", e.target.value)}
                 />
               </label>
-              <label>
-                Replace image
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void upload(file);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-              <p className="field-note">PNG, JPEG, or WEBP, up to 2 MB.</p>
+              <ImageUpload
+                key={String(open)}
+                label="Replace image"
+                disabled={busy}
+                onPending={setImagePending}
+                onUploaded={(result) => {
+                  setDraft((d) => ({ ...d, ...result, removeImage: false }));
+                  setReview(false);
+                }}
+              />
               {draft.logoUrl && (
                 <button
                   type="button"
@@ -231,7 +205,7 @@ export function OwnerEditor({
             <button
               type="submit"
               className="button"
-              disabled={busy || !data.active}
+              disabled={busy || imagePending || !data.active}
             >
               {busy
                 ? "Saving…"

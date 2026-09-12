@@ -210,6 +210,20 @@ test("current owner previews and saves a correction without checkout", async ({
     contentRevision: 0,
     owner: { ...owner },
   };
+  const sharp = (await import("sharp")).default;
+  const image = await sharp({
+    create: { width: 160, height: 80, channels: 3, background: "#4488aa" },
+  })
+    .png()
+    .toBuffer();
+  await page.route("**/api/upload", (r) =>
+    r.fulfill({
+      json: {
+        uploadKey: "owner-crop",
+        logoUrl: "data:image/png;base64," + image.toString("base64"),
+      },
+    }),
+  );
   let edits = 0,
     payments = 0;
   await page.route("**/api/checkout", (r) => {
@@ -221,6 +235,7 @@ test("current owner previews and saves a correction without checkout", async ({
     if (a.action === "edit") {
       edits++;
       expect(a.expectedRevision).toBe(0);
+      expect(a.uploadKey).toBe("owner-crop");
       expect(a.token).toBeUndefined();
       current = {
         ...current,
@@ -245,6 +260,20 @@ test("current owner previews and saves a correction without checkout", async ({
     .getByRole("button", { name: "Edit your content", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "Edit your content" });
+  await dialog
+    .locator("input[type=file]")
+    .setInputFiles({ name: "owner.png", mimeType: "image/png", buffer: image });
+  await dialog.getByLabel("Image shape").selectOption("square");
+  await expect(
+    dialog.getByRole("button", { name: "Preview changes", exact: true }),
+  ).toBeDisabled();
+  await dialog
+    .getByRole("button", { name: "Apply image", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("button", { name: "Preview changes", exact: true }),
+  ).toBeEnabled();
+
   await dialog
     .getByLabel("Display name", { exact: true })
     .fill("Raven Studio corrected");
@@ -296,4 +325,82 @@ test("current owner previews and saves a correction without checkout", async ({
       "Editing is closed because this takeover is no longer live.",
     ),
   ).toBeVisible();
+});
+
+test("image crop is applied before purchase preview and can be cancelled", async ({
+  page,
+}, info) => {
+  const sharp = (await import("sharp")).default;
+  const png = await sharp({
+    create: {
+      width: 800,
+      height: 400,
+      channels: 3,
+      background: { r: 70, g: 130, b: 170 },
+    },
+  })
+    .png()
+    .toBuffer();
+  let uploadCalls = 0;
+  await wallFixture(page);
+  await page.route("**/api/upload", async (route) => {
+    uploadCalls++;
+    const req = route.request();
+    const form = await new Response(new Uint8Array(req.postDataBuffer()!), {
+      headers: { "Content-Type": req.headers()["content-type"] },
+    }).formData();
+    expect(JSON.parse(String(form.get("crop")))).toMatchObject({
+      shape: "square",
+      zoom: 4,
+      x: 100,
+    });
+    return route.fulfill({
+      json: {
+        uploadKey: "crop-fixture",
+        logoUrl: "data:image/png;base64," + png.toString("base64"),
+      },
+    });
+  });
+  await page.goto("/?take=1");
+  const dialog = page.getByRole("dialog", { name: "MAKE IT YOURS." });
+  await dialog
+    .getByRole("button", { name: "Me / Message", exact: true })
+    .click();
+  await dialog
+    .locator("input[type=file]")
+    .setInputFiles({ name: "crop.png", mimeType: "image/png", buffer: png });
+  await expect(dialog.getByLabel("Image shape")).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }),
+  ).toBeDisabled();
+  await dialog.getByLabel("Image shape").selectOption("square");
+  await dialog.getByRole("slider", { name: /Zoom/ }).press("End");
+  await dialog
+    .getByRole("slider", { name: "Horizontal position" })
+    .press("End");
+  await page.screenshot({
+    path: `/tmp/crop-${info.project.name}.png`,
+    fullPage: false,
+  });
+  await dialog
+    .getByRole("button", { name: "Apply image", exact: true })
+    .click();
+  await expect(dialog.getByLabel("Image shape")).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }),
+  ).toBeEnabled();
+  expect(uploadCalls).toBe(1);
+  await dialog
+    .locator("input[type=file]")
+    .setInputFiles({ name: "crop.png", mimeType: "image/png", buffer: png });
+  await dialog.getByRole("button", { name: "Cancel image change" }).click();
+  expect(uploadCalls).toBe(1);
+  await expect(
+    dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }),
+  ).toBeEnabled();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });

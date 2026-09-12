@@ -128,7 +128,7 @@ export async function enqueue(
     timestamp: Date.now(),
     state: "pending",
     attempts: 0,
-    nextAt: Date.now(),
+    nextAt: Date.now() + (kind === "replacement_email" ? 120_001 : 0),
   });
 }
 export const zeros = { impressions: 0, uniqueVisitors: 0, clicks: 0 };

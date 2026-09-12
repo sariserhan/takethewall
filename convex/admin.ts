@@ -1,4 +1,4 @@
-import { queueAdminTakeoverEmail } from "./adminNotifications";
+import { queueAdminTakeoverEmail, notificationSettings } from "./adminNotifications";
 import { numberingOffset } from "./numbering";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -896,4 +896,23 @@ export const publish = mutation({
     );
     return id;
   },
+});
+
+export const getNotificationSettings = query({
+ args:{},returns:v.object({enabled:v.boolean(),recipient:v.string(),revision:v.number()}),
+ handler:async(ctx)=>{await requireAdmin(ctx);return notificationSettings(ctx);},
+});
+export const saveNotificationSettings = mutation({
+ args:{enabled:v.boolean(),recipient:v.string(),expectedRevision:v.number()},returns:v.null(),
+ handler:async(ctx,a)=>{
+  const actor = await requireAdmin(ctx), before = await notificationSettings(ctx);
+  if (a.expectedRevision !== before.revision) throw new Error("Notification settings changed. Reload before saving.");
+  const recipient = validateEmail(a.recipient);
+  await limit(ctx,"notification-settings:"+actor,20);
+  const row = await ctx.db.query("notificationSettings").withIndex("by_key",q=>q.eq("key","current")).unique();
+  const after = {enabled:a.enabled,recipient,revision:before.revision+1};
+  if(row) await ctx.db.patch(row._id,after); else await ctx.db.insert("notificationSettings",{key:"current",...after});
+  await audit(ctx,actor,"NOTIFICATION_SETTINGS_UPDATED","notifications",{before,after});
+  return null;
+ },
 });

@@ -1,4 +1,5 @@
-import { weeklyOwnerEmail } from "../lib/owner-email";
+import { notificationSettings } from "./adminNotifications";
+import { weeklyOwnerEmail, finalOwnerEmail } from "../lib/owner-email";
 import {
   ownerBaseUrl,
   ownerToken,
@@ -12,7 +13,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { jobKind, digestSnapshot } from "./schema";
+import { jobKind, digestSnapshot, finalReportSnapshot } from "./schema";
 import { limit } from "./model";
 import { emailMessage, retryDelay, visitorPingPayload } from "../lib/delivery";
 export const claim = internalMutation({
@@ -27,6 +28,35 @@ export const claim = internalMutation({
       j.nextAt > Date.now()
     )
       return false;
+    if (j.kind === "replacement_email" && !j.finalReport) {
+      const takeover = await ctx.db.get(j.takeoverId);
+      if (!takeover?.activatedAt || takeover.replacedAt === undefined)
+        return false;
+      if (Date.now() <= takeover.replacedAt + 120_000) {
+        await ctx.db.patch(j._id, { nextAt: takeover.replacedAt + 120_001 });
+        return false;
+      }
+      const site = await ctx.db
+        .query("siteStats")
+        .withIndex("by_key", (q) => q.eq("key", "wall"))
+        .unique();
+      await ctx.db.patch(j._id, {
+        finalReport: {
+          displayName: takeover.displayName ?? takeover.domain,
+          number:
+            takeover.takeoverNumber === undefined
+              ? null
+              : takeover.takeoverNumber + (site?.numberingOffset ?? 0),
+          impressions: takeover.impressions,
+          uniqueVisitors: takeover.uniqueVisitors,
+          clicks: takeover.clicks,
+          activatedAt: takeover.activatedAt,
+          replacedAt: takeover.replacedAt,
+          snapshotAt: Date.now(),
+          endReason: takeover.endReason ?? "purchase",
+        },
+      });
+    }
     if (j.attempts >= 12) {
       await ctx.db.patch(j._id, {
         state: "failed",
@@ -88,10 +118,12 @@ export const data = internalQuery({
       unsubscribeUrl: v.optional(v.string()),
       oneClickUnsubscribeUrl: v.optional(v.string()),
       digest: v.optional(digestSnapshot),
+      finalReport: v.optional(finalReportSnapshot),
       adminNotice: v.optional(
         v.object({ subject: v.string(), body: v.string() }),
       ),
       digestAllowed: v.boolean(),
+      adminNotificationEnabled: v.boolean(),
     }),
   ),
   handler: async (ctx, a) => {
@@ -117,7 +149,13 @@ export const data = internalQuery({
             .withIndex("by_key", (q) => q.eq("key", "wall"))
             .unique()
         : null;
+    const notifications =
+      j.kind === "admin_takeover_email"
+        ? await notificationSettings(ctx)
+        : null;
     return {
+      adminNotificationEnabled: notifications?.enabled ?? false,
+      ...(j.finalReport ? { finalReport: j.finalReport } : {}),
       ...(access && j.kind.endsWith("_email")
         ? {
             dashboardUrl: `${ownerBaseUrl()}/owner#token=${ownerToken(access.seed)}`,
@@ -153,7 +191,7 @@ export const data = internalQuery({
       ...(t.endReason ? { endReason: t.endReason } : {}),
       email:
         j.kind === "admin_takeover_email"
-          ? "serhan.sari@yahoo.com"
+          ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
           : (p?.buyerEmail ?? ""),
       environment: p?.environment ?? process.env.WALL_ENVIRONMENT ?? "test",
     };
@@ -173,7 +211,12 @@ export const finish = internalMutation({
     await ctx.db.patch(
       j._id,
       a.ok
-        ? { state: "sent", sentAt: Date.now(), lastError: undefined, adminNotice: undefined }
+        ? {
+            state: "sent",
+            sentAt: Date.now(),
+            lastError: undefined,
+            adminNotice: undefined,
+          }
         : {
             state: a.permanent || j.attempts >= 12 ? "failed" : "pending",
             nextAt: Date.now() + retryDelay(j.attempts),
@@ -229,7 +272,8 @@ export const dispatch = internalAction({
           if (
             !j.email ||
             (j.kind === "admin_takeover_email" &&
-              (j.environment !== "production" ||
+              (!j.adminNotificationEnabled ||
+                j.environment !== "production" ||
                 process.env.WALL_ENVIRONMENT !== "production")) ||
             (j.kind === "weekly_digest_email" && !j.digestAllowed)
           ) {
@@ -270,24 +314,26 @@ export const dispatch = internalAction({
                   footnote:
                     "Activation snapshot. Content and ownership may have changed since this notification.",
                 })
-              : j.kind === "weekly_digest_email"
-                ? weeklyOwnerEmail(
-                    j.digest!,
-                    j.dashboardUrl!,
-                    j.unsubscribeUrl!,
-                  )
-                : emailTemplate(
-                    message.subject,
-                    message.text,
-                    j.dashboardUrl
-                      ? {
-                          cta: {
-                            label: "Open your private dashboard",
-                            url: j.dashboardUrl,
-                          },
-                        }
-                      : {},
-                  );
+              : j.kind === "replacement_email"
+                ? finalOwnerEmail(j.finalReport!, j.dashboardUrl)
+                : j.kind === "weekly_digest_email"
+                  ? weeklyOwnerEmail(
+                      j.digest!,
+                      j.dashboardUrl!,
+                      j.unsubscribeUrl!,
+                    )
+                  : emailTemplate(
+                      message.subject,
+                      message.text,
+                      j.dashboardUrl
+                        ? {
+                            cta: {
+                              label: "Open your private dashboard",
+                              url: j.dashboardUrl,
+                            },
+                          }
+                        : {},
+                    );
           response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {

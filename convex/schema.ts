@@ -39,7 +39,9 @@ export const visitorPingSnapshot = v.object({
 });
 export const digestSnapshot = v.object({displayName:v.string(),number:v.union(v.number(),v.null()),impressions:v.number(),uniqueVisitors:v.number(),clicks:v.number(),activatedAt:v.number(),snapshotAt:v.number()});
 export const editableContent = v.object({contentType:v.string(),linkType:v.string(),websiteUrl:v.string(),domain:v.string(),displayName:v.string(),description:v.string(),logoStorageId:v.optional(v.id("_storage"))});
+export const finalReportSnapshot = v.object({...digestSnapshot.fields,replacedAt:v.number(),endReason:v.string()});
 export default defineSchema({
+  notificationSettings: defineTable({key:v.literal("current"),enabled:v.boolean(),recipient:v.string(),revision:v.number()}).index("by_key",["key"]),
   ownerAccess: defineTable({takeoverId:v.id("takeovers"),seed:v.string(),tokenHash:v.string(),unsubscribeHash:v.string(),weeklyDigestEnabled:v.boolean(),createdAt:v.number()}).index("by_takeover",["takeoverId"]).index("by_token",["tokenHash"]).index("by_unsubscribe",["unsubscribeHash"]),
   demoStats: defineTable({
     key: v.literal("current"),
@@ -211,6 +213,8 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_expiresAt", ["expiresAt"]),
   jobs: defineTable({
+    finalReport:v.optional(finalReportSnapshot),
+    adminRecipient:v.optional(v.string()),
     adminNotice: v.optional(v.object({subject:v.string(),body:v.string()})),
     digest:v.optional(digestSnapshot),
     key: v.string(),

@@ -1,4 +1,5 @@
 "use client";
+import { AdminNotifications } from "./admin-notifications";
 import { AdminDemoStats } from "./admin-demo-stats";
 import { AdminHealth } from "./admin-health";
 import Link from "next/link";
@@ -112,7 +113,7 @@ export function AdminDashboard() {
       )}
       {section === "publish" && <AdminPublish />}
       {section === "demo stats" && <AdminDemoStats />}
-      {section === "settings" && <Settings />}
+      {section === "settings" && <><AdminNotifications/><Settings /></>}
       {page && (
         <>
           <div className="admin-table-wrap">

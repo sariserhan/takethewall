@@ -521,3 +521,145 @@ it("cleanup retains original winning images after an owner replaces them", async
     await t.run(async (ctx) => Boolean(await ctx.storage.get(original))),
   ).toBe(true);
 });
+
+it("final report waits for late events and keeps a stable snapshot across retries", async () => {
+  const { t, id, publish } = await setup();
+  vi.stubEnv("PUBLIC_METRICS_ENABLED", "true");
+  const started = Date.now();
+  await t.run((ctx) =>
+    ctx.db.patch(id, { impressions: 10, uniqueVisitors: 4, clicks: 1 }),
+  );
+  vi.advanceTimersByTime(3600_000);
+  const ended = Date.now();
+  await publish("replacement");
+  const job = (await t.run((ctx) =>
+    ctx.db
+      .query("jobs")
+      .withIndex("by_key", (q) => q.eq("key", `replacement_email:${id}:`))
+      .unique(),
+  ))!;
+  await t.run(async (ctx) => {
+    for (const j of await ctx.db.query("jobs").collect())
+      if (j._id !== job._id) await ctx.db.patch(j._id, { state: "sent" });
+  });
+  vi.stubEnv("RESEND_API_KEY", "fake");
+  vi.stubEnv("RESEND_FROM", "notification@takethewall.com");
+  const send = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("provider down"))
+    .mockResolvedValue(new Response("{}", { status: 200 }));
+  vi.stubGlobal("fetch", send);
+  await t.action(internal.jobs.dispatch, {});
+  expect(send).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(60_000);
+  await t.mutation(internal.analytics.record, {
+    takeoverId: id,
+    event: "impression",
+    visitorHash: "late-visitor",
+    pageId: "late-page",
+    eventId: "late-event",
+    region: "US",
+    issuedAt: ended - 1000,
+    expiresAt: ended + 240_000,
+    excluded: false,
+  });
+  vi.advanceTimersByTime(60_001);
+  await t.action(internal.jobs.dispatch, {});
+  expect(send).toHaveBeenCalledTimes(1);
+  const report = (await t.run((ctx) => ctx.db.get(job._id)))!.finalReport!;
+  expect(report).toMatchObject({
+    impressions: 11,
+    uniqueVisitors: 5,
+    clicks: 1,
+    activatedAt: started,
+    replacedAt: ended,
+  });
+  const first = send.mock.calls[0][1].body;
+  await t.run((ctx) => ctx.db.patch(id, { impressions: 999 }));
+  vi.advanceTimersByTime(31_000);
+  await t.action(internal.jobs.dispatch, {});
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(send.mock.calls[1][1].body).toBe(first);
+  const mail = JSON.parse(first);
+  expect(mail.to).toEqual(["first@example.com"]);
+  expect(mail.subject).toContain("final takeover report");
+  expect(mail.text).toContain("01:00:00");
+  expect(mail.text).toContain("9.09%");
+  expect(mail.text).not.toContain("999");
+  expect(mail.html).toContain("View your takeover report");
+  await t.action(internal.jobs.dispatch, {});
+  expect(send).toHaveBeenCalledTimes(2);
+});
+it("only admins can change notification settings; recipient changes affect future jobs and disabling suppresses queued alerts", async () => {
+  const { t, admin, publish } = await setup();
+  await expect(t.query(api.admin.getNotificationSettings, {})).rejects.toThrow(
+    "Administrator access",
+  );
+  await expect(
+    t.mutation(api.admin.saveNotificationSettings, {
+      enabled: true,
+      recipient: "other@example.com",
+      expectedRevision: 0,
+    }),
+  ).rejects.toThrow("Administrator access");
+  await expect(
+    admin.mutation(api.admin.saveNotificationSettings, {
+      enabled: true,
+      recipient: "bad\nemail",
+      expectedRevision: 0,
+    }),
+  ).rejects.toThrow("email");
+  await admin.mutation(api.admin.saveNotificationSettings, {
+    enabled: true,
+    recipient: "new@example.com",
+    expectedRevision: 0,
+  });
+  await expect(
+    admin.mutation(api.admin.saveNotificationSettings, {
+      enabled: false,
+      recipient: "new@example.com",
+      expectedRevision: 0,
+    }),
+  ).rejects.toThrow("changed");
+  vi.stubEnv("WALL_ENVIRONMENT", "production");
+  const id = await publish("notified");
+  const job = (await t.run((ctx) =>
+    ctx.db
+      .query("jobs")
+      .withIndex("by_key", (q) => q.eq("key", `admin_takeover_email:${id}:`))
+      .unique(),
+  ))!;
+  expect(job.adminRecipient).toBe("new@example.com");
+  await admin.mutation(api.admin.saveNotificationSettings, {
+    enabled: true,
+    recipient: "future@example.com",
+    expectedRevision: 1,
+  });
+  expect((await t.query(internal.jobs.data, { id: job._id }))!.email).toBe(
+    "new@example.com",
+  );
+  await admin.mutation(api.admin.saveNotificationSettings, {
+    enabled: false,
+    recipient: "future@example.com",
+    expectedRevision: 2,
+  });
+  await t.run(async (ctx) => {
+    for (const j of await ctx.db.query("jobs").collect())
+      if (j._id !== job._id) await ctx.db.patch(j._id, { state: "sent" });
+  });
+  const send = vi.fn();
+  vi.stubGlobal("fetch", send);
+  await t.action(internal.jobs.dispatch, {});
+  expect(send).not.toHaveBeenCalled();
+  const next = await publish("muted");
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query("jobs")
+        .withIndex("by_key", (q) =>
+          q.eq("key", `admin_takeover_email:${next}:`),
+        )
+        .unique(),
+    ),
+  ).toBeNull();
+});

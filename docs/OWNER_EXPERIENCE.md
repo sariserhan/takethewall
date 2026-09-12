@@ -35,3 +35,21 @@ Every new production paid takeover or admin publication queues a branded email t
 The snapshot is captured in the activation transaction, with one job per takeover. Retries reuse the same idempotency key; edits and repeated payment webhooks do not produce additional takeover notifications. Delivery uses the existing outbox dispatcher. Development/test activations are suppressed. There is no backfill for past takeovers and no new required environment variable or webhook. Temporary notification snapshots are removed after successful delivery and follow contact deletion when undelivered.
 
 Validation for this update: 130 unit/backend tests and 12 desktop/mobile browser flows passed; lint, typecheck, production build, and development Convex sync passed. Mail was rendered at 390px and 900px with the logo loaded and no horizontal overflow. Provider calls were mocked; no live test email was sent.
+
+## Final report, crop controls, and notification preferences
+
+Replacement email is now the final takeover report: measured impressions, unique visitors, clicks, CTR, and duration, with UTC start/end times and the private dashboard button. It is a service email independent of weekly-digest preferences. The outbox waits until the two-minute late-event window closes, then freezes the metrics on first claim so provider retries retain the same payload. Expect delivery roughly two to three minutes after replacement, subject to provider availability. Paid replacement, admin publication, and moderation use the same report with the correct explanation.
+
+New uploads in checkout and owner editing offer Original, Square, Landscape (16:9), and Portrait (4:5), plus zoom, drag, and horizontal/vertical sliders. Apply image uploads the original file and validated crop settings. The server corrects EXIF orientation, computes the bounded pixel crop, and stores the same optimized image shown everywhere. Cancel leaves the current image unchanged. Preview/payment/save waits until the selected image is applied or cancelled. Existing published images can be adjusted by choosing the source file again in Edit your content.
+
+In `/admin` → Settings → Takeover notifications, admins can change the recipient and toggle alerts. Defaults remain enabled and `serhan.sari@yahoo.com`. Recipients are captured per new activation; changing the recipient affects future jobs. Disabling also suppresses queued alerts before dispatch, but cannot recall an email already sent or in flight. Saving settings checks the administrator allowlist, validates the email, detects stale revisions, and records an audit entry. Owner activation, final-report, and weekly emails are unaffected.
+
+## Production verification after rollout
+
+1. Deploy the committed frontend and Convex backend together. Confirm the existing production health panel reports Stripe live mode and Resend configuration present.
+2. In admin Settings, confirm takeover notifications are enabled and the recipient is the intended inbox.
+3. Publish one real takeover through embedded checkout using an inbox you control, reviewing the image crop first. The person testing must complete the actual $3.99 payment.
+4. Verify exactly one activation and takeover-number increment, the owner's activation email/private dashboard link, and the administrator notification with the matching Stripe reference. Duplicate webhook delivery must not create another takeover or email.
+5. During a later genuine replacement, verify the original owner's final report after the late-event window, and compare it with their private dashboard. Do not create another paid takeover solely to test the report without approving that purchase.
+
+Automated checks use simulated payment/email responses; successful builds and mocked delivery do not prove real inbox delivery. No live charge or test email has been made for this update.

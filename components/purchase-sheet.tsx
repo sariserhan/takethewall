@@ -1,4 +1,5 @@
 "use client";
+import { ImageUpload } from "./image-upload";
 import { TakeoverPreview } from "./takeover-preview";
 import { validateWallContent } from "@/lib/content";
 import dynamic from "next/dynamic";
@@ -11,7 +12,7 @@ import Link from "next/link";
 import { Arrow } from "./arrow";
 import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
-import { validateEmail, validateFile } from "@/lib/validation";
+import { validateEmail } from "@/lib/validation";
 interface Draft {
   weeklyDigestEnabled: boolean;
   contentType: "link" | "personal";
@@ -75,28 +76,6 @@ export function PurchaseSheet({
       return next;
     });
     setError("");
-  }
-  async function upload(file?: File) {
-    if (!file) return;
-    setError("");
-    setUploading(true);
-    try {
-      validateFile(file);
-      const data = new FormData();
-      data.set("logo", file);
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: data,
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error ?? "Could not upload logo");
-      change({ uploadKey: result.uploadKey, logoUrl: result.logoUrl });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not upload logo");
-    } finally {
-      setUploading(false);
-    }
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -267,27 +246,20 @@ export function PurchaseSheet({
                     </label>
                   </>
                 )}
-                <label>
-                  {draft.category === "personal"
-                    ? "Optional avatar/image"
-                    : draft.category === "app"
-                      ? "App icon"
-                      : draft.category === "social"
-                        ? "Image/avatar"
-                        : "Logo"}{" "}
-                  <span className="field-hint">
-                    Optional · PNG, JPEG or WEBP · 2 MB max
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => void upload(e.target.files?.[0])}
-                    disabled={uploading}
-                  />
-                </label>
-                {uploading && (
-                  <p role="status">Checking and uploading your logo…</p>
-                )}
+                <ImageUpload
+                  label={
+                    draft.category === "personal"
+                      ? "Optional avatar/image"
+                      : draft.category === "app"
+                        ? "App icon"
+                        : draft.category === "social"
+                          ? "Image/avatar"
+                          : "Logo"
+                  }
+                  disabled={busy}
+                  onPending={setUploading}
+                  onUploaded={(result) => change(result)}
+                />
                 <label>
                   {draft.contentType === "personal"
                     ? "Optional message"
