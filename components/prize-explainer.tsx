@@ -2,6 +2,13 @@ import Link from "next/link";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 type Overview = FunctionReturnType<typeof api.rewards.overview>;
+const rewardLabels: Record<string, string> = {
+  pending_claim: "Awaiting claim",
+  under_review: "Under review",
+  approved: "Approved - Awaiting payout",
+  paid: "Completed - Paid",
+  awaiting_successor: "Awaiting next claimant",
+};
 export function PrizeExplainer({
   data,
   demo = false,
@@ -127,9 +134,7 @@ export function PrizeExplainer({
                 ? m.number === next?.number
                   ? "In progress"
                   : "Upcoming"
-                : m.status === "paid"
-                  ? "Winner confirmed"
-                  : "Verification in progress"}
+                : (rewardLabels[m.status] ?? "Under review")}
             </small>
           </Link>
         ))}
