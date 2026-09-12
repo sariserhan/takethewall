@@ -1003,3 +1003,10 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .growth-review textarea { width: 100%; }
 .editorial-overview { max-width: 65ch; margin: 2rem auto; white-space: pre-wrap; text-align: left; }
 .history-page .public-footer { margin-top: auto; }
+
+/* Notices occupy a full row above the two-column prize explanation. */
+.prize-explainer > .numbering-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-width: none;
+}
