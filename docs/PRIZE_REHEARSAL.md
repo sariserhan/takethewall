@@ -13,7 +13,7 @@ Use only Convex development `aromatic-falcon-454` and the local app at http://lo
 
 ## Mailbox and local app
 
-Create testing@takethewall.com as a receiving mailbox or forwarding alias. Once it receives mail, add it to the development ADMIN_EMAILS allowlist (retain any existing administrators). Resend sender verification and a receiving mailbox are separate requirements. Never paste OTPs or claim links into public documents.
+Use serhan.sari@yahoo.com as the development administrator and test claim recipient. It is included in the development ADMIN_EMAILS allowlist; other existing administrators are retained. Send from notification@takethewall.com. Resend sender verification and a receiving mailbox are separate requirements. Never paste OTPs or claim links into public documents.
 
 Start the app with the matching origin:
 
@@ -25,9 +25,9 @@ The development Convex SITE_URL must also be http://localhost:3010. Ensure the a
 
 ## Dashboard walkthrough
 
-1. Sign in at /admin using testing@takethewall.com after the mailbox and allowlist are ready.
+1. Sign in at /admin using serhan.sari@yahoo.com.
 2. Open /admin/publish. Publish a clearly labeled TEST website with Count toward milestones off. The wall updates; its counted total stays zero.
-3. Publish TEST WINNER ONE with the toggle on and testing@takethewall.com as recipient. Check /1: it must show verification pending, not a permanent winner.
+3. Publish TEST WINNER ONE with the toggle on and serhan.sari@yahoo.com as recipient. Check /1: it must show verification pending, not a permanent winner.
 4. Open the claim email, request and enter the fresh OTP, accept the test rules and submit synthetic eligibility information. Never upload a real identity document for this rehearsal.
 5. Exchange winner/admin chat messages. Request a synthetic document under /admin/claims and upload a sample PDF. Verify approval is blocked while a requested document is missing.
 6. Approve with reason TEST ELIGIBILITY REVIEW. Confirming payment before marking it sent must fail.
@@ -41,7 +41,7 @@ The development Convex SITE_URL must also be http://localhost:3010. Ensure the a
 
 Run `npm run check` and the desktop/mobile enhancement Playwright suite. Backend tests exercise real mutations in convex-test with mocked identity/time/storage, including both Stripe-paid and admin-counted issuance through payout confirmation and frozen snapshots. They also cover OTP expiry/reuse, rejection/expiry succession, hash integrity, private chat/documents and authorization failures.
 
-Automated tests do not send real email, contact a bank or prove live Stripe webhook delivery. Real inbox delivery and the authenticated browser walkthrough remain separate until the testing mailbox is ready. A Stripe test-mode Checkout is a separate rehearsal; counted admin publishing deliberately does not fabricate Stripe payments.
+Automated tests do not send real email, contact a bank or prove live Stripe webhook delivery. Real inbox delivery and the authenticated browser walkthrough remain separate until the inbox and dashboard walkthrough is completed. A Stripe test-mode Checkout is a separate rehearsal; counted admin publishing deliberately does not fabricate Stripe payments.
 
 ## Latest rehearsal preparation results
 
@@ -49,4 +49,4 @@ Automated tests do not send real email, contact a bank or prove live Stripe webh
 - Development backend deployment and guarded preparation succeeded.
 - All eight routes (three test milestones plus five permanent milestones) loaded at 1440×900, 390×844 and 320×568 without horizontal overflow. Admin publishing remains behind sign-in.
 - Development history is still empty: setup has not issued takeovers, queued claim emails or recorded payouts.
-- Inbox delivery and authenticated dashboard walkthrough are pending creation of testing@takethewall.com.
+- The user selected serhan.sari@yahoo.com for receiving rehearsal emails and notification@takethewall.com as the sender. The authenticated dashboard walkthrough remains pending.
