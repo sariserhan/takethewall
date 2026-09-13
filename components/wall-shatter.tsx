@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 export function WallShatter({ name }: { name: string }) {
   const canvas = useRef<HTMLCanvasElement>(null),
-    [broken, setBroken] = useState(false);
+    [broken, setBroken] = useState(true);
   useEffect(() => {
     const el = canvas.current,
       c = el?.getContext("2d");
@@ -11,8 +11,11 @@ export function WallShatter({ name }: { name: string }) {
     const bricks = Array.from({ length: 50 }, (_, i) => ({
       x: 20 + (i % 10) * 54,
       y: 65 + Math.floor(i / 10) * 32,
-      vx: (Math.random() - 0.5) * 5,
-      vy: -Math.random() * 6,
+      vx: (Math.random() - 0.5) * 12,
+      vy: -Math.random() * 9,
+      angle: 0,
+      spin: (Math.random() - 0.5) * 0.12,
+      floor: 280 + (i % 5) * 12,
       w: 51,
       h: 29,
     }));
@@ -33,14 +36,15 @@ export function WallShatter({ name }: { name: string }) {
       for (const b of bricks) {
         if (broken) {
           if (reduced) {
-            b.y = 320;
+            b.y = b.floor;
             b.x = Math.max(0, Math.min(529, b.x));
           } else {
-            b.vy += 0.18 * dt;
+            b.angle += b.spin * dt;
+            b.vy += 0.32 * dt;
             b.x += b.vx * dt;
             b.y += b.vy * dt;
-            if (b.y > 328) {
-              b.y = 328;
+            if (b.y > b.floor) {
+              b.y = b.floor;
               b.vy *= -0.55;
               b.vx *= 0.98;
             }
@@ -54,10 +58,14 @@ export function WallShatter({ name }: { name: string }) {
             }
           }
         }
+        c.save();
+        c.translate(b.x + b.w / 2, b.y + b.h / 2);
+        c.rotate(b.angle);
         c.fillStyle = "#d8ff36";
-        c.fillRect(b.x, b.y, b.w, b.h);
+        c.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
         c.strokeStyle = "#516017";
-        c.strokeRect(b.x, b.y, b.w, b.h);
+        c.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
+        c.restore();
       }
       c.fillStyle = broken ? "#d8ff36" : "#080a06";
       c.font = "bold 22px sans-serif";
@@ -84,8 +92,9 @@ export function WallShatter({ name }: { name: string }) {
         {broken ? "Rebuild" : "Shatter the wall"}
       </button>
       <p>
-        A local playground. Shattering doesn’t change the real wall, its owner,
-        or anyone else’s view.
+        Move your pointer through the bricks to push them. A local playground.
+        Shattering doesn’t change the real wall, its owner, or anyone else’s
+        view.
       </p>
     </section>
   );

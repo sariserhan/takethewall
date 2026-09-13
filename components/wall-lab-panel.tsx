@@ -10,7 +10,7 @@ import { WallGlobe } from "./wall-globe";
 import { WallShatter } from "./wall-shatter";
 import { WhisperRoom } from "./whisper-room";
 export type LabPanel =
-  "Globe" | "Snapshot" | "Audit" | "Whisper" | "QR Code" | "X-Ray" | "Shatter";
+  "Globe" | "Snapshot" | "Audit" | "Whisper" | "QR Code" | "Shatter";
 export type LabData = WallSnapshot & {
   id: Id<"takeovers">;
   contentType: string;
@@ -24,14 +24,21 @@ export default function WallLabPanel({
   data: LabData | null;
 }) {
   if (panel === "QR Code") return <Qr />;
-  if (panel === "Audit") return <Audit />;
+  if (panel === "Audit")
+    return (
+      <>
+        <h3>Content & technical details</h3>
+        {data && <Inspect key={data.id} data={data} />}
+        <Audit />
+      </>
+    );
   if (!data) return <p>Waiting for the current wall…</p>;
   if (panel === "Globe") return <WallGlobe regions={data.regions} />;
   if (panel === "Snapshot") return <Snapshot data={data} />;
   if (panel === "Whisper")
     return <WhisperRoom key={data.id} takeoverId={data.id} />;
   if (panel === "Shatter") return <WallShatter name={data.name} />;
-  return <Inspect data={data} />;
+  return null;
 }
 function Qr() {
   const [src, setSrc] = useState(""),
@@ -274,8 +281,6 @@ function Inspect({ data }: { data: LabData }) {
         <dd>{new Date(data.activatedAt).toISOString()}</dd>
         <dt>Public ID</dt>
         <dd>{proof?.publicId ?? "Unavailable"}</dd>
-        <dt>SHA-256 audit hash</dt>
-        <dd>{proof?.hash ?? "Not available for this placement"}</dd>
       </dl>
       <p>
         Compression ratios, edge latency, and DNS verification are not measured

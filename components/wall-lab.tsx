@@ -53,7 +53,6 @@ export function WallLab({ data }: { data: LabData | null }) {
           "Audit",
           "Whisper",
           "QR Code",
-          "X-Ray",
           "Shatter",
         ] as LabPanel[]
       ).map((name) => (
@@ -89,7 +88,6 @@ function ToolIcon({ name }: { name: string }) {
       "M10 8l3-3a4 4 0 0 1 6 6l-3 3 M14 16l-3 3a4 4 0 0 1-6-6l3-3 M8 16l8-8",
     Whisper: "M3 4h18v13H9l-6 4V4Z M7 9h10 M7 13h6",
     "QR Code": "M3 3h6v6H3Z M15 3h6v6h-6Z M3 15h6v6H3Z M15 15h3v3h3v3h-6Z",
-    "X-Ray": "M16 10a6 6 0 1 0-12 0 6 6 0 0 0 12 0 M15 15l6 6 M7 10h6 M10 7v6",
     Shatter: "M3 3h18v18H3Z M13 3l-4 7 7 3-5 8 M3 14l6-4 M16 13l5-4",
   };
   return (

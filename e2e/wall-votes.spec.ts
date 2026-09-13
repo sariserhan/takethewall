@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Page } from "@playwright/test";
 async function fixture(page: Page) {
   let owner = 1,
@@ -215,20 +216,32 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
  const tools=page.locator(".wall-tools");
  await tools.getByRole("button",{name:/Theme/}).click();
  await expect(page.locator("html")).toHaveAttribute("data-wall-theme","obsidian");
+ await page.evaluate(()=>window.scrollTo(0,0));
  await page.screenshot({path:`/tmp/ttw-obsidian-${info.project.name}.png`});
+ const contrast=await new AxeBuilder({page}).withRules(["color-contrast"]).analyze();
+ expect(contrast.violations.flatMap(v=>v.nodes.map(n=>({html:n.html,summary:n.failureSummary})))).toEqual([]);
  await page.reload();
  await expect(page.locator("html")).toHaveAttribute("data-wall-theme","obsidian");
  await tools.getByRole("button",{name:/Retro/}).click();
  await expect(page.locator("html")).toHaveAttribute("data-wall-retro","on");
- for(const name of ["Globe","Audit","Whisper","QR Code","X-Ray","Shatter","Snapshot"]){
+ expect(await page.evaluate(()=>getComputedStyle(document.body,"::before").content)).toContain("RETRO MODE");
+ expect(await page.evaluate(()=>getComputedStyle(document.body,"::after").position)).toBe("fixed");
+ await page.screenshot({path:`/tmp/ttw-retro-${info.project.name}.png`});
+ await expect(tools.getByRole("button",{name:/X-Ray/})).toHaveCount(0);
+ for(const name of ["Globe","Audit","Whisper","QR Code","Shatter","Snapshot"]){
    await tools.getByRole("button",{name:new RegExp(name)}).click();
    const dialog=page.getByRole("dialog",{name,exact:true});await expect(dialog).toBeVisible();
-   if(name==="Globe") await expect(dialog.locator(".globe-view")).toBeVisible();
+   if(name==="Globe") await expect(dialog.locator(".earth-country")).toHaveCount(177);
    if(name==="Whisper") await expect(dialog.getByText("No whispers yet. Start the conversation.")).toBeVisible();
    if(name==="Audit") await expect(dialog.getByRole("heading",{name:"Chain records"})).toBeVisible();
-   if(name==="X-Ray") await expect(dialog.getByText("Image dimensions",{exact:true})).toBeVisible();
+   if(name==="Audit") await expect(dialog.getByText("Image dimensions",{exact:true})).toBeVisible();
    if(name==="QR Code")await expect(dialog.getByAltText("Scan to open takeover checkout")).toBeVisible();
-   if(name==="Shatter"){await dialog.getByRole("button",{name:"Shatter the wall",exact:true}).click();await dialog.getByRole("button",{name:"Rebuild",exact:true}).click();}
+   if(name==="Shatter"){
+     const canvas=dialog.locator("canvas");await expect(dialog.getByRole("button",{name:"Rebuild",exact:true})).toBeVisible();
+     const first=await canvas.evaluate((c:HTMLCanvasElement)=>c.toDataURL());
+     await expect.poll(()=>canvas.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).not.toBe(first);
+     await dialog.getByRole("button",{name:"Rebuild",exact:true}).click();await expect(canvas).toHaveAttribute("aria-label","Wall brick playground");
+   }
    if(name==="Snapshot"){await expect(dialog.getByRole("link",{name:"Download PNG"})).toBeVisible();const download=page.waitForEvent("download");await dialog.getByRole("link",{name:"Download PNG"}).click();expect((await download).suggestedFilename()).toBe("take-the-wall-snapshot.png");}
    if(name==="Globe" || name==="Snapshot") await dialog.screenshot({path:`/tmp/ttw-lab-${name}-${info.project.name}.png`});
    await dialog.getByRole("button",{name:"Close dialog",exact:true}).click();
