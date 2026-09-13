@@ -901,3 +901,23 @@ test("wall designer saves independent device layouts and keeps controls outside 
   await expect(dialog.getByRole("button",{name:"PAY $4.99 & TAKE THE WALL"})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });
+
+test("desktop designed wall fills available space and aligns with the stats", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "Desktop flexible canvas layout");
+  await page.setViewportSize({width:1440,height:1600});
+  const { designTemplate }=await import("../lib/wall-design");
+  await wallFixture(page,120,JSON.stringify(designTemplate("poster","FULL WALL","Edge to edge, inside the stats")));
+  await page.goto("/");
+  const surface=page.locator(".canvas-owner-ad .wall-canvas-surface");
+  await expect(surface).toBeVisible();
+  const bounds=await page.evaluate(()=>{
+    const rect=(selector:string)=>{const r=document.querySelector(selector)!.getBoundingClientRect();return {x:r.x,right:r.right,height:r.height,y:r.y};};
+    return {stats:rect(".site-metrics"),owner:rect(".owner-section"),canvas:rect(".canvas-owner-ad .wall-canvas-surface"),content:rect(".canvas-owner-ad .canvas-content")};
+  });
+  expect(Math.abs(bounds.canvas.x-bounds.stats.x)).toBeLessThan(1);
+  expect(Math.abs(bounds.canvas.right-bounds.stats.right)).toBeLessThan(1);
+  expect(Math.abs(bounds.canvas.height-(bounds.owner.height-24))).toBeLessThan(1);
+  expect(bounds.canvas.height).toBeGreaterThan(560);
+  expect(bounds.content.x-bounds.canvas.x).toBe(16);
+  await page.screenshot({path:"/tmp/ttw-full-desktop-wall.png"});
+});

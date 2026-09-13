@@ -1267,3 +1267,19 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .owner-section.has-wall-design{padding-inline:0;width:100%;max-width:none}.canvas-owner-ad{width:100%;min-width:0}.owner-section.has-wall-design>.eyebrow{padding-inline:16px}
 .wall-designer{margin:24px 0;border:1px solid var(--rule);padding:16px;min-width:0}.designer-heading h3{margin:0;font:28px var(--display)}.designer-heading p{font-size:13px}.designer-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.designer-actions button{min-height:40px}.designer-actions button[aria-pressed="true"]{background:var(--accent);color:#11110f}.designer-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}.designer-inspector{display:grid;gap:12px}.designer-inspector h4{margin:12px 0 0}.designer-inspector label,.designer-actions label{display:grid;gap:6px;font-size:12px}.designer-inspector input[type="color"]{width:64px;height:40px;padding:3px}.designer-coordinates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.designer-stage{width:100%;border:1px solid var(--ink);touch-action:none}.designer-stage.mobile{max-width:375px;margin:auto}.designer-stage .wall-canvas-surface{height:440px}.designer-stage.mobile .wall-canvas-surface{height:560px}.designer-stage .canvas-block{cursor:move;user-select:none;outline:1px dashed #8888;outline-offset:-1px}.designer-stage .canvas-block.selected{outline:3px solid #1677ff;outline-offset:-3px}.canvas-resize{position:absolute;bottom:0;right:0;width:28px;height:28px;display:grid;place-items:center;background:#1677ff;color:white;font:20px sans-serif;cursor:nwse-resize;z-index:2}.designer-stage .wall-canvas-surface:after{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(#8882 1px,transparent 1px),linear-gradient(90deg,#8882 1px,transparent 1px);background-size:10% 10%}.preview-device .wall-canvas{width:100%}.preview-device .wall-canvas-surface{height:400px}
 @media(min-width:1100px){.owner-page .designer-workspace{grid-template-columns:minmax(0,1fr) 260px}}
+
+/* Match the analytics edges, with a safe inset inside the owner's canvas. */
+.canvas-content{position:absolute;inset:16px}
+@media(min-width:761px){
+  .wall-page .wall-viewport>.owner-section.has-wall-design{position:relative;flex:1 0 320px;min-height:320px;padding:0}
+  .wall-page .owner-section.has-wall-design>.eyebrow{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .wall-page .has-wall-design>.canvas-owner-ad{position:absolute;inset:12px 0;min-width:0}
+  .wall-page .canvas-owner-ad>.wall-canvas,.wall-page .canvas-owner-ad .wall-canvas-surface{width:100%;height:100%;max-height:none}
+  .dialog.wide:has(.wall-designer[data-active="true"]),.dialog.wide:has(.purchase-review .wall-canvas){width:calc(100vw - 48px);max-width:none}
+  .purchase-grid:has(.wall-designer[data-active="true"]){grid-template-columns:minmax(0,1fr)}
+  .wall-designer[data-active="true"] .designer-workspace{grid-template-columns:minmax(0,1fr) 260px;align-items:start}
+  .designer-stage:not(.mobile) .wall-canvas-surface{height:clamp(360px,55dvh,720px)}
+  .designer-inspector{max-height:70dvh;overflow-y:auto;padding-right:8px}
+  .designer-stage:not(.mobile){position:sticky;top:12px}
+}
+@media(max-width:760px){.canvas-content{inset:12px}}

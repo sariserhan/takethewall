@@ -51,85 +51,87 @@ export function WallCanvas({
             unoptimized
           />
         )}
-        {d.blocks.map((b) => {
-          const styles = {
-            "--dx": `${b.desktop.x}%`,
-            "--dy": `${b.desktop.y}%`,
-            "--dw": `${b.desktop.w}%`,
-            "--dh": `${b.desktop.h}%`,
-            "--mx": `${b.mobile.x}%`,
-            "--my": `${b.mobile.y}%`,
-            "--mw": `${b.mobile.w}%`,
-            "--mh": `${b.mobile.h}%`,
-            "--canvas-color": b.color,
-            "--canvas-fill": b.fill,
-            "--canvas-size": `${b.size}px`,
-            fontFamily:
-              b.font === "display"
-                ? "var(--display)"
-                : b.font === "serif"
-                  ? "Georgia, serif"
-                  : "var(--body)",
-            textAlign: b.align,
-            justifyContent:
-              b.align === "left"
-                ? "flex-start"
-                : b.align === "right"
-                  ? "flex-end"
-                  : "center",
-          } as CSSProperties;
-          return (
-            <div
-              className={`canvas-block canvas-${b.type}${editing ? " editable" : ""}${selected === b.id ? " selected" : ""}`}
-              data-block-id={b.id}
-              key={b.id}
-              style={styles}
-            >
-              {b.type === "image" ? (
-                image(b.image) ? (
-                  <Image
-                    src={image(b.image)!}
-                    alt={b.text || "Owner image"}
-                    fill
-                    style={{ objectFit: b.fit }}
-                    unoptimized
-                  />
+        <div className="canvas-content">
+          {d.blocks.map((b) => {
+            const styles = {
+              "--dx": `${b.desktop.x}%`,
+              "--dy": `${b.desktop.y}%`,
+              "--dw": `${b.desktop.w}%`,
+              "--dh": `${b.desktop.h}%`,
+              "--mx": `${b.mobile.x}%`,
+              "--my": `${b.mobile.y}%`,
+              "--mw": `${b.mobile.w}%`,
+              "--mh": `${b.mobile.h}%`,
+              "--canvas-color": b.color,
+              "--canvas-fill": b.fill,
+              "--canvas-size": `${b.size}px`,
+              fontFamily:
+                b.font === "display"
+                  ? "var(--display)"
+                  : b.font === "serif"
+                    ? "Georgia, serif"
+                    : "var(--body)",
+              textAlign: b.align,
+              justifyContent:
+                b.align === "left"
+                  ? "flex-start"
+                  : b.align === "right"
+                    ? "flex-end"
+                    : "center",
+            } as CSSProperties;
+            return (
+              <div
+                className={`canvas-block canvas-${b.type}${editing ? " editable" : ""}${selected === b.id ? " selected" : ""}`}
+                data-block-id={b.id}
+                key={b.id}
+                style={styles}
+              >
+                {b.type === "image" ? (
+                  image(b.image) ? (
+                    <Image
+                      src={image(b.image)!}
+                      alt={b.text || "Owner image"}
+                      fill
+                      style={{ objectFit: b.fit }}
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="canvas-image-empty">Choose image</span>
+                  )
+                ) : b.type === "button" ? (
+                  href && !editing ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      onClick={onVisit}
+                      onAuxClick={(e) => {
+                        if (e.button === 1) onVisit?.();
+                      }}
+                    >
+                      {b.text}
+                    </a>
+                  ) : (
+                    <span className="canvas-link-preview">{b.text}</span>
+                  )
+                ) : b.type === "heading" ? (
+                  <h2>{b.text}</h2>
                 ) : (
-                  <span className="canvas-image-empty">Choose image</span>
-                )
-              ) : b.type === "button" ? (
-                href && !editing ? (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer sponsored"
-                    onClick={onVisit}
-                    onAuxClick={(e) => {
-                      if (e.button === 1) onVisit?.();
-                    }}
+                  <p>{b.text}</p>
+                )}
+                {editing && selected === b.id && (
+                  <span
+                    className="canvas-resize"
+                    data-resize="true"
+                    aria-hidden="true"
                   >
-                    {b.text}
-                  </a>
-                ) : (
-                  <span className="canvas-link-preview">{b.text}</span>
-                )
-              ) : b.type === "heading" ? (
-                <h2>{b.text}</h2>
-              ) : (
-                <p>{b.text}</p>
-              )}
-              {editing && selected === b.id && (
-                <span
-                  className="canvas-resize"
-                  data-resize="true"
-                  aria-hidden="true"
-                >
-                  ↘
-                </span>
-              )}
-            </div>
-          );
-        })}
+                    ↘
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -67,7 +67,11 @@ export default function WallDesigner({
     update({ [device]: box });
   };
   return (
-    <section className="wall-designer" aria-label="Wall Designer">
+    <section
+      className="wall-designer"
+      aria-label="Wall Designer"
+      data-active={!!d}
+    >
       <div className="designer-heading">
         <div>
           <h3>Your wall. Your design.</h3>
@@ -196,7 +200,10 @@ export default function WallDesigner({
                   e.preventDefault();
                   setSelected(b.id);
                   e.currentTarget.focus();
-                  const rect = e.currentTarget.getBoundingClientRect();
+                  const rect = (
+                    e.currentTarget.querySelector(".canvas-content") ??
+                    e.currentTarget
+                  ).getBoundingClientRect();
                   drag.current = {
                     id: b.id,
                     x: e.clientX,
