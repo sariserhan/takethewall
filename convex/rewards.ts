@@ -1,3 +1,5 @@
+import { deferForAnalytics } from "./analytics";
+import { internal } from "./_generated/api";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import {
@@ -442,10 +444,15 @@ export const maintain = internalMutation({
       .query("milestoneRewards")
       .withIndex("by_status_candidate", (q) => q.eq("status", "paid"))
       .take(100);
+    let analyticsPending = false;
     for (const r of paid) {
       if (!r.snapshot?.statsFrozen && r.winnerTakeoverId) {
         const t = await ctx.db.get(r.winnerTakeoverId);
-        if (t?.replacedAt && now >= t.replacedAt + 150_000)
+        if (t?.replacedAt && now >= t.replacedAt + 150_000) {
+          if (await deferForAnalytics(ctx, r.winnerTakeoverId)) {
+            analyticsPending = true;
+            continue;
+          }
           await ctx.db.patch(r._id, {
             snapshot: {
               ...r.snapshot!,
@@ -456,8 +463,11 @@ export const maintain = internalMutation({
               statsFrozen: true,
             },
           });
+        }
       }
     }
+    if (analyticsPending)
+      await ctx.scheduler.runAfter(30_000, internal.rewards.maintain, {});
     const notify = await ctx.db
       .query("rewardClaims")
       .withIndex("by_notifyAt", (q) => q.gt("notifyAt", 0).lte("notifyAt", now))

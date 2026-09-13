@@ -200,7 +200,7 @@ it("does not expire submitted claims during internal review", async () => {
     declaration: "",
     acceptRules: true,
   });
-  vi.setSystemTime(Date.now() + (8 * 86400_000));
+  vi.setSystemTime(Date.now() + 8 * 86400_000);
   await t.mutation(internal.rewards.maintain, {});
   expect((await firstClaim(t)).status).toBe("under_review");
   expect(JSON.stringify(await t.query(api.rewards.overview, {}))).not.toContain(
@@ -330,10 +330,35 @@ it.each(["paid", "admin"])(
       snapshot: { displayName: "Person 1", statsFrozen: false },
     });
     await activate(t, 2);
-    vi.setSystemTime(Date.now() + (150_001));
+    const batchId = await t.run((ctx) =>
+      ctx.db.insert("analyticsBatches", {
+        takeoverId: c.takeoverId,
+        date: new Date().toISOString().slice(0, 10),
+        shard: 0,
+        impressions: 7,
+        uniqueVisitors: 3,
+        clicks: 2,
+        siteVisitors: 3,
+        dailyVisitors: 3,
+        funnelVisits: 0,
+        regions: [],
+      }),
+    );
+    vi.setSystemTime(Date.now() + 150_001);
+    await t.mutation(internal.rewards.maintain, {});
+    expect(
+      (await t.query(api.rewards.overview, {})).milestones[0].snapshot
+        ?.statsFrozen,
+    ).toBe(false);
+    await t.mutation(internal.analytics.flush, { id: batchId });
     await t.mutation(internal.rewards.maintain, {});
     m = (await t.query(api.rewards.overview, {})).milestones[0];
-    expect(m.snapshot?.statsFrozen).toBe(true);
+    expect(m.snapshot).toMatchObject({
+      statsFrozen: true,
+      impressions: 7,
+      uniqueVisitors: 3,
+      clicks: 2,
+    });
     const snapshot = m.snapshot;
     await t.run((ctx) =>
       ctx.db.patch(c.takeoverId, {
@@ -384,7 +409,7 @@ it("private chat requires the correct claim session and coalesces notifications"
     claimId: c._id,
     body: "Reply one",
   });
-  vi.setSystemTime(Date.now() + (1000));
+  vi.setSystemTime(Date.now() + 1000);
   await admin.mutation(api.admin.message, {
     claimId: c._id,
     body: "Reply two",
@@ -392,7 +417,7 @@ it("private chat requires the correct claim session and coalesces notifications"
   const state = await t.query(api.rewards.portal, { session });
   expect(state.messages.filter((m) => m.sender === "admin")).toHaveLength(2);
   await t.mutation(api.rewards.read, { session });
-  vi.setSystemTime(Date.now() + (600_001));
+  vi.setSystemTime(Date.now() + 600_001);
   await t.mutation(internal.rewards.maintain, {});
   expect(
     await t.run((ctx) =>
@@ -612,10 +637,11 @@ it("configuration publishes authoritative future values and paginates same-time 
         createdAt: Date.now(),
       });
   });
-  const first = (
-    await admin.query(api.admin.list, { section: "audit" }));
-  const next = (
-    await admin.query(api.admin.list, { section: "audit", cursor: first.next ?? undefined }));
+  const first = await admin.query(api.admin.list, { section: "audit" });
+  const next = await admin.query(api.admin.list, {
+    section: "audit",
+    cursor: first.next ?? undefined,
+  });
   expect(first.rows).toHaveLength(50);
   expect(next.rows).toHaveLength(11);
   expect(new Set([...first.rows, ...next.rows].map((r) => r._id)).size).toBe(
@@ -819,23 +845,49 @@ it("public previous owner follows only the last activation and hides removed con
   const admin = t.withIdentity(adminIdentity);
   let wall = await t.query(api.wall.current, {});
   expect(wall?.previousOwnerName).toBeNull();
-  const args = { contentType: "personal" as const, websiteUrl: "", displayName: "Previous owner", description: "Hello", countTowardMilestones: false, recipientEmail: "", reason: "Test", requestKey: "previous-1", expectedCurrentId: wall!.owner.id };
+  const args = {
+    contentType: "personal" as const,
+    websiteUrl: "",
+    displayName: "Previous owner",
+    description: "Hello",
+    countTowardMilestones: false,
+    recipientEmail: "",
+    reason: "Test",
+    requestKey: "previous-1",
+    expectedCurrentId: wall!.owner.id,
+  };
   const first = await admin.mutation(api.admin.publish, args);
-  await admin.mutation(api.admin.publish, { ...args, displayName: "Current owner", requestKey: "previous-2", expectedCurrentId: first });
+  await admin.mutation(api.admin.publish, {
+    ...args,
+    displayName: "Current owner",
+    requestKey: "previous-2",
+    expectedCurrentId: first,
+  });
   wall = await t.query(api.wall.current, {});
   expect(wall?.previousOwnerName).toBe("Previous owner");
-  await t.run(ctx => ctx.db.patch(first, { blocked: true }));
-  expect((await t.query(api.wall.current, {}))?.previousOwnerName).toBe("Removed placement");
+  await t.run((ctx) => ctx.db.patch(first, { blocked: true }));
+  expect((await t.query(api.wall.current, {}))?.previousOwnerName).toBe(
+    "Removed placement",
+  );
 });
 
 it("health diagnostics require admin access and expose configuration presence, never secrets", async () => {
   const t = await setup();
   vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
   vi.stubEnv("RESEND_API_KEY", "private-resend-test-value");
-  await expect(t.query(api.health.overview, {})).rejects.toThrow("Administrator access required");
-  const result = await t.withIdentity(adminIdentity).query(api.health.overview, {});
+  await expect(t.query(api.health.overview, {})).rejects.toThrow(
+    "Administrator access required",
+  );
+  const result = await t
+    .withIdentity(adminIdentity)
+    .query(api.health.overview, {});
   expect(result).not.toContain("private-resend-test-value");
-  expect(JSON.parse(result)).toMatchObject({wallInitialized: true, lastPaymentAt: null, failedMail: 0, failedJobs: 0});
+  expect(JSON.parse(result)).toMatchObject({
+    wallInitialized: true,
+    lastPaymentAt: null,
+    failedMail: 0,
+    failedJobs: 0,
+  });
 });
 
 it("demo stats are admin-only, separate from real counters, and expire on owner change", async () => {
@@ -843,28 +895,77 @@ it("demo stats are admin-only, separate from real counters, and expire on owner 
   vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
   const admin = t.withIdentity(adminIdentity);
   const before = (await t.query(api.wall.current, {}))!;
-  const values = {visitorsToday:12,totalVisitors:100,impressions:50,uniqueVisitors:25,clicks:5,takeoverCount:10,previousOwnerName:"Sample previous owner"};
-  const args = {enabled:true,values,reason:"Labeled launch demo",expectedCurrentId:before.owner.id};
-  await expect(t.mutation(api.demoStats.save,args)).rejects.toThrow("Administrator access required");
-  await expect(t.query(api.demoStats.read,{})).rejects.toThrow("Administrator access required");
-  await expect(admin.mutation(api.demoStats.save,{...args,values:{...values,clicks:51}})).rejects.toThrow("consistent");
-  await expect(admin.mutation(api.demoStats.save,{...args,values:{...values,previousOwnerName:"x".repeat(61)}})).rejects.toThrow("Previous owner");
-  await expect(admin.mutation(api.demoStats.save,{...args,values:{...values,takeoverCount:-1}})).rejects.toThrow("whole numbers");
-  await admin.mutation(api.demoStats.save,args);
-  expect(await admin.query(api.demoStats.read,{})).toMatchObject({values});
-  expect(await t.query(api.wall.current,{})).toEqual({...before,demoStats:values});
-  await admin.mutation(api.demoStats.save,{...args,enabled:false});
-  expect((await t.query(api.wall.current,{}))?.demoStats).toBeNull();
-  await admin.mutation(api.demoStats.save,args);
-  await admin.mutation(api.admin.publish,{contentType:"personal",websiteUrl:"",displayName:"Next real owner",description:"Hello",countTowardMilestones:false,recipientEmail:"",reason:"Replacement",requestKey:"demo-replacement",expectedCurrentId:before.owner.id});
-  const after = (await t.query(api.wall.current,{}))!;
+  const values = {
+    visitorsToday: 12,
+    totalVisitors: 100,
+    impressions: 50,
+    uniqueVisitors: 25,
+    clicks: 5,
+    takeoverCount: 10,
+    previousOwnerName: "Sample previous owner",
+  };
+  const args = {
+    enabled: true,
+    values,
+    reason: "Labeled launch demo",
+    expectedCurrentId: before.owner.id,
+  };
+  await expect(t.mutation(api.demoStats.save, args)).rejects.toThrow(
+    "Administrator access required",
+  );
+  await expect(t.query(api.demoStats.read, {})).rejects.toThrow(
+    "Administrator access required",
+  );
+  await expect(
+    admin.mutation(api.demoStats.save, {
+      ...args,
+      values: { ...values, clicks: 51 },
+    }),
+  ).rejects.toThrow("consistent");
+  await expect(
+    admin.mutation(api.demoStats.save, {
+      ...args,
+      values: { ...values, previousOwnerName: "x".repeat(61) },
+    }),
+  ).rejects.toThrow("Previous owner");
+  await expect(
+    admin.mutation(api.demoStats.save, {
+      ...args,
+      values: { ...values, takeoverCount: -1 },
+    }),
+  ).rejects.toThrow("whole numbers");
+  await admin.mutation(api.demoStats.save, args);
+  expect(await admin.query(api.demoStats.read, {})).toMatchObject({ values });
+  expect(await t.query(api.wall.current, {})).toEqual({
+    ...before,
+    demoStats: values,
+  });
+  await admin.mutation(api.demoStats.save, { ...args, enabled: false });
+  expect((await t.query(api.wall.current, {}))?.demoStats).toBeNull();
+  await admin.mutation(api.demoStats.save, args);
+  await admin.mutation(api.admin.publish, {
+    contentType: "personal",
+    websiteUrl: "",
+    displayName: "Next real owner",
+    description: "Hello",
+    countTowardMilestones: false,
+    recipientEmail: "",
+    reason: "Replacement",
+    requestKey: "demo-replacement",
+    expectedCurrentId: before.owner.id,
+  });
+  const after = (await t.query(api.wall.current, {}))!;
   expect(after.demoStats).toBeNull();
   expect(after.totalVisitors).toBe(before.totalVisitors);
   expect(after.totalTakeovers).toBe(before.totalTakeovers);
   expect(after.owner.impressions).toBe(0);
-  await expect(admin.mutation(api.demoStats.save,args)).rejects.toThrow("wall changed");
-  const events=await t.run(ctx=>ctx.db.query("adminAudit").collect());
-  expect(events.filter(e=>e.action==="DEMO_STATS_UPDATED")).toHaveLength(3);
+  await expect(admin.mutation(api.demoStats.save, args)).rejects.toThrow(
+    "wall changed",
+  );
+  const events = await t.run((ctx) => ctx.db.query("adminAudit").collect());
+  expect(events.filter((e) => e.action === "DEMO_STATS_UPDATED")).toHaveLength(
+    3,
+  );
 });
 
 it("demo presentation never rewrites ownership, audit history or real prize progress", async () => {
@@ -873,63 +974,149 @@ it("demo presentation never rewrites ownership, audit history or real prize prog
   const admin = t.withIdentity(adminIdentity);
   const before = (await t.query(api.wall.current, {}))!;
   const rewards = await t.query(api.rewards.overview, {});
-  const presentation = {displayName:"Sample person",description:"Demo message",websiteUrl:"https://example.com/",ownerSince:Date.now()-100000,previousOwnerName:"Sample previous",takeoverCount:99};
-  const args = {enabled:true,values:{visitorsToday:0,totalVisitors:0,impressions:0,uniqueVisitors:0,clicks:0},presentation,reason:"Preview only",expectedCurrentId:before.owner.id};
-  await admin.mutation(api.demoStats.save,args);
-  const after = (await t.query(api.wall.current,{}))!;
+  const presentation = {
+    displayName: "Sample person",
+    description: "Demo message",
+    websiteUrl: "https://example.com/",
+    ownerSince: Date.now() - 100000,
+    previousOwnerName: "Sample previous",
+    takeoverCount: 99,
+  };
+  const args = {
+    enabled: true,
+    values: {
+      visitorsToday: 0,
+      totalVisitors: 0,
+      impressions: 0,
+      uniqueVisitors: 0,
+      clicks: 0,
+    },
+    presentation,
+    reason: "Preview only",
+    expectedCurrentId: before.owner.id,
+  };
+  await admin.mutation(api.demoStats.save, args);
+  const after = (await t.query(api.wall.current, {}))!;
   expect(after.demoPresentation).toEqual(presentation);
   expect(after.owner).toEqual(before.owner);
   expect(after.totalTakeovers).toBe(before.totalTakeovers);
   expect(after.previousOwnerName).toBe(before.previousOwnerName);
-  expect(await t.query(api.rewards.overview,{})).toEqual(rewards);
-  await expect(admin.mutation(api.demoStats.save,{...args,presentation:{...presentation,websiteUrl:"javascript:alert(1)"}})).rejects.toThrow();
-  await expect(admin.mutation(api.demoStats.save,{...args,presentation:{...presentation,ownerSince:Date.now()+1}})).rejects.toThrow();
-  const {presentation: ignored, ...withoutPresentation} = args;
+  expect(await t.query(api.rewards.overview, {})).toEqual(rewards);
+  await expect(
+    admin.mutation(api.demoStats.save, {
+      ...args,
+      presentation: { ...presentation, websiteUrl: "javascript:alert(1)" },
+    }),
+  ).rejects.toThrow();
+  await expect(
+    admin.mutation(api.demoStats.save, {
+      ...args,
+      presentation: { ...presentation, ownerSince: Date.now() + 1 },
+    }),
+  ).rejects.toThrow();
+  const { presentation: ignored, ...withoutPresentation } = args;
   void ignored;
-  await admin.mutation(api.demoStats.save,withoutPresentation);
-  expect((await t.query(api.wall.current,{}))?.demoPresentation).toBeNull();
+  await admin.mutation(api.demoStats.save, withoutPresentation);
+  expect((await t.query(api.wall.current, {}))?.demoPresentation).toBeNull();
 });
 
 it("a documented numbering offset preserves audit records and maps future prizes to actual owners", async () => {
   const t = await setup();
-  await t.run(async ctx => {
+  await t.run(async (ctx) => {
     const config = (await ctx.db.query("rewardSettings").first())!;
-    await ctx.db.patch(config._id, { value: { ...config.value, milestones: [{takeoverNumber:17,rewardUsd:100}] } });
+    await ctx.db.patch(config._id, {
+      value: {
+        ...config.value,
+        milestones: [{ takeoverNumber: 17, rewardUsd: 100 }],
+      },
+    });
   });
   await activate(t, 1);
   const original = await t.query(api.auditTrail.entries, {});
-  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:0})).rejects.toThrow("wall has changed");
-  expect(await t.mutation(internal.numbering.initialize,{expectedRecordedCount:1})).toEqual({offset:15,currentNumber:16});
+  await expect(
+    t.mutation(internal.numbering.initialize, { expectedRecordedCount: 0 }),
+  ).rejects.toThrow("wall has changed");
+  expect(
+    await t.mutation(internal.numbering.initialize, {
+      expectedRecordedCount: 1,
+    }),
+  ).toEqual({ offset: 15, currentNumber: 16 });
   // Repeating initialization is safe and does not add another offset.
-  await t.mutation(internal.numbering.initialize,{expectedRecordedCount:1});
-  expect(await t.query(api.wall.current, {})).toMatchObject({totalTakeovers:16,numberingOffset:15,owner:{takeoverNumber:16}});
-  expect(await t.query(api.auditTrail.entries, {})).toEqual({...original,numberingOffset:15});
-  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({valid:true});
-  await t.run(async ctx => {
+  await t.mutation(internal.numbering.initialize, { expectedRecordedCount: 1 });
+  expect(await t.query(api.wall.current, {})).toMatchObject({
+    totalTakeovers: 16,
+    numberingOffset: 15,
+    owner: { takeoverNumber: 16 },
+  });
+  expect(await t.query(api.auditTrail.entries, {})).toEqual({
+    ...original,
+    numberingOffset: 15,
+  });
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({
+    valid: true,
+  });
+  await t.run(async (ctx) => {
     expect((await ctx.db.query("siteStats").first())?.totalTakeovers).toBe(1);
     expect(await ctx.db.query("takeovers").collect()).toHaveLength(2); // house + one actual takeover
     expect(await ctx.db.query("purchases").collect()).toHaveLength(1);
     expect(await ctx.db.query("rewardClaims").collect()).toHaveLength(0);
-    expect((await ctx.db.query("adminAudit").collect()).filter(a=>a.action==="NUMBERING_OFFSET_INITIALIZED")).toHaveLength(1);
+    expect(
+      (await ctx.db.query("adminAudit").collect()).filter(
+        (a) => a.action === "NUMBERING_OFFSET_INITIALIZED",
+      ),
+    ).toHaveLength(1);
   });
   const second = await activate(t, 2);
-  expect(await t.query(api.wall.current, {})).toMatchObject({totalTakeovers:17,owner:{takeoverNumber:17}});
+  expect(await t.query(api.wall.current, {})).toMatchObject({
+    totalTakeovers: 17,
+    owner: { takeoverNumber: 17 },
+  });
   const claim = await firstClaim(t);
-  expect(claim).toMatchObject({takeoverNumber:17,takeoverId:second.takeoverId});
+  expect(claim).toMatchObject({
+    takeoverNumber: 17,
+    takeoverId: second.takeoverId,
+  });
   const overview = await t.query(api.rewards.overview, {});
-  expect(overview).toMatchObject({currentNumber:17,numberingOffset:15});
-  expect(overview.milestones.find(m=>m.number===17)?.sequence.find(r=>r.number===17)?.displayName).toBe("Person 2");
+  expect(overview).toMatchObject({ currentNumber: 17, numberingOffset: 15 });
+  expect(
+    overview.milestones
+      .find((m) => m.number === 17)
+      ?.sequence.find((r) => r.number === 17)?.displayName,
+  ).toBe("Person 2");
   vi.stubEnv("ADMIN_EMAILS", "admin@example.com");
-  await t.withIdentity(adminIdentity).mutation(api.admin.publish,{contentType:"personal",websiteUrl:"",displayName:"Next admin owner",description:"Hello",countTowardMilestones:true,recipientEmail:"admin@example.com",reason:"Verify offset numbering",requestKey:"offset-admin",expectedCurrentId:second.takeoverId});
-  expect(await t.query(api.wall.current, {})).toMatchObject({totalTakeovers:18,owner:{takeoverNumber:18}});
-  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({valid:true});
+  await t
+    .withIdentity(adminIdentity)
+    .mutation(api.admin.publish, {
+      contentType: "personal",
+      websiteUrl: "",
+      displayName: "Next admin owner",
+      description: "Hello",
+      countTowardMilestones: true,
+      recipientEmail: "admin@example.com",
+      reason: "Verify offset numbering",
+      requestKey: "offset-admin",
+      expectedCurrentId: second.takeoverId,
+    });
+  expect(await t.query(api.wall.current, {})).toMatchObject({
+    totalTakeovers: 18,
+    owner: { takeoverNumber: 18 },
+  });
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({
+    valid: true,
+  });
 });
 
 it("numbering offset cannot skip milestone obligations or modify an established sequence", async () => {
   const t = await setup();
-  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:0})).rejects.toThrow("milestone");
-  await activate(t,1);
-  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:1})).rejects.toThrow("milestone");
-  await activate(t,2);
-  await expect(t.mutation(internal.numbering.initialize,{expectedRecordedCount:2})).rejects.toThrow("wall has changed");
+  await expect(
+    t.mutation(internal.numbering.initialize, { expectedRecordedCount: 0 }),
+  ).rejects.toThrow("milestone");
+  await activate(t, 1);
+  await expect(
+    t.mutation(internal.numbering.initialize, { expectedRecordedCount: 1 }),
+  ).rejects.toThrow("milestone");
+  await activate(t, 2);
+  await expect(
+    t.mutation(internal.numbering.initialize, { expectedRecordedCount: 2 }),
+  ).rejects.toThrow("wall has changed");
 });

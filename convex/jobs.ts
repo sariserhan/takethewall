@@ -1,3 +1,4 @@
+import { deferForAnalytics } from "./analytics";
 import { scheduleDelivery } from "./deliverySchedule";
 import type { ActionCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -47,6 +48,18 @@ export const claim = internalMutation({
         return false;
       if (Date.now() <= takeover.replacedAt + 150_000) {
         await ctx.db.patch(j._id, { nextAt: takeover.replacedAt + 150_001 });
+        await scheduleDelivery(
+          ctx,
+          "jobs",
+          j._id,
+          takeover.replacedAt + 150_001,
+        );
+        return false;
+      }
+      if (await deferForAnalytics(ctx, j.takeoverId)) {
+        const nextAt = Date.now() + 30_000;
+        await ctx.db.patch(j._id, { nextAt });
+        await scheduleDelivery(ctx, "jobs", j._id, nextAt);
         return false;
       }
       const site = await ctx.db

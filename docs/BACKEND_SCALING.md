@@ -6,7 +6,7 @@ Accepted events retain the existing receipt and unique-browser checks. They accu
 
 Ownership, payment activation, and takeover numbering remain synchronous. Public analytics are eventually consistent, normally within 15 seconds, rather than triggering shared-document writes on every impression. A 15-minute recovery scan catches buckets whose scheduled flush did not complete. This is not a guarantee of production throughput: staging load tests and production OCC metrics are still needed to quantify capacity.
 
-Replacement email snapshots and frozen reward statistics now wait 150 seconds after replacement, covering the 120-second accepted late-event window plus normal batching delay. **A final safeguard to defer these snapshots while any batch remains pending is awaiting operator approval; do not deploy this refactor until that safeguard is completed and tested.**
+Replacement email snapshots and frozen reward statistics now wait 150 seconds after replacement, covering the 120-second accepted late-event window plus normal batching delay. Finalization also checks for pending batches for that takeover. If any remain, it schedules their flush and retries finalization after 30 seconds. That delay does not consume an email delivery attempt. The indexed batch read and snapshot write share a transaction, so a competing flush cannot produce a partially updated frozen snapshot.
 
 ## Email delivery
 
@@ -32,4 +32,6 @@ Admin overview, list, claim, and ticket queries return validated objects rather 
 
 ## Verification
 
-Existing payment, reward, authorization, subscriber, and email tests remain in place. Additional in-memory tests cover buffered bursts, flush replay, UTC rollover, scheduled mail delivery, duplicate execution, and future-message pacing. No test sends real mail or charges a card.
+Existing payment, reward, authorization, subscriber, and email tests remain in place. Additional in-memory tests cover buffered bursts, flush replay, UTC rollover, scheduled mail delivery, duplicate execution, and future-message pacing. No test sends real mail or charges a card. Regression coverage additionally delays analytics beyond the normal finalization window, verifies that neither email reports nor reward snapshots freeze early, and verifies stable email payloads on provider retry.
+
+The refactor was pushed successfully to development deployment `aromatic-falcon-454`. Production has not been deployed.

@@ -1,3 +1,5 @@
+import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -228,3 +230,20 @@ export const recover = internalMutation({
     return null;
   },
 });
+
+// Final reports must not freeze while durable, accepted events await aggregation.
+// The indexed read also makes the snapshot transaction conflict with new batches.
+export async function deferForAnalytics(
+  ctx: MutationCtx,
+  takeoverId: Id<"takeovers">,
+): Promise<boolean> {
+  const batches = await ctx.db
+    .query("analyticsBatches")
+    .withIndex("by_bucket", (q) => q.eq("takeoverId", takeoverId))
+    .take(32);
+  for (const batch of batches)
+    await ctx.scheduler.runAfter(0, internal.analytics.flush, {
+      id: batch._id,
+    });
+  return batches.length > 0;
+}

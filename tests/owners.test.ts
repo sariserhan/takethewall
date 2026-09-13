@@ -537,7 +537,7 @@ it("final report waits for late events and keeps a stable snapshot across retrie
   await t.run((ctx) =>
     ctx.db.patch(id, { impressions: 10, uniqueVisitors: 4, clicks: 1 }),
   );
-  vi.setSystemTime(Date.now() + (3600_000));
+  vi.setSystemTime(Date.now() + 3600_000);
   const ended = Date.now();
   await publish("replacement");
   const job = (await t.run((ctx) =>
@@ -559,7 +559,7 @@ it("final report waits for late events and keeps a stable snapshot across retrie
   vi.stubGlobal("fetch", send);
   await deliverDue(t);
   expect(send).not.toHaveBeenCalled();
-  vi.setSystemTime(Date.now() + (60_000));
+  vi.setSystemTime(Date.now() + 60_000);
   await t.mutation(internal.analytics.record, {
     takeoverId: id,
     event: "impression",
@@ -571,8 +571,15 @@ it("final report waits for late events and keeps a stable snapshot across retrie
     expiresAt: ended + 240_000,
     excluded: false,
   });
+  // Simulate a delayed analytics flush beyond the normal final-report window.
+  vi.setSystemTime(Date.now() + 90_001);
+  await deliverDue(t);
+  expect(send).not.toHaveBeenCalled();
+  expect(
+    (await t.run((ctx) => ctx.db.get(job._id)))!.finalReport,
+  ).toBeUndefined();
   await flushAnalytics(t);
-  vi.setSystemTime(Date.now() + (90_001));
+  vi.setSystemTime(Date.now() + 30_001);
   await deliverDue(t);
   expect(send).toHaveBeenCalledTimes(1);
   const report = (await t.run((ctx) => ctx.db.get(job._id)))!.finalReport!;
@@ -585,7 +592,7 @@ it("final report waits for late events and keeps a stable snapshot across retrie
   });
   const first = send.mock.calls[0][1].body;
   await t.run((ctx) => ctx.db.patch(id, { impressions: 999 }));
-  vi.setSystemTime(Date.now() + (31_000));
+  vi.setSystemTime(Date.now() + 31_000);
   await deliverDue(t);
   expect(send).toHaveBeenCalledTimes(2);
   expect(send.mock.calls[1][1].body).toBe(first);
