@@ -86,10 +86,23 @@ export function MicroAma({
       )}
       <div className="ama-answers">
         {data.answers.map((q) => (
-          <article key={q.id}>
-            <h3>{q.question}</h3>
+          <details key={q.id}>
+            <summary>
+              <h3>{q.question}</h3>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </summary>
             <p>{q.answer}</p>
-          </article>
+          </details>
         ))}
       </div>
       <ReportContent takeoverId={takeoverId} name={name + " — AMA"} />
