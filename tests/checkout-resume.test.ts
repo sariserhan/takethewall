@@ -8,7 +8,7 @@ vi.mock("../lib/server", async () => ({
   backend: vi.fn(),
   rate: vi.fn(),
 }));
-vi.mock("../lib/stripe", () => ({ getStripe: vi.fn() }));
+vi.mock("../lib/stripe", async () => ({ ...(await vi.importActual("../lib/stripe")), getStripe: vi.fn() }));
 vi.mock("../lib/payment-recovery", () => ({
   recoverPayment: vi.fn().mockResolvedValue(true),
 }));
@@ -99,4 +99,8 @@ it("email request uses only the protected purchase token, never an arbitrary rec
     tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
   });
   expect(retrieve).not.toHaveBeenCalled();
+});
+it("resumes a taxed checkout without replacing it",async()=>{
+  retrieve.mockResolvedValue({...session,amount_subtotal:399,amount_total:479,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}});
+  expect((await (await POST(request())).json()).state).toBe("open");
 });

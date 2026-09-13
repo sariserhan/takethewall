@@ -10,7 +10,7 @@ import {
   sameOrigin,
   statusToken,
 } from "@/lib/server";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, validCheckoutAmount } from "@/lib/stripe";
 import { recoverPayment } from "@/lib/payment-recovery";
 export const runtime = "nodejs";
 export async function POST(req: Request) {
@@ -55,8 +55,7 @@ export async function POST(req: Request) {
       session.client_reference_id !== saved.takeoverId ||
       session.metadata?.environment !== saved.environment ||
       session.mode !== "payment" ||
-      session.amount_total !== 399 ||
-      session.currency !== "usd"
+      !validCheckoutAmount(session, session.payment_status === "paid")
     )
       throw new HttpError("Checkout verification failed.", 503);
     const token = statusToken(saved.requestKey.replace(/^embedded:/, ""));

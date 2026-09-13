@@ -43,6 +43,7 @@ export const pending = internalMutation({
     takeoverId: v.id("takeovers"),
     purchaseId: v.id("purchases"),
     checkoutUrl: v.union(v.string(), v.null()),
+    sessionId: v.optional(v.string()),
     checkoutExpiresAt: v.number(),
   }),
   handler: async (ctx, a) => {
@@ -65,6 +66,7 @@ export const pending = internalMutation({
         takeoverId: old.takeoverId,
         purchaseId: old._id,
         checkoutUrl: old.checkoutUrl ?? null,
+        ...(old.sessionId ? {sessionId:old.sessionId} : {}),
         checkoutExpiresAt: old.checkoutExpiresAt,
       };
     }
@@ -160,6 +162,9 @@ export const activate = internalMutation({
     sessionId: v.string(),
     paymentIntentId: v.string(),
     amountCents: v.number(),
+    taxCents: v.optional(v.number()),
+    presentmentAmount: v.optional(v.number()),
+    presentmentCurrency: v.optional(v.string()),
     currency: v.string(),
     paid: v.boolean(),
     livemode: v.boolean(),
@@ -169,7 +174,11 @@ export const activate = internalMutation({
   handler: async (ctx, a) => {
     if (
       !a.paid ||
-      a.amountCents !== TAKEOVER_PRICE_CENTS ||
+      !Number.isSafeInteger(a.taxCents ?? 0) ||
+      (a.taxCents ?? 0) < 0 ||
+      a.amountCents !== TAKEOVER_PRICE_CENTS + (a.taxCents ?? 0) ||
+      ((a.presentmentAmount !== undefined || a.presentmentCurrency !== undefined) &&
+        (!Number.isSafeInteger(a.presentmentAmount) || (a.presentmentAmount ?? 0) <= 0 || !/^[a-z]{3}$/.test(a.presentmentCurrency ?? ""))) ||
       a.currency !== "usd" ||
       !a.paymentIntentId
     )
@@ -291,7 +300,9 @@ export const activate = internalMutation({
       paidAt: now,
       cleanupAt: undefined,
       expiredConfirmed: undefined,
-      amountCents: TAKEOVER_PRICE_CENTS,
+      amountCents: a.amountCents,
+      taxCents: a.taxCents ?? 0,
+      ...(a.presentmentAmount !== undefined ? {presentmentAmount:a.presentmentAmount,presentmentCurrency:a.presentmentCurrency} : {}),
       currency: "usd",
       sessionId: a.sessionId,
       paymentIntentId: a.paymentIntentId,
@@ -313,7 +324,7 @@ export const activate = internalMutation({
     const d = await daily(ctx);
     await ctx.db.patch(d._id, {
       takeovers: d.takeovers + 1,
-      revenueCents: (d.revenueCents ?? 0) + a.amountCents,
+      revenueCents: (d.revenueCents ?? 0) + TAKEOVER_PRICE_CENTS,
     });
     await onActivation(ctx, takeoverNumber + (site.numberingOffset ?? 0));
     if (takeoverNumber % 100 === 0)

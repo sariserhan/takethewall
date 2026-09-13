@@ -166,7 +166,7 @@ export function PurchaseSheet({
       ) : reviewing ? (
         <form className="purchase-review" onSubmit={submit}>
           <p className="sheet-intro">
-            Check your content, then add your email to continue to payment.
+            Check your content, then add your email to continue to payment. The base price is $3.99 USD plus applicable tax. Stripe shows the final total and eligible local-currency options before you pay.
           </p>
           <TakeoverPreview draft={draft} />
           <fieldset disabled={busy} className="purchase-contact">
@@ -328,7 +328,7 @@ export function PurchaseSheet({
               )}
               <button
                 className="button pay"
-                disabled={busy || uploading}
+                disabled={busy || uploading || !controls || controls.paused}
                 type="submit"
               >
                 {busy ? "Preparing checkout…" : "PREVIEW YOUR TAKEOVER"}

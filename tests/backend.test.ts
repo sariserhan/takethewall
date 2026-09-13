@@ -867,3 +867,20 @@ it("test-mode publication failures do not queue admin email",async()=>{
   await t.mutation(internal.checkoutControls.publicationFailure,{takeoverId:p.takeoverId,sessionId:"cs_test_failure",paymentIntentId:"pi_test",livemode:false});
   expect(await t.run(ctx=>ctx.db.query("jobs").collect())).toHaveLength(0);
 });
+
+it("taxed local-currency payment publishes once and stores gross, tax and presentment separately",async()=>{
+  const t=make(),p=await pending(t);
+  const args={...payment(p.takeoverId,"taxed-local"),amountCents:479,taxCents:80,presentmentAmount:439,presentmentCurrency:"eur"};
+  await t.mutation(internal.purchases.activate,args);
+  await t.mutation(internal.purchases.activate,args);
+  const purchase=await t.run(ctx=>ctx.db.get(p.purchaseId));
+  expect(purchase).toMatchObject({amountCents:479,taxCents:80,currency:"usd",presentmentAmount:439,presentmentCurrency:"eur"});
+  expect((await t.query(api.wall.current,{}))?.totalTakeovers).toBe(1);
+  const days=await t.run(ctx=>ctx.db.query("dailyStats").collect());
+  expect(days[0].revenueCents).toBe(399);
+});
+it("rejects extra charges without matching tax and negative tax",async()=>{
+  const t=make(),p=await pending(t);
+  for(const patch of [{amountCents:479},{amountCents:398,taxCents:-1},{amountCents:479,taxCents:79}])
+    await expect(t.mutation(internal.purchases.activate,{...payment(p.takeoverId,"bad-tax"),...patch})).rejects.toThrow("Invalid payment");
+});

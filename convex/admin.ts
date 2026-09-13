@@ -115,6 +115,9 @@ export const list = query({
                 paymentEnvironment: p?.environment ?? null,
                 stripeCheckedAt: p?.stripeCheckedAt ?? null,
                 amountCents: p?.amountCents ?? null,
+                taxCents: p?.taxCents ?? null,
+                presentmentAmount: p?.presentmentAmount ?? null,
+                presentmentCurrency: p?.presentmentCurrency ?? null,
                 paymentIssue: p?.paymentIssue ?? null,
                 paymentReference: p?.paymentIntentId ?? null,
               };

@@ -68,7 +68,7 @@ export function ResumeCheckout() {
         <>
           <p>
             Continue your saved takeover for <strong>{name}</strong>. Your
-            original content and $3.99 checkout are unchanged.
+            original content is unchanged. Stripe shows the original checkout’s final total, including any applicable tax and currency conversion.
           </p>
           <EmbeddedPayment session={session} onClose={() => setToken(null)} />
         </>

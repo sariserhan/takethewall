@@ -107,7 +107,7 @@ export const publicationFailure = internalMutation({
       adminRecipient: settings.recipient,
       adminNotice: {
         subject: "Action needed: paid takeover could not publish",
-        body: `Stripe confirmed a $3.99 payment, but the app could not complete publication.\nTakeover: ${t._id}\nProject: ${t.displayName || t.domain}\nStripe checkout: ${a.sessionId}\nStripe payment: ${a.paymentIntentId}\nOpen Admin → Takeovers → Inspect → Check Stripe status. A later retry may already have recovered this payment; check before acting.`,
+        body: `Stripe confirmed payment for a $3.99 takeover (plus any applicable tax), but the app could not complete publication.\nTakeover: ${t._id}\nProject: ${t.displayName || t.domain}\nStripe checkout: ${a.sessionId}\nStripe payment: ${a.paymentIntentId}\nOpen Admin → Takeovers → Inspect → Check Stripe status. A later retry may already have recovered this payment; check before acting.`,
       },
     });
     return null;

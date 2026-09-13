@@ -7,7 +7,7 @@ import { getStripe } from "../lib/stripe";
 import { recoverPayment } from "../lib/payment-recovery";
 vi.mock("../lib/auth-server", () => ({ fetchAuthQuery: vi.fn() }));
 vi.mock("../lib/server", async () => ({ ...(await vi.importActual("../lib/server")), backend: vi.fn(), rate: vi.fn() }));
-vi.mock("../lib/stripe", () => ({ getStripe: vi.fn() }));
+vi.mock("../lib/stripe", async () => ({ ...(await vi.importActual("../lib/stripe")), getStripe: vi.fn() }));
 vi.mock("../lib/payment-recovery", () => ({ recoverPayment: vi.fn() }));
 const retrieve = vi.fn();
 const session = { id: "cs_test_admin", metadata: { takeoverId: "takeover", environment: "test" }, client_reference_id: "takeover", mode: "payment", amount_total: 399, currency: "usd", livemode: false, status: "open", payment_status: "unpaid", payment_intent: null };
@@ -54,4 +54,9 @@ it("does not republish a paid record that is ineligible for recovery", async () 
   vi.mocked(fetchAuthQuery).mockReset().mockResolvedValueOnce("verified-admin").mockResolvedValue({ sessionId: session.id, takeoverId: "takeover", environment: "test", canRecover: false });
   retrieve.mockResolvedValue({ ...session, status: "complete", payment_status: "paid", payment_intent: "pi_paid" });
   expect((await POST(req())).status).toBe(200); expect(recoverPayment).not.toHaveBeenCalled();
+});
+it("admin recovery accepts verified tax on top",async()=>{
+  retrieve.mockResolvedValue({...session,status:"complete",payment_status:"paid",payment_intent:"pi_tax",amount_subtotal:399,amount_total:479,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}});
+  expect((await POST(req())).status).toBe(200);
+  expect(recoverPayment).toHaveBeenCalledWith(session.id,"takeover");
 });

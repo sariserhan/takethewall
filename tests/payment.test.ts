@@ -54,9 +54,11 @@ describe("Checkout and webhook boundary", () => {
       mode: "payment",
       customer_email: "buyer@example.com",
       line_items: [
-        { quantity: 1, price_data: { unit_amount: 399, currency: "usd" } },
+        { quantity: 1, price_data: { unit_amount: 399, currency: "usd", tax_behavior:"exclusive" } },
       ],
       allow_promotion_codes: false,
+      automatic_tax: {enabled:true},
+      adaptive_pricing: {enabled:true},
       ui_mode: "embedded_page",
       redirect_on_completion: "if_required",
       return_url: "https://takethewall.com/?purchase=opaque",
@@ -187,4 +189,22 @@ describe("privacy and tokens", () => {
       }).text,
     ).toContain("3 seconds");
   });
+});
+
+it("accepts the exact base price plus verified automatic tax and records local presentment", () => {
+  const event=stripeEvent({amount_subtotal:399,amount_total:479,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80,amount_shipping:0,amount_discount:0},presentment_details:{presentment_amount:439,presentment_currency:"eur"}});
+  expect(verifiedSession(event,false)).toMatchObject({amountCents:479,taxCents:80,currency:"usd",presentmentAmount:439,presentmentCurrency:"eur"});
+});
+it.each([
+  {amount_subtotal:399,amount_total:479},
+  {amount_subtotal:400,amount_total:480,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}},
+  {amount_subtotal:399,amount_total:478,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}},
+  {amount_subtotal:399,amount_total:479,automatic_tax:{enabled:true,status:"requires_location_inputs"},total_details:{amount_tax:80}},
+  {amount_subtotal:399,amount_total:399,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:0,amount_discount:1}},
+  {amount_subtotal:399,amount_total:479,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80,amount_shipping:1}},
+])("rejects unverified totals, wrong base prices, incomplete tax, discounts and shipping", patch=>{
+  expect(()=>verifiedSession(stripeEvent(patch),false)).toThrow("Invalid payment confirmation");
+});
+it("accepts completed automatic tax with zero due",()=>{
+  expect(verifiedSession(stripeEvent({amount_subtotal:399,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:0}}),false)).toMatchObject({amountCents:399,taxCents:0});
 });

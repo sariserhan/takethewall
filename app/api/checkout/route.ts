@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       takeoverId: string;
       purchaseId: string;
       checkoutUrl: string | null;
+      sessionId?: string;
       checkoutExpiresAt: number;
     }>("pending", {
       expectedCurrentId: controls.ownerId,
@@ -89,6 +90,7 @@ export async function POST(req: Request) {
     const session = await paymentProvider.createCheckout(
       {
         takeoverId: pending.takeoverId,
+        existingSessionId: pending.sessionId,
         email: buyerEmail,
         token,
         expiresAt: pending.checkoutExpiresAt,

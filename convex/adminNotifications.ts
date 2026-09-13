@@ -66,6 +66,7 @@ export async function queueAdminTakeoverEmail(
     `Activated: ${new Date(t.activatedAt).toISOString().replace("T", " ").replace(".000Z", " UTC")}`,
     `Source: ${t.kind === "paid" ? "Stripe payment" : "Admin publication"}`,
     `Amount: ${((p.amountCents ?? 0) / 100).toFixed(2)} ${(p.currency ?? "usd").toUpperCase()}`,
+    ...(p.taxCents !== undefined ? [`Tax included in total: ${(p.taxCents / 100).toFixed(2)} USD`] : []),
     ...(p.sessionId ? [`Stripe checkout: ${p.sessionId}`] : []),
     ...(p.paymentIntentId ? [`Stripe payment: ${p.paymentIntentId}`] : []),
     ...(p.issuedByAdmin ? [`Published by admin: ${p.issuedByAdmin}`] : []),

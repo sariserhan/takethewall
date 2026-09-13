@@ -18,6 +18,7 @@ export function checkoutParameters(a: {
   expiresAt: number;
   siteUrl: string;
   priceId?: string;
+  productId?: string;
   environment: string;
 }): Stripe.Checkout.SessionCreateParams {
   return {
@@ -30,30 +31,63 @@ export function checkoutParameters(a: {
     },
     line_items: [
       {
-        ...(a.priceId
-          ? { price: a.priceId }
-          : {
-              price_data: {
-                currency: "usd",
-                unit_amount: TAKEOVER_PRICE_CENTS,
+        price_data: {
+          currency: "usd",
+          unit_amount: TAKEOVER_PRICE_CENTS,
+          tax_behavior: "exclusive",
+          ...(a.productId
+            ? { product: a.productId }
+            : {
                 product_data: {
                   name: "Take The Wall",
                   description:
                     "One takeover. No minimum duration, impressions, or clicks.",
+                  ...(process.env.STRIPE_TAX_CODE
+                    ? { tax_code: process.env.STRIPE_TAX_CODE }
+                    : {}),
                 },
-              },
-            }),
+              }),
+        },
         quantity: 1,
       },
     ],
     allow_promotion_codes: false,
-    adaptive_pricing: { enabled: false },
+    adaptive_pricing: { enabled: true },
+    automatic_tax: { enabled: true },
     ui_mode: "embedded_page",
     redirect_on_completion: "if_required",
     return_url: `${a.siteUrl}/?purchase=${a.token}`,
     expires_at: Math.floor(a.expiresAt / 1000),
   };
 }
+// Adaptive Pricing keeps these amounts in integration currency (USD).
+// The customer's converted total lives separately in presentment_details.
+export function validCheckoutAmount(
+  s: Stripe.Checkout.Session,
+  requireFinalTax = false,
+) {
+  const tax = s.total_details?.amount_tax ?? 0;
+  const presentation = s.presentment_details;
+  return (
+    s.currency === "usd" &&
+    Number.isSafeInteger(tax) &&
+    tax >= 0 &&
+    s.amount_total === TAKEOVER_PRICE_CENTS + tax &&
+    (s.total_details?.amount_discount ?? 0) === 0 &&
+    (s.total_details?.amount_shipping ?? 0) === 0 &&
+    (s.automatic_tax?.enabled
+      ? s.amount_subtotal === TAKEOVER_PRICE_CENTS &&
+        (!requireFinalTax || s.automatic_tax.status === "complete")
+      : tax === 0 &&
+        (s.amount_subtotal == null ||
+          s.amount_subtotal === TAKEOVER_PRICE_CENTS)) &&
+    (!presentation ||
+      (Number.isSafeInteger(presentation.presentment_amount) &&
+        presentation.presentment_amount > 0 &&
+        /^[a-z]{3}$/.test(presentation.presentment_currency)))
+  );
+}
+
 export function verifiedSession(event: Stripe.Event, production: boolean) {
   if (
     ![
@@ -67,8 +101,7 @@ export function verifiedSession(event: Stripe.Event, production: boolean) {
   if (
     s.mode !== "payment" ||
     s.status !== "complete" ||
-    s.amount_total !== TAKEOVER_PRICE_CENTS ||
-    s.currency !== "usd" ||
+    !validCheckoutAmount(s, true) ||
     s.livemode !== production ||
     event.livemode !== production ||
     s.metadata?.environment !== (production ? "production" : "test") ||
@@ -85,8 +118,15 @@ export function verifiedSession(event: Stripe.Event, production: boolean) {
       typeof s.payment_intent === "string"
         ? s.payment_intent
         : s.payment_intent.id,
-    amountCents: s.amount_total,
-    currency: s.currency,
+    amountCents: s.amount_total!,
+    taxCents: s.total_details?.amount_tax ?? 0,
+    ...(s.presentment_details
+      ? {
+          presentmentAmount: s.presentment_details.presentment_amount,
+          presentmentCurrency: s.presentment_details.presentment_currency,
+        }
+      : {}),
+    currency: s.currency!,
     paid: true,
     livemode: s.livemode,
     ...(s.customer_details?.email

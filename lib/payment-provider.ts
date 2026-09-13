@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import {
   checkoutParameters,
+  validCheckoutAmount,
   getStripe,
   verifiedSession,
   verifiedExpiration,
@@ -9,7 +10,9 @@ import { env } from "./server";
 import { TAKEOVER_PRICE_CENTS } from "./config";
 export interface PaymentProvider {
   createCheckout(
-    args: Parameters<typeof checkoutParameters>[0],
+    args: Parameters<typeof checkoutParameters>[0] & {
+      existingSessionId?: string;
+    },
     idempotencyKey: string,
   ): Promise<{ id: string; url: string | null; clientSecret: string | null }>;
   verifyWebhook(body: string, signature: string): Stripe.Event;
@@ -22,6 +25,30 @@ export interface PaymentProvider {
 export const paymentProvider: PaymentProvider = {
   async createCheckout(args, idempotencyKey) {
     const stripe = getStripe();
+    if (args.existingSessionId) {
+      // Preserve pre-rollout checkout settings and Stripe's idempotency contract.
+      const existing = await stripe.checkout.sessions.retrieve(
+        args.existingSessionId,
+      );
+      if (
+        existing.metadata?.takeoverId !== args.takeoverId ||
+        existing.client_reference_id !== args.takeoverId ||
+        existing.metadata?.environment !== args.environment ||
+        existing.livemode !== (args.environment === "production") ||
+        existing.mode !== "payment" ||
+        existing.status !== "open" ||
+        !validCheckoutAmount(existing)
+      )
+        throw new Error(
+          "This checkout is complete, expired, or unavailable. Use your original checkout link to check its status.",
+        );
+      return {
+        id: existing.id,
+        url: existing.url,
+        clientSecret: existing.client_secret,
+      };
+    }
+    let productId: string | undefined;
     if (args.priceId) {
       const p = await stripe.prices.retrieve(args.priceId);
       if (
@@ -32,10 +59,14 @@ export const paymentProvider: PaymentProvider = {
         p.livemode !== (args.environment === "production")
       )
         throw new Error("Checkout configuration unavailable");
+      productId = typeof p.product === "string" ? p.product : p.product.id;
     }
-    const s = await stripe.checkout.sessions.create(checkoutParameters(args), {
-      idempotencyKey,
-    });
+    const s = await stripe.checkout.sessions.create(
+      checkoutParameters({ ...args, productId }),
+      {
+        idempotencyKey,
+      },
+    );
     return { id: s.id, url: s.url, clientSecret: s.client_secret };
   },
   verifyWebhook(body, signature) {

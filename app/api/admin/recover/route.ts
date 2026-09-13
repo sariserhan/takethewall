@@ -9,7 +9,7 @@ import {
   rate,
   sameOrigin,
 } from "@/lib/server";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, validCheckoutAmount } from "@/lib/stripe";
 import { recoverPayment } from "@/lib/payment-recovery";
 export async function POST(req: Request) {
   try {
@@ -33,8 +33,7 @@ export async function POST(req: Request) {
       s.metadata?.takeoverId !== p.takeoverId ||
       s.client_reference_id !== p.takeoverId ||
       s.mode !== "payment" ||
-      s.amount_total !== 399 ||
-      s.currency !== "usd"
+      !validCheckoutAmount(s, s.payment_status === "paid")
     )
       throw new HttpError("Stripe payment reference mismatch", 503);
     if (s.payment_status === "paid" && (s.status !== "complete" || !s.payment_intent)) throw new HttpError("Stripe payment is not a verified completed session", 503);
