@@ -45,7 +45,7 @@ async function wallFixture(page: Page, impressions = 120, canvasDesign?: string)
     const value = (path: string) => {
       if (path === "wall:current")
         return {
-          owner: { ...owner, impressions, ...(canvasDesign ? {canvasDesign, canvasImages:[]} : {}) },
+          owner: { ...owner, impressions, ...(canvasDesign ? {canvasDesign, canvasImages:[], canvasLinksEnabled:true} : {}) },
           totalVisitors: 42,
           totalTakeovers: 16,
           numberingOffset: 15,
@@ -920,4 +920,48 @@ test("desktop designed wall fills available space and aligns with the stats", as
   expect(bounds.canvas.height).toBeGreaterThan(560);
   expect(bounds.content.x-bounds.canvas.x).toBe(16);
   await page.screenshot({path:"/tmp/ttw-full-desktop-wall.png"});
+});
+
+test("designer uploads appear immediately and independent button links survive preview", async ({page})=>{
+ await wallFixture(page);
+ const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf1sAAAAASUVORK5CYII=","base64");
+ await page.route("**/canvas-test.png",r=>r.fulfill({contentType:"image/png",body:png}));
+ let upload=0;
+ await page.route("**/api/upload",r=>r.fulfill({json:{uploadKey:`canvas-upload-${++upload}`,logoUrl:"http://localhost:3047/canvas-test.png"}}));
+ await page.addInitScript(()=>sessionStorage.setItem("ttw-draft",JSON.stringify({contentType:"personal",category:"personal",displayName:"My homepage",description:"Welcome",websiteUrl:"",logoUrl:"",uploadKey:"",buyerEmail:"owner@example.com",requestKey:crypto.randomUUID()})));
+ await page.goto("/?take=1");
+ const dialog=page.getByRole("dialog",{name:"MAKE IT YOURS."});
+ await dialog.getByRole("button",{name:"Design my wall",exact:true}).click();
+ const designer=dialog.getByRole("region",{name:"Wall Designer"});
+ for(let i=1;i<=2;i++){
+  await designer.locator('input[type="file"]').setInputFiles({name:"image.png",mimeType:"image/png",buffer:png});
+  await designer.getByRole("button",{name:"Apply image",exact:true}).click();
+  await expect(designer.locator(".canvas-image img")).toHaveCount(i);
+ }
+ await dialog.getByLabel(/Optional avatar\/image/).setInputFiles({name:"main.png",mimeType:"image/png",buffer:png});
+ await dialog.getByRole("button",{name:"Apply image",exact:true}).click();
+ await expect(designer.locator(".canvas-image img")).toHaveCount(3);
+ expect(await designer.locator(".canvas-image img").evaluateAll(images=>images.every(img=>(img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth>0))).toBe(true);
+ await designer.getByRole("button",{name:"Add button",exact:true}).click();
+ const url=designer.getByRole("textbox",{name:"Button destination URL"});
+ await url.pressSequentially("https://example.com/shop");
+ await expect(url).toHaveValue("https://example.com/shop");
+ await designer.getByRole("button",{name:"Duplicate block",exact:true}).click();
+ await url.fill("https://example.org/contact");
+ const d=await page.evaluate(()=>JSON.parse(JSON.parse(sessionStorage.getItem("ttw-draft")!).canvasDesign));
+ expect(d.blocks.filter((b:{type:string})=>b.type==="image")).toHaveLength(3);
+ expect(d.blocks.map((b:{href?:string})=>b.href)).toContain("https://example.com/shop");
+ expect(d.blocks.map((b:{href?:string})=>b.href)).toContain("https://example.org/contact");
+ await dialog.getByRole("button",{name:"PREVIEW YOUR TAKEOVER"}).click();
+ await expect(dialog.locator(".takeover-preview .canvas-image img")).toHaveCount(3);
+ await expect(dialog.locator(".takeover-preview .canvas-block a")).toHaveCount(0);
+});
+
+test("published canvas buttons each use their own destination",async({page})=>{
+ const {designTemplate}=await import("../lib/wall-design");const d=designTemplate("launch","My homepage","Welcome");
+ d.blocks[2].text="Shop";d.blocks[2].href="https://example.com/shop";d.blocks.push({...d.blocks[2],id:"contact",text:"Contact",href:"https://example.org/contact",desktop:{x:5,y:75,w:20,h:12},mobile:{x:5,y:90,w:90,h:8}});
+ await wallFixture(page,120,JSON.stringify(d));await page.goto("/");
+ const wall=page.getByRole("region",{name:"Current owner"});
+ await expect(wall.getByRole("link",{name:"Shop",exact:true})).toHaveAttribute("href","https://example.com/shop");
+ await expect(wall.getByRole("link",{name:"Contact",exact:true})).toHaveAttribute("href","https://example.org/contact");
 });

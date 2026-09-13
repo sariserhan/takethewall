@@ -201,7 +201,7 @@ export const cleanup = internalMutation({
       if (p.sessionId && !p.expiredConfirmed) continue;
       const t = await ctx.db.get(p.takeoverId);
       if (!t || t.status !== "pending") continue;
-      const canvasRefs=await ctx.db.query("canvasImageRefs").withIndex("by_takeover_storage",q=>q.eq("takeoverId",t._id)).take(16);
+      const canvasRefs=await ctx.db.query("canvasImageRefs").withIndex("by_takeover_storage",q=>q.eq("takeoverId",t._id)).take(32);
       for(const ref of canvasRefs) await ctx.db.delete(ref._id);
       for(const ref of canvasRefs){
         const other=await ctx.db.query("canvasImageRefs").withIndex("by_storage",q=>q.eq("storageId",ref.storageId)).first();

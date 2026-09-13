@@ -1,4 +1,5 @@
 "use client";
+import { withPrimaryImage } from "@/lib/wall-design";
 import type { DesignImage } from "@/lib/wall-design";
 import { MorseMessageField } from "./morse-message-field";
 import { celebrations } from "@/lib/celebrations";
@@ -379,7 +380,15 @@ export function PurchaseSheet({
                   }
                   disabled={busy}
                   onPending={setUploading}
-                  onUploaded={(result) => change(result)}
+                  onUploaded={(result) =>
+                    change({
+                      ...result,
+                      canvasDesign: withPrimaryImage(
+                        draft.canvasDesign,
+                        draft.displayName,
+                      ),
+                    })
+                  }
                 />
                 <label>
                   {draft.contentType === "personal"
@@ -397,6 +406,7 @@ export function PurchaseSheet({
                   />
                 </label>
                 <WallDesigner
+                  primaryImage={draft.logoUrl}
                   value={draft.canvasDesign}
                   images={draft.canvasImages}
                   title={draft.displayName}

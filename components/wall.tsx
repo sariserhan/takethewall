@@ -358,7 +358,7 @@ function WallView({
               )}
             </div>
           ) : owner?.canvasDesign ? (
-            <div className="canvas-owner-ad"><WallCanvas design={owner.canvasDesign} images={owner.canvasImages} href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined} onVisit={() => void wallEvent(owner.id,"click")} /></div>
+            <div className="canvas-owner-ad"><WallCanvas linksEnabled={owner.canvasLinksEnabled ?? owner.outboundLinkEnabled} design={owner.canvasDesign} images={owner.canvasImages} href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined} onVisit={() => void wallEvent(owner.id,"click")} /></div>
           ) : owner ? (
             <a
               key={owner.id}

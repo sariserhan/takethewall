@@ -1,8 +1,10 @@
+import { validateUrl } from "./validation";
 export type DesignBox = { x: number; y: number; w: number; h: number };
 export type DesignBlock = {
   id: string;
   type: "heading" | "text" | "image" | "button";
   text: string;
+  href?: string;
   image: string;
   color: string;
   fill: string;
@@ -23,9 +25,12 @@ export type WallDesign = {
 export type DesignImage = { key: string; url: string; uploadKey?: string };
 const hex = /^#[0-9a-f]{6}$/i;
 const key = /^[a-zA-Z0-9_-]{1,80}$/;
-export function parseWallDesign(value?: string): WallDesign | null {
+export function parseWallDesign(
+  value?: string,
+  draft = false,
+): WallDesign | null {
   if (!value) return null;
-  if (typeof value !== "string" || value.length > 16000)
+  if (typeof value !== "string" || value.length > 64000)
     throw Error("Wall design is too large.");
   let d: WallDesign;
   try {
@@ -41,10 +46,10 @@ export function parseWallDesign(value?: string): WallDesign | null {
     typeof d.backgroundImage !== "string" ||
     (d.backgroundImage && !key.test(d.backgroundImage)) ||
     !Array.isArray(d.blocks) ||
-    d.blocks.length > 8 ||
+    d.blocks.length > 24 ||
     !d.blocks.length
   )
-    throw Error("Choose a background and 1–8 wall blocks.");
+    throw Error("Choose a background and 1–24 wall blocks.");
   const ids = new Set<string>();
   for (const b of d.blocks) {
     if (
@@ -54,8 +59,8 @@ export function parseWallDesign(value?: string): WallDesign | null {
       ids.has(b.id) ||
       !["heading", "text", "image", "button"].includes(b.type) ||
       typeof b.text !== "string" ||
-      b.text.length > 300 ||
-      /[\x00-\x1f]|<[^>]*>/.test(b.text) ||
+      b.text.length > 1000 ||
+      /[\x00-\x09\x0b-\x1f]|<[^>]*>/.test(b.text) ||
       typeof b.image !== "string" ||
       (b.image && !key.test(b.image)) ||
       !hex.test(b.color) ||
@@ -70,6 +75,12 @@ export function parseWallDesign(value?: string): WallDesign | null {
       throw Error(
         "Invalid wall block. Use plain text, supported colors and fonts.",
       );
+    if (
+      b.href !== undefined &&
+      (typeof b.href !== "string" || b.href.length > 2048)
+    )
+      throw Error("Enter a valid block link.");
+    if (b.href && !draft) validateUrl(b.href);
     ids.add(b.id);
     for (const box of [b.desktop, b.mobile])
       if (
@@ -94,6 +105,9 @@ export function parseWallDesign(value?: string): WallDesign | null {
       id: b.id,
       type: b.type,
       text: b.text,
+      ...(b.href
+        ? { href: draft ? b.href : validateUrl(b.href).websiteUrl }
+        : {}),
       image: b.image,
       color: b.color,
       fill: b.fill,
@@ -119,7 +133,7 @@ export function designImageKeys(design: WallDesign | null) {
         ...(design?.blocks
           .filter((b) => b.type === "image")
           .map((b) => b.image) ?? []),
-      ].filter((x): x is string => !!x),
+      ].filter((x): x is string => !!x && x !== "logo"),
     ),
   ];
 }
@@ -178,9 +192,11 @@ export function designUploadReferences(
   value: unknown,
 ): { key: string; uploadKey: string }[] {
   if (value === undefined) return [];
-  if (!Array.isArray(value) || value.length > 8)
-    throw Error("Use up to eight canvas images.");
-  return value.map((image) => {
+  if (!Array.isArray(value) || value.length > 17)
+    throw Error("Use up to sixteen canvas images.");
+  const assets = value.filter((image) => image?.key !== "logo");
+  if (assets.length > 16) throw Error("Use up to sixteen canvas images.");
+  return assets.map((image) => {
     if (
       !image ||
       typeof image.key !== "string" ||
@@ -191,4 +207,30 @@ export function designUploadReferences(
       throw Error("Invalid canvas image reference.");
     return { key: image.key, uploadKey: image.uploadKey ?? "" };
   });
+}
+
+export function designDestinations(value?: string): string[] {
+  return [
+    ...new Set(
+      parseWallDesign(value)
+        ?.blocks.map((b) => b.href)
+        .filter((url): url is string => !!url) ?? [],
+    ),
+  ];
+}
+
+export function withPrimaryImage(value: string, title: string): string {
+  const d = parseWallDesign(value, true);
+  if (
+    !d ||
+    d.backgroundImage === "logo" ||
+    d.blocks.some((b) => b.type === "image" && b.image === "logo")
+  )
+    return value;
+  if (d.blocks.length >= 24)
+    throw Error("Remove a block before adding another image.");
+  const image = newDesignBlock("image", d.blocks.length);
+  image.image = "logo";
+  image.text = title || "Owner image";
+  return JSON.stringify({ ...d, blocks: [...d.blocks, image] });
 }

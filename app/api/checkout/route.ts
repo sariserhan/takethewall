@@ -1,4 +1,4 @@
-import { designUploadReferences } from "@/lib/wall-design";
+import { designUploadReferences, designDestinations } from "@/lib/wall-design";
 import { NextRequest } from "next/server";
 import { readReferral, REFERRAL_COOKIE } from "@/lib/referral";
 import { validateWallContent } from "@/lib/content";
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   try {
     sameOrigin(req);
     await rate(req, "checkout", 15, 3600_000);
-    const a = await jsonBody(req);
+    const a = await jsonBody(req, 96_000);
     if (
       !opaqueId(a.requestKey) ||
       (a.uploadKey !== "" &&
@@ -53,6 +53,9 @@ export async function POST(req: Request) {
         { status: 409 },
       );
     const content = validateWallContent(a);
+    await Promise.all(
+      designDestinations(a.canvasDesign).map((url) => publicDestination(url)),
+    );
     if (content.contentType !== "personal")
       await publicDestination(content.websiteUrl);
     const buyerEmail = validateEmail(a.buyerEmail);

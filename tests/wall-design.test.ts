@@ -20,12 +20,14 @@ it("validates a bounded design and strips unsupported executable properties", ()
       blocks: d.blocks.map((b) => ({
         ...b,
         style: { position: "fixed" },
-        href: "javascript:evil",
+        onclick: "evil",
       })),
     }),
   );
   expect(parsed).toEqual(d);
   const invalid = [
+    { ...d, blocks: [{ ...d.blocks[0], href: "javascript:evil" }] },
+    { ...d, blocks: [{ ...d.blocks[0], href: "https://127.0.0.1/" }] },
     { ...d, background: "url(https://other.test)" },
     { ...d, blocks: Array(9).fill(d.blocks[0]) },
     {
@@ -66,6 +68,7 @@ it("saves canvas assets only from owned uploads, exposes safe URLs and seals pai
   await t.mutation(internal.uploads.finish, { key: "canvas-image", storageId });
   const d = design();
   d.backgroundImage = "background";
+  d.blocks[2].href="https://example.com/shop";
   const args = {
     requestKey: "canvas-purchase",
     fingerprint: "canvas-fingerprint",
@@ -99,7 +102,10 @@ it("saves canvas assets only from owned uploads, exposes safe URLs and seals pai
     livemode: false,
   });
   const wall = await t.query(api.wall.current, {});
-  expect(wall?.owner.canvasDesign).toBe(JSON.stringify(d));
+  expect(JSON.parse(wall!.owner.canvasDesign!)).toEqual(d);
+  expect(wall?.owner.canvasLinksEnabled).toBe(true);
+  await t.run(ctx=>ctx.db.patch(p.takeoverId,{outboundLinkEnabled:false}));
+  expect((await t.query(api.wall.current,{}))?.owner.canvasLinksEnabled).toBe(false);
   expect(wall?.owner.canvasImages).toEqual([
     { key: "background", url: expect.stringContaining("storage") },
   ]);
@@ -120,4 +126,22 @@ it("saves canvas assets only from owned uploads, exposes safe URLs and seals pai
   expect(await t.run(async (ctx) => !!(await ctx.storage.get(storageId)))).toBe(
     true,
   );
+});
+
+it("preserves independent block links, permits multiline messages, and requires complete URLs to publish", () => {
+  const d = design();
+  d.blocks[0].text = "First message\nSecond line";
+  d.blocks[1].href = "https://example.com/about";
+  d.blocks[2].href = "https://example.org/store";
+  expect(parseWallDesign(JSON.stringify(d))?.blocks[1].href).toBe(
+    "https://example.com/about",
+  );
+  expect(parseWallDesign(JSON.stringify(d))?.blocks[2].href).toBe(
+    "https://example.org/store",
+  );
+  d.blocks[2].href = "https://";
+  expect(parseWallDesign(JSON.stringify(d), true)?.blocks[2].href).toBe(
+    "https://",
+  );
+  expect(() => parseWallDesign(JSON.stringify(d))).toThrow();
 });

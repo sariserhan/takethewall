@@ -86,9 +86,22 @@ export function validateWallContent(a: {
   const linkType = personal ? "other" : detectLinkType(url.websiteUrl);
   validateContent(
     url.domain,
-    displayName + " " + description + " " + morseMessage + " " + (design?.blocks.map(b=>b.text).join(" ") ?? ""),
+    displayName +
+      " " +
+      description +
+      " " +
+      morseMessage +
+      " " +
+      (design?.blocks.map((b) => b.text).join(" ") ?? ""),
     process.env.BLOCKED_DOMAINS,
   );
+  for (const block of design?.blocks ?? [])
+    if (block.href)
+      validateContent(
+        new URL(block.href).hostname,
+        block.text,
+        process.env.BLOCKED_DOMAINS,
+      );
   return {
     ...url,
     contentType: personal ? ("personal" as const) : ("link" as const),

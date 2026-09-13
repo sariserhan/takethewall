@@ -16,6 +16,7 @@ export default function WallDesigner({
   images,
   title,
   message,
+  primaryImage,
   onChange,
   onPending,
 }: {
@@ -23,9 +24,14 @@ export default function WallDesigner({
   images: DesignImage[];
   title: string;
   message: string;
+  primaryImage?: string;
   onChange: (value: string, images: DesignImage[]) => void;
   onPending: (pending: boolean) => void;
 }) {
+  const availableImages = [
+    ...images.filter((image) => image.key !== "logo"),
+    ...(primaryImage ? [{ key: "logo", url: primaryImage }] : []),
+  ];
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop"),
     [selected, setSelected] = useState(""),
     [pending, setPending] = useState(false);
@@ -40,7 +46,7 @@ export default function WallDesigner({
   } | null>(null);
   let design;
   try {
-    design = parseWallDesign(value);
+    design = parseWallDesign(value, true);
   } catch {
     design = null;
   }
@@ -75,7 +81,10 @@ export default function WallDesigner({
       <div className="designer-heading">
         <div>
           <h3>Your wall. Your design.</h3>
-          <p>Arrange your canvas between the stats. Up to eight blocks.</p>
+          <p>
+            Arrange your canvas between the stats. Build your own page with up
+            to 24 blocks.
+          </p>
         </div>
         <div className="designer-actions">
           <button
@@ -91,7 +100,18 @@ export default function WallDesigner({
             aria-pressed={!!d}
             disabled={pending}
             onClick={() => {
-              if (!d) save(designTemplate("launch", title, message));
+              if (!d) {
+                const next = designTemplate("launch", title, message);
+                if (primaryImage) {
+                  const image = newDesignBlock("image", 0);
+                  image.image = "logo";
+                  image.text = title || "Owner image";
+                  image.desktop = { x: 2, y: 2, w: 20, h: 20 };
+                  image.mobile = { x: 5, y: 1, w: 30, h: 12 };
+                  next.blocks.push(image);
+                }
+                save(next);
+              }
             }}
           >
             Design my wall
@@ -259,7 +279,7 @@ export default function WallDesigner({
               >
                 <WallCanvas
                   design={value}
-                  images={images}
+                  images={availableImages}
                   device={device}
                   editing
                   selected={selected}
@@ -267,8 +287,8 @@ export default function WallDesigner({
               </div>
               <p className="field-note">
                 Drag to move, use the corner to resize, or edit position below.
-                Mobile positions are independent. Buttons use your main website
-                link. Changes are saved in your checkout draft.
+                Mobile positions are independent. Give each button its own link.
+                Changes are saved in your checkout draft.
               </p>
             </div>
             <div className="designer-inspector">
@@ -306,7 +326,7 @@ export default function WallDesigner({
                   }
                 >
                   <option value="">No background image</option>
-                  {images.map((a, i) => (
+                  {availableImages.map((a, i) => (
                     <option key={a.key} value={a.key}>
                       Image {i + 1}
                     </option>
@@ -315,7 +335,11 @@ export default function WallDesigner({
               </label>
               <ImageUpload
                 label="Upload canvas image"
-                disabled={images.length >= 8}
+                disabled={
+                  images.filter((image) => image.key !== "logo").length >= 16 ||
+                  (d.blocks.length >= 24 &&
+                    !(block?.type === "image" && !block.image))
+                }
                 onPending={(p) => {
                   setPending(p);
                   onPending(p);
@@ -326,7 +350,25 @@ export default function WallDesigner({
                     url: r.logoUrl,
                     uploadKey: r.uploadKey,
                   };
-                  onChange(value, [...images, asset]);
+                  const nextBlock =
+                    block?.type === "image" && !block.image
+                      ? { ...block, image: asset.key }
+                      : {
+                          ...newDesignBlock("image", d.blocks.length),
+                          image: asset.key,
+                          text: "Uploaded image",
+                        };
+                  const next = {
+                    ...d,
+                    blocks:
+                      block?.type === "image" && !block.image
+                        ? d.blocks.map((b) =>
+                            b.id === block.id ? nextBlock : b,
+                          )
+                        : [...d.blocks, nextBlock],
+                  };
+                  onChange(JSON.stringify(next), [...images, asset]);
+                  setSelected(nextBlock.id);
                 }}
               />
               <button
@@ -343,14 +385,14 @@ export default function WallDesigner({
               >
                 Remove unused images
               </button>
-              <h4>Blocks · {d.blocks.length}/8</h4>
+              <h4>Blocks · {d.blocks.length}/24</h4>
               <div className="designer-actions">
                 {(["heading", "text", "image", "button"] as const).map(
                   (type) => (
                     <button
                       type="button"
                       key={type}
-                      disabled={d.blocks.length >= 8}
+                      disabled={d.blocks.length >= 24}
                       onClick={() => {
                         const b = newDesignBlock(type, d.blocks.length);
                         if (type === "text" || type === "heading")
@@ -360,7 +402,8 @@ export default function WallDesigner({
                                 existing.type === "heading" ||
                                 existing.type === "text",
                             )?.color ?? "#11110f";
-                        if (type === "image") b.image = images[0]?.key ?? "";
+                        if (type === "image")
+                          b.image = availableImages[0]?.key ?? "";
                         save({ ...d, blocks: [...d.blocks, b] });
                         setSelected(b.id);
                       }}
@@ -391,11 +434,23 @@ export default function WallDesigner({
                       ? "Image description"
                       : "Block text"}
                     <textarea
-                      maxLength={300}
+                      maxLength={1000}
                       value={block.text}
                       onChange={(e) => update({ text: e.target.value })}
                     />
                   </label>
+                  {block.type === "button" && (
+                    <label>
+                      Button destination URL
+                      <input
+                        type="url"
+                        value={block.href ?? ""}
+                        placeholder="https://your-website.com/page"
+                        onChange={(e) => update({ href: e.target.value })}
+                      />
+                      <small>Leave blank to use your main website link.</small>
+                    </label>
+                  )}
                   {block.type === "image" ? (
                     <>
                       <label>
@@ -405,7 +460,7 @@ export default function WallDesigner({
                           onChange={(e) => update({ image: e.target.value })}
                         >
                           <option value="">Choose image</option>
-                          {images.map((a, i) => (
+                          {availableImages.map((a, i) => (
                             <option key={a.key} value={a.key}>
                               Image {i + 1}
                             </option>
@@ -523,6 +578,22 @@ export default function WallDesigner({
                       }
                     >
                       Bring to front
+                    </button>
+                    <button
+                      type="button"
+                      disabled={d.blocks.length >= 24}
+                      onClick={() => {
+                        const copy = {
+                          ...block,
+                          id: crypto.randomUUID(),
+                          desktop: { ...block.desktop },
+                          mobile: { ...block.mobile },
+                        };
+                        save({ ...d, blocks: [...d.blocks, copy] });
+                        setSelected(copy.id);
+                      }}
+                    >
+                      Duplicate block
                     </button>
                     <button
                       type="button"

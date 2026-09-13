@@ -1283,3 +1283,4 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
   .designer-stage:not(.mobile){position:sticky;top:12px}
 }
 @media(max-width:760px){.canvas-content{inset:12px}}
+.wall-canvas .canvas-block :is(h2,p){white-space:pre-wrap}

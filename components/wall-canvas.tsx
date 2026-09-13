@@ -6,6 +6,7 @@ export function WallCanvas({
   design,
   images = [],
   href,
+  linksEnabled = true,
   onVisit,
   device,
   editing = false,
@@ -14,6 +15,7 @@ export function WallCanvas({
   design: string;
   images?: DesignImage[];
   href?: string;
+  linksEnabled?: boolean;
   onVisit?: () => void;
   device?: "desktop" | "mobile";
   editing?: boolean;
@@ -21,7 +23,7 @@ export function WallCanvas({
 }) {
   let d;
   try {
-    d = parseWallDesign(design);
+    d = parseWallDesign(design, editing);
   } catch {
     return <p>Design unavailable.</p>;
   }
@@ -99,9 +101,9 @@ export function WallCanvas({
                     <span className="canvas-image-empty">Choose image</span>
                   )
                 ) : b.type === "button" ? (
-                  href && !editing ? (
+                  (b.href || href) && linksEnabled && !editing ? (
                     <a
-                      href={href}
+                      href={b.href || href}
                       target="_blank"
                       rel="noopener noreferrer sponsored"
                       onClick={onVisit}

@@ -54,7 +54,13 @@ export function TakeoverPreview({
         {draft.canvasDesign ? (
           <WallCanvas
             design={draft.canvasDesign}
-            images={draft.canvasImages}
+            images={[
+              ...(draft.canvasImages ?? []).filter(
+                (image) => image.key !== "logo",
+              ),
+              ...(draft.logoUrl ? [{ key: "logo", url: draft.logoUrl }] : []),
+            ]}
+            linksEnabled={false}
             device={device}
           />
         ) : (

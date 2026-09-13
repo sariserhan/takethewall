@@ -1,4 +1,4 @@
-import { designUploadReferences } from "@/lib/wall-design";
+import { designUploadReferences, designDestinations } from "@/lib/wall-design";
 import { recoverPayment } from "@/lib/payment-recovery";
 import { cookies } from "next/headers";
 import {
@@ -119,6 +119,9 @@ export async function POST(req: Request) {
       )
         throw new HttpError("Invalid edit request.");
       const websiteUrl = String(a.websiteUrl ?? "");
+      await Promise.all(
+        designDestinations(a.canvasDesign).map((url) => publicDestination(url)),
+      );
       if (a.contentType === "link") await publicDestination(websiteUrl);
       await backend("ownerEdit", {
         token,

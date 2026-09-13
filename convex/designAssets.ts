@@ -19,7 +19,7 @@ export async function resolveDesignAssets(
   ownerHash: string,
   existing: Asset[] = [],
 ) {
-  if ((uploads?.length ?? 0) > 8) throw Error("Too many canvas images.");
+  if ((uploads?.length ?? 0) > 16) throw Error("Too many canvas images.");
   const keys = designImageKeys(parseWallDesign(design));
   const assets: Asset[] = [];
   for (const key of keys) {

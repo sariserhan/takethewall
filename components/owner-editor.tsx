@@ -1,4 +1,5 @@
 "use client";
+import { withPrimaryImage } from "@/lib/wall-design";
 import type { DesignImage } from "@/lib/wall-design";
 import { MorseMessageField } from "./morse-message-field";
 import dynamic from "next/dynamic";
@@ -173,6 +174,7 @@ export function OwnerEditor({
                 />
               </label>
               <WallDesigner
+                primaryImage={draft.logoUrl}
                 value={draft.canvasDesign}
                 images={draft.canvasImages}
                 title={draft.displayName}
@@ -194,7 +196,15 @@ export function OwnerEditor({
                 disabled={busy}
                 onPending={setImagePending}
                 onUploaded={(result) => {
-                  setDraft((d) => ({ ...d, ...result, removeImage: false }));
+                  setDraft((d) => ({
+                    ...d,
+                    ...result,
+                    removeImage: false,
+                    canvasDesign: withPrimaryImage(
+                      d.canvasDesign,
+                      d.displayName,
+                    ),
+                  }));
                   setReview(false);
                 }}
               />

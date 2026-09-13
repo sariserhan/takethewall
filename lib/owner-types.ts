@@ -12,6 +12,7 @@ export interface SharedTakeover {
     description: string;
     morseMessage?: string;
     canvasDesign?: string;
+    canvasLinksEnabled?: boolean;
     canvasImages?: import("./wall-design").DesignImage[];
     logoUrl: string | null;
     activatedAt: number;
