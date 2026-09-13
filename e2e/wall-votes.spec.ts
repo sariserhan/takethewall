@@ -444,3 +444,22 @@ test("Page-wide Thermal and Theremin preserve navigation and restore muted", asy
  await page.reload();await expect(page.locator('html')).toHaveAttribute('data-wall-interaction','theremin');await expect(page.getByRole('button',{name:'Start instrument',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Mute instrument',exact:true})).toHaveCount(0);
  await page.goto('/about');await page.getByRole('button',{name:/Exit Theremin/}).click();await expect(page.locator('.page-theremin')).toHaveCount(0);expect(await page.evaluate(()=>localStorage.getItem('ttw-interaction'))).toBe('off');
 });
+
+test("Dark page modes keep neon buttons readable on hover and keyboard focus",async({page})=>{
+ await fixture(page);await page.goto('/');
+ for(const mode of ['blacklight','thermal','theremin','obsidian']){
+   await page.evaluate(mode=>{
+     const root=document.documentElement;
+     root.dataset.wallTheme=mode==='obsidian'?'obsidian':'paper';
+     root.dataset.wallBlacklight=mode==='blacklight'?'on':'off';
+     root.dataset.wallInteraction=mode==='thermal'||mode==='theremin'?mode:'off';
+   },mode);
+   const button=page.locator('.wall-viewport .button.primary');await button.hover();
+   await expect(button).toHaveCSS('color','rgb(17, 17, 15)');
+   const accent=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+   await expect.poll(()=>button.evaluate((el,accent)=>{const probe=document.createElement('span');probe.style.color=accent;document.body.append(probe);const color=getComputedStyle(probe).color;probe.remove();return getComputedStyle(el).backgroundColor===color;},accent)).toBe(true);
+   await page.mouse.move(0,0);await button.focus();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');
+   await expect(button).toBeFocused();await expect(button).toHaveCSS('color','rgb(17, 17, 15)');
+   const contrast=await new AxeBuilder({page}).include('.purchase-band').withRules(['color-contrast']).analyze();expect(contrast.violations).toEqual([]);
+ }
+});

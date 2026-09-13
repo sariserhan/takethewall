@@ -1233,3 +1233,6 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @media(max-width:480px) { .interaction-controls {gap:8px;padding:8px;} .interaction-controls span {flex-basis:100%;} .interaction-controls kbd {display:none;} }
 @media(prefers-reduced-motion:reduce) { .page-theremin {background:none;} }
 @media print { .page-thermal,.page-theremin,.interaction-controls {display:none!important;} :root[data-wall-interaction] {--paper:#fff;--ink:#111;--muted:#555;--rule:#777;color-scheme:light;} }
+
+/* Keep both halves of the button contrast pair together in dark modes. */
+:root:is([data-wall-theme="obsidian"],[data-wall-blacklight="on"],[data-wall-interaction="thermal"],[data-wall-interaction="theremin"]) .button:is(:hover,:focus-visible) { background:var(--accent); color:#11110f; }
