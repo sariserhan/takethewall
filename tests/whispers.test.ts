@@ -48,11 +48,38 @@ it("rate limits anonymous comments and prevents unauthorised moderation", async 
   expect(await t.query(api.whispers.messages, { takeoverId: id })).toHaveLength(
     2,
   );
-  vi.setSystemTime(Date.now() + 11 * 60_000);
+  vi.setSystemTime(Date.now() + 30 * 86400_000);
   await t.mutation(internal.whispers.cleanup, {});
   expect(await t.query(api.whispers.messages, { takeoverId: id })).toHaveLength(
-    0,
+    2,
   );
+  const next = await t.run(async (ctx) => {
+    const { _id, _creationTime, ...owner } = (await ctx.db.get(id))!;
+    void _id;
+    void _creationTime;
+    const newId = await ctx.db.insert("takeovers", {
+      ...owner,
+      displayName: "Next owner",
+    });
+    const site = (await ctx.db
+      .query("siteStats")
+      .withIndex("by_key", (q) => q.eq("key", "wall"))
+      .unique())!;
+    await ctx.db.patch(site._id, { currentTakeoverId: newId });
+    return newId;
+  });
+  expect(await t.query(api.whispers.messages, { takeoverId: id })).toEqual([]);
+  await t.mutation(internal.whispers.post, {
+    takeoverId: next,
+    text: "New room",
+    ipHash: "new",
+    honeypot: "",
+  });
+  await t.mutation(internal.whispers.cleanup, {});
+  expect(await t.run((ctx) => ctx.db.get(rows[1].id))).toBeNull();
+  expect(
+    await t.query(api.whispers.messages, { takeoverId: next }),
+  ).toHaveLength(1);
 });
 it("rejects comments on blocked owners and ignores honeypots", async () => {
   const { t, id } = await setup();
@@ -75,4 +102,32 @@ it("rejects comments on blocked owners and ignores honeypots", async () => {
     }),
   ).rejects.toThrow();
   expect(await t.query(api.auditTrail.current, {})).toBeNull();
+});
+
+it("paginates the full current reign without dropping older messages", async () => {
+  const { t, id } = await setup();
+  await t.run(async (ctx) => {
+    for (let i = 0; i < 65; i++)
+      await ctx.db.insert("whispers", {
+        takeoverId: id,
+        text: `Message ${i}`,
+        hidden: false,
+        createdAt: Date.now(),
+      });
+  });
+  const first = await t.query(api.whispers.history, {
+    takeoverId: id,
+    paginationOpts: { numItems: 50, cursor: null },
+  });
+  expect(first.page).toHaveLength(50);
+  expect(first.isDone).toBe(false);
+  const second = await t.query(api.whispers.history, {
+    takeoverId: id,
+    paginationOpts: { numItems: 50, cursor: first.continueCursor },
+  });
+  expect(second.page).toHaveLength(15);
+  expect(second.isDone).toBe(true);
+  expect(new Set([...first.page, ...second.page].map((r) => r.id)).size).toBe(
+    65,
+  );
 });

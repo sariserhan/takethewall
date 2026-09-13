@@ -1,3 +1,7 @@
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { getSite, limit } from "./model";
@@ -28,6 +32,37 @@ export const messages = query({
     return rows
       .reverse()
       .map((r) => ({ id: r._id, text: r.text, createdAt: r.createdAt }));
+  },
+});
+export const history = query({
+  args: {
+    takeoverId: v.id("takeovers"),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(row),
+  handler: async (ctx, a) => {
+    const owner = await ctx.db.get(a.takeoverId);
+    if (
+      !owner ||
+      owner.blocked ||
+      (await getSite(ctx)).currentTakeoverId !== owner._id
+    )
+      return { page: [], isDone: true, continueCursor: "" };
+    const result = await ctx.db
+      .query("whispers")
+      .withIndex("by_owner_visible", (q) =>
+        q.eq("takeoverId", a.takeoverId).eq("hidden", false),
+      )
+      .order("desc")
+      .paginate(a.paginationOpts);
+    return {
+      ...result,
+      page: result.page.map((r) => ({
+        id: r._id,
+        text: r.text,
+        createdAt: r.createdAt,
+      })),
+    };
   },
 });
 export const post = internalMutation({
@@ -80,13 +115,28 @@ export const cleanup = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const rows = await ctx.db
-      .query("whispers")
-      .withIndex("by_created", (q) =>
-        q.lt("createdAt", Date.now() - 10 * 60_000),
-      )
-      .take(500);
-    for (const row of rows) await ctx.db.delete(row._id);
+    const site = await ctx.db
+      .query("siteStats")
+      .withIndex("by_key", (q) => q.eq("key", "wall"))
+      .unique();
+    if (!site) return null;
+    // Exclude the current reign in the index, so its long history cannot
+    // block cleanup of older rooms or be deleted because of its age.
+    const batches = await Promise.all([
+      ctx.db
+        .query("whispers")
+        .withIndex("by_owner_visible", (q) =>
+          q.lt("takeoverId", site.currentTakeoverId),
+        )
+        .take(250),
+      ctx.db
+        .query("whispers")
+        .withIndex("by_owner_visible", (q) =>
+          q.gt("takeoverId", site.currentTakeoverId),
+        )
+        .take(250),
+    ]);
+    for (const row of batches.flat()) await ctx.db.delete(row._id);
     return null;
   },
 });

@@ -103,7 +103,7 @@ export const publicCopy: Record<
     sections: [
       {
         title: "What is public",
-        body: "Your chosen public display name, image, description/message, destination, paid takeover number, activation history, and aggregate statistics may be displayed publicly. Finalized milestone trophies preserve a snapshot of this content. Whisper comments are public, anonymous to other visitors, and normally deleted after about 10 minutes; reported comments may be preserved in support records. We use hashed network identifiers for rate limiting. Do not put private information into a public placement. A claim legal name is not published merely because it was submitted for verification.",
+        body: "Your chosen public display name, image, description/message, destination, paid takeover number, activation history, and aggregate statistics may be displayed publicly. Finalized milestone trophies preserve a snapshot of this content. Whisper comments are public and anonymous to other visitors. They remain for the current owner’s reign; the room resets when the takeover changes, and previous-room messages are then deleted by background cleanup. Reported comments may be preserved in support records. We use hashed network identifiers for rate limiting. Do not put private information into a public placement. A claim legal name is not published merely because it was submitted for verification.",
       },
       {
         title: "Private purchase and support information",

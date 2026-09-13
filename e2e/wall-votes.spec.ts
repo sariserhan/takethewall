@@ -26,6 +26,7 @@ async function fixture(page: Page) {
       };
     const queries = new Map<number, string>();
     const value = (path: string): unknown => {
+      if (path === "whispers:history") return { page: [], isDone: true, continueCursor: "" };
       if (path === "whispers:messages" || path === "auditTrail:checkpoints") return [];
       if (path === "auditTrail:entries") return { entries: [], next: null };
       if (path === "auditTrail:verify") return { valid: true, next: null, reason: null };

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ReportContent } from "./report-content";
@@ -11,7 +11,16 @@ export function WhisperRoom({
   takeoverId: Id<"takeovers">;
   admin?: boolean;
 }) {
-  const rows = useQuery(api.whispers.messages, { takeoverId });
+  const {
+    results,
+    status: historyStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.whispers.history,
+    { takeoverId },
+    { initialNumItems: 50 },
+  );
+  const rows = [...results].reverse();
   const remove = useMutation(api.whispers.remove);
   const [text, setText] = useState(""),
     [company, setCompany] = useState(""),
@@ -20,15 +29,25 @@ export function WhisperRoom({
   return (
     <section className="whisper-room">
       <p>
-        Anonymous spectator comments. Keep it kind. Messages expire after about
-        10 minutes and the room resets with each takeover.
+        Anonymous spectator comments. Keep it kind. Messages stay for this
+        owner’s entire reign. The room resets when a new takeover goes live.
       </p>
+      {(historyStatus === "CanLoadMore" || historyStatus === "LoadingMore") && (
+        <button
+          disabled={historyStatus === "LoadingMore"}
+          onClick={() => loadMore(50)}
+        >
+          {historyStatus === "LoadingMore"
+            ? "Loading older whispers…"
+            : "Load older whispers"}
+        </button>
+      )}
       <div
         className="whisper-log"
         aria-live="polite"
         aria-relevant="additions text"
       >
-        {!rows ? (
+        {historyStatus === "LoadingFirstPage" ? (
           <p>Loading room…</p>
         ) : !rows.length ? (
           <p>No whispers yet. Start the conversation.</p>
