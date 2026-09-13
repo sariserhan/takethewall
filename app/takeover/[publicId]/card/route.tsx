@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- ImageResponse renders static image markup, not browser image elements. */
+import { duration } from "@/lib/validation";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import QRCode from "qrcode";
@@ -60,6 +61,19 @@ export async function GET(
     } catch {}
   }
   const owner = data.owner;
+  const completed = !data.active && data.replacedAt !== null;
+  const ink = completed ? "#f4f3eb" : "#11110f";
+  const name = (owner.displayName || owner.domain).slice(0, 70);
+  const stats = completed
+    ? [
+        [
+          duration(Math.max(0, data.replacedAt! - owner.activatedAt)),
+          "REIGN · HH:MM:SS",
+        ],
+        [owner.uniqueVisitors.toLocaleString("en-US"), "UNIQUE VISITORS"],
+        [owner.clicks.toLocaleString("en-US"), "OUTBOUND CLICKS"],
+      ]
+    : [];
   return new ImageResponse(
     <div
       style={{
@@ -69,8 +83,8 @@ export async function GET(
         width: "100%",
         height: "100%",
         padding: 48,
-        background: "#f4f3eb",
-        color: "#11110f",
+        background: completed ? "#11110f" : "#f4f3eb",
+        color: ink,
         fontFamily: "sans-serif",
       }}
     >
@@ -79,7 +93,7 @@ export async function GET(
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          borderBottom: "3px solid #11110f",
+          borderBottom: `3px solid ${ink}`,
           paddingBottom: 24,
         }}
       >
@@ -118,24 +132,49 @@ export async function GET(
             textAlign: tall ? "center" : "left",
           }}
         >
-          <span style={{ fontSize: 22 }}>I TOOK THE WALL.</span>
+          <span style={{ fontSize: 22, color: completed ? "#d8ff36" : ink }}>
+            {completed ? "PROOF OF REIGN" : "I TOOK THE WALL."}
+          </span>
           <span
             style={{
-              fontSize: owner.displayName.length > 35 ? 44 : tall ? 76 : 60,
+              fontSize: name.length > 35 ? 36 : tall ? 76 : 60,
               fontWeight: 900,
               overflowWrap: "break-word",
             }}
           >
-            {owner.displayName || owner.domain}
+            {name}
           </span>
-          {data.previousOwnerName && (
+          {!completed && data.previousOwnerName && (
             <span style={{ fontSize: 22, overflowWrap: "break-word" }}>
               I replaced {data.previousOwnerName}.
             </span>
           )}
-          <span style={{ fontSize: 27, color: "#68685f" }}>
-            {owner.description}
-          </span>
+          {completed ? (
+            <div
+              style={{
+                display: "flex",
+                gap: 28,
+                justifyContent: tall ? "center" : "flex-start",
+                marginTop: 8,
+              }}
+            >
+              {stats.map(([value, label]) => (
+                <div
+                  key={label}
+                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                >
+                  <span style={{ fontSize: 28, fontWeight: 700 }}>{value}</span>
+                  <span style={{ fontSize: 13, color: "#bcbcaf" }}>
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span style={{ fontSize: 27, color: "#68685f" }}>
+              {owner.description}
+            </span>
+          )}
         </div>
       </div>
       <div
@@ -146,14 +185,22 @@ export async function GET(
           gap: 24,
           padding: "18px 22px",
           background: "#d8ff36",
+          color: "#11110f",
           fontSize: 26,
           fontWeight: 700,
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <span>ONE WALL. ONE OWNER.</span>
+          <span>
+            {completed ? "MY TIME ON THE WALL." : "ONE WALL. ONE OWNER."}
+          </span>
           <span style={{ fontSize: 22 }}>Scan to view my takeover</span>
           <span style={{ fontSize: 22 }}>takethewall.com ↗</span>
+          {completed && (
+            <span style={{ fontSize: 14 }}>
+              Recorded stats at export
+            </span>
+          )}
         </div>
         <img
           src={qr}

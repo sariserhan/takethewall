@@ -1,3 +1,4 @@
+import { OwnershipBadge } from "@/components/ownership-badge";
 import { HistoryLink } from "@/components/history-link";
 import { ReferralVisit } from "@/components/referral-visit";
 import Link from "next/link";
@@ -114,6 +115,7 @@ export default async function SharedPage({ params, searchParams }: Props) {
             Portrait card
           </a>
         </div>
+        <OwnershipBadge publicId={publicId} />
         <Link className="button" href="/">
           See the live wall ↗
         </Link>

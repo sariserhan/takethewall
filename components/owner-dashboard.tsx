@@ -1,4 +1,5 @@
 "use client";
+import { OwnershipBadge } from "./ownership-badge";
 import { RegionLabel } from "./region-label";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -378,7 +379,11 @@ export function OwnerDashboardView() {
           </button>
         </section>
         <section className="owner-share-card">
-          <h2>Share your moment.</h2>
+          <h2>
+            {!data.active && data.replacedAt !== null
+              ? "Your proof of reign."
+              : "Share your moment."}
+          </h2>
           {data.previousOwnerName && (
             <p>
               You replaced <strong>{data.previousOwnerName}</strong>.
@@ -445,6 +450,7 @@ export function OwnerDashboardView() {
             />
           </label>
         </section>
+        <OwnershipBadge publicId={data.publicId} />
         <section className="owner-preferences">
           <h2>Your shared link results</h2>
           <p>

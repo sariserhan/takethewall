@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { OwnershipBadge } from "./ownership-badge";
 import { Arrow } from "./arrow";
 import { Dialog } from "./dialog";
 import { useState } from "react";
@@ -102,6 +103,7 @@ export function TakeoverShare({
         </a>
       </div>
       <p role="status">{message}</p>
+      <OwnershipBadge publicId={publicId} />
       {editorial && (
         <p className="field-note">
           Review the image and caption before posting. Nothing is published

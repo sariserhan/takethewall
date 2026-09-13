@@ -449,7 +449,20 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
   await page.route("**/takeover/**/card*", (r) =>
     r.fulfill({ status: 404, body: "" }),
   );
+  await page.route("**/takeover/**/badge", r => r.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="64"><rect width="400" height="64" fill="#d8ff36"/><text x="20" y="38">TAKE THE WALL · PAST OWNER</text></svg>' }));
+  await page.addInitScript(() => Object.defineProperty(navigator, "clipboard", { value: { writeText: async (value: string) => { (window as unknown as { copiedBadge: string }).copiedBadge = value; } } }));
   await page.goto("/owner");
+  await page.getByText("Embed my ownership badge", { exact: true }).click();
+  const embed = page.getByLabel("Embed code", { exact: true });
+  await expect(embed).toHaveValue(/\[!\[My Take The Wall placement\]/);
+  await expect(embed).not.toHaveValue(/token=|owner#/);
+  await page.getByRole("button", { name: "Copy badge code" }).click();
+  await expect(page.getByText("Badge code copied.")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { copiedBadge: string }).copiedBadge)).toBe(await embed.inputValue());
+  await page.getByLabel("Badge format").selectOption("html");
+  await expect(embed).toHaveValue(/<a href="https?:\/\/.*via=share"><img/);
+  await page.locator(".ownership-badge").screenshot({ path: `/tmp/ttw-badge-${test.info().project.name}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.getByLabel("Share card format").selectOption("portrait");
   await expect(
     page.getByRole("link", { name: "Download card" }),
