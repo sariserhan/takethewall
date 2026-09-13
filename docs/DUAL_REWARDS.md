@@ -18,7 +18,7 @@ Rank by verified referrals, then unique wall visitors, then the earlier takeover
 
 ## Free email entry operations
 
-Publish the email-entry rules before using this workflow. Instructions direct entrants to `support@takethewall.com`, subject **Free wall entry**, with their name, email, display name, and desired ad text or URL. This code does not read the mailbox automatically.
+Publish the email-entry rules before using this workflow. Instructions direct entrants to `contact@takethewall.com`, subject **Free wall entry**, with their name, email, display name, and desired ad text or URL. This code does not read the mailbox automatically.
 
 In `/admin` → Publish, select **Process a free email entry**. Review valid emails in received order, copy the original Message-ID, enter the received timestamp in UTC, and enter the requested content and recipient email. Preview, then publish. Free entries always count and use the same atomic sequence, audit chain, referral tracking, and claim process. The Message-ID prevents duplicate issuance even across different administrators; its reference and receipt timestamp stay private. No Stripe payment or paid receipt is fabricated.
 

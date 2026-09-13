@@ -50,12 +50,10 @@ export function PrizeExplainer({
             </>
           )}
         </p>
-        {next?.performance && (
-          <p>
-            No purchase necessary.{" "}
-            <Link href="/?info=rewards">Free email entry instructions →</Link>
-          </p>
-        )}
+        <p className="free-entry-callout">
+          No purchase necessary.{" "}
+          <Link href="/?info=free-entry">Enter free by email →</Link>
+        </p>
         <Link href="/?info=how-prizes-work">How prizes work →</Link>
       </div>
       {next ? (

@@ -577,3 +577,19 @@ test("current takeover toolbar link follows the live owner", async ({page}) => {
  wall.changeOwner();
  await expect(link).toHaveAttribute("href","/takeover/ttw_"+"2".repeat(32));
 });
+
+test("free entry is available from the footer with a contact email template", async ({page}) => {
+ await fixture(page);await page.goto("/");
+ await page.getByRole("navigation",{name:"Information",exact:true}).getByRole("link",{name:"Free entry",exact:true}).click();
+ const dialog=page.getByRole("dialog",{name:"Free entry",exact:true});
+ await expect(dialog).toBeVisible();
+ await expect(dialog).toContainText("contact@takethewall.com");
+ await expect(dialog).toContainText("Free wall entry");
+ const href=await dialog.getByRole("link",{name:"Email my free entry"}).getAttribute("href");
+ const email=new URL(href!);expect(email.pathname).toBe("contact@takethewall.com");
+ expect(email.searchParams.get("subject")).toBe("Free wall entry");
+ expect(email.searchParams.get("body")).toContain("Public display name:");
+ expect(new URL(page.url()).pathname).toBe("/");
+ await dialog.getByRole("link",{name:"Read the Reward Rules"}).click();
+ await expect(page.getByRole("dialog",{name:"Reward Rules",exact:true})).toContainText("Current free-entry contact: contact@takethewall.com");
+});

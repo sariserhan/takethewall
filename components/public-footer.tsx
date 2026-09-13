@@ -10,6 +10,7 @@ export const infoLinks = [
   ["Support", "support"],
   ["Contact", "contact"],
   ["Reward Rules", "rewards"],
+  ["Free entry", "free-entry"],
   ["About the numbers", "numbers"],
   ["Terms", "terms"],
   ["Privacy", "privacy"],

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
 import { publicCopy, legalVersion } from "@/lib/public-copy";
+import { FreeEntryInstructions } from "./free-entry-instructions";
 import { ContactForm } from "./contact-form";
 import { PrizeGuide } from "./prize-explainer";
 import { RewardRules } from "./milestones";
@@ -13,6 +14,7 @@ const titles: Record<string, string> = {
   support: "Support",
   contact: "Contact",
   rewards: "Reward Rules",
+  "free-entry": "Free entry",
   numbers: "About the numbers",
   terms: "Terms",
   privacy: "Privacy",
@@ -83,7 +85,9 @@ export function InfoOverlay() {
       onClose={close}
     >
       <div className="info-copy">
-        {page === "how-prizes-work" ? (
+        {page === "free-entry" ? (
+          <FreeEntryInstructions />
+        ) : page === "how-prizes-work" ? (
           <PrizeGuide />
         ) : page === "how-it-works" ? (
           <>
@@ -142,7 +146,8 @@ export function InfoOverlay() {
               Live counters come from Convex. VisitorPing provides separate
               aggregate reports; its totals are not added to the live counters.
               Custom-event reports include server-relayed events, using our
-              traffic checks rather than VisitorPing’s server bot classification.
+              traffic checks rather than VisitorPing’s server bot
+              classification.
             </p>
           </>
         ) : page === "contact" ? (
@@ -151,7 +156,19 @@ export function InfoOverlay() {
             <ContactForm />
           </>
         ) : page === "rewards" ? (
-          <RewardRules version={version} />
+          <>
+            <p className="free-entry-callout">
+              Current free-entry contact:{" "}
+              <a href="mailto:contact@takethewall.com">
+                contact@takethewall.com
+              </a>
+              .{" "}
+              <Link href="/?info=free-entry">
+                View free entry instructions →
+              </Link>
+            </p>
+            <RewardRules version={version} />
+          </>
         ) : copy ? (
           <>
             <p>{copy.intro}</p>
