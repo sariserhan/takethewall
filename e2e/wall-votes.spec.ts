@@ -252,3 +252,35 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
  expect(errors).toEqual([]);
 });
+
+test("Freeze holds the displayed wall and Thaw catches up to the latest owner", async ({page}, info) => {
+ const state=await fixture(page);
+ const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
+ await page.goto("/");
+ await page.locator(".wall-tools").getByRole("button",{name:"Freeze",exact:true}).click();
+ const snapshot=page.locator(".cryo-snapshot");
+ await expect(snapshot).toBeVisible();
+ await expect(snapshot).toHaveAttribute("inert","");
+ await expect(page.getByRole("dialog",{name:"Frozen wall view"})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Thaw — return to live"})).toBeFocused();
+ const captured=await snapshot.innerText();
+ await page.keyboard.press("Control+k");
+ await expect(page.locator("dialog[open]")).toHaveCount(0);
+ state.changeOwner();
+ await expect(page.locator(".wall-page:not(.cryo-snapshot) .owner-ad")).toContainText("Owner 2");
+ expect(await snapshot.innerText()).toBe(captured);
+ await page.screenshot({path:`/tmp/ttw-freeze-${info.project.name}.png`});
+ await page.getByRole("button",{name:"Thaw — return to live"}).click();
+ await expect(snapshot).toHaveCount(0);
+ await expect(page.locator(".owner-ad")).toContainText("Owner 2");
+ await expect(page.locator(".owner-ad")).toBeVisible();
+ await expect(page.locator(".wall-tools").getByRole("button",{name:"Freeze",exact:true})).toBeFocused();
+ await page.locator(".wall-tools").getByRole("button",{name:"Freeze",exact:true}).click();
+ await page.keyboard.press("Escape");
+ await expect(snapshot).toHaveCount(0);
+ await page.emulateMedia({reducedMotion:"reduce"});
+ await page.locator(".wall-tools").getByRole("button",{name:"Freeze",exact:true}).click();
+ expect(await page.locator(".cryo-ice").evaluate(el=>getComputedStyle(el).animationName)).toBe("none");
+ await page.keyboard.press("Escape");
+ expect(errors).toEqual([]);
+});

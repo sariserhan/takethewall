@@ -169,11 +169,11 @@ function WallView({
     const id = owner.id;
     let visible = false;
     const attempt = () => {
-      if (visible && document.visibilityState === "visible")
+      if (visible && document.visibilityState === "visible" && document.documentElement.dataset.wallFrozen !== "on")
         void wallEvent(
           id,
           "impression",
-          () => visible && document.visibilityState === "visible",
+          () => visible && document.visibilityState === "visible" && document.documentElement.dataset.wallFrozen !== "on",
         );
     };
     const observer = new IntersectionObserver(

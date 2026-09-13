@@ -67,6 +67,7 @@ export function TakeoverSound({ changed }: { changed: boolean }) {
   useEffect(() => {
     const audio = context.current;
     if (
+      document.documentElement.dataset.wallFrozen === "on" ||
       !changed ||
       !enabled ||
       !audio ||

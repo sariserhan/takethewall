@@ -1127,3 +1127,14 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @keyframes retro-rec{50%{opacity:.65}}
 @media(prefers-reduced-motion:reduce){:root[data-wall-retro="on"] body::before{animation:none}:root[data-wall-retro="on"] .wall-page{text-shadow:none}}
 .earth-globe{cursor:grab;touch-action:none;user-select:none}.earth-globe:active{cursor:grabbing}.globe-country-name{min-height:24px;color:#e4efc0}.globe-view li button{border:0;padding:4px;text-align:left;color:inherit}.globe-view small{display:block;color:#b4c4b1;margin-top:20px}
+
+:root[data-wall-frozen="on"] .wall-page:not(.cryo-snapshot){display:none}
+.cryo-snapshot{pointer-events:none;user-select:none}.cryo-snapshot *{animation-play-state:paused!important;transition:none!important}
+.cryo-layer{position:fixed;inset:0;z-index:120;pointer-events:none}.cryo-ice{position:absolute;inset:0;box-shadow:inset 0 0 100px 35px #a5e8ffb3,inset 0 0 28px 10px #edfcff;background:radial-gradient(ellipse at center,transparent 40%,#b2ecff45 78%,#e5faffc9 100%);animation:cryo-grow 900ms ease-out both}.cryo-ice svg{width:100%;height:100%;fill:none;stroke:#e6fbff;stroke-width:2;filter:drop-shadow(0 0 4px #a5e8ff)}
+.cryo-controls{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 32px));padding:20px;background:#071925f2;color:#e6fbff;border:1px solid #a8e9ff;box-shadow:0 0 36px #90dfff44;pointer-events:auto;text-align:center}.cryo-controls strong{font:30px var(--display);letter-spacing:.07em}.cryo-controls p{font-size:13px;line-height:1.5;margin:8px 0}.cryo-controls button{display:block;width:100%;margin:14px 0 10px;padding:13px;background:#b8efff;color:#071925;border:1px solid #edfcff;font-weight:700}.cryo-controls small{font-size:11px}.cryo-controls button:focus-visible{outline:3px solid #b8efff;outline-offset:3px}
+.cryo-layer.thawing .cryo-ice{animation:cryo-thaw 650ms ease-in both}.cryo-live{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 20px;background:#071925;color:#e6fbff;border:1px solid #a8e9ff;text-align:center}
+:root[data-wall-thawing="on"] :is(.site-metrics,.reign-metrics) strong{animation:cryo-catchup 650ms ease-out}
+@keyframes cryo-grow{from{opacity:0;filter:blur(12px)}to{opacity:1;filter:blur(0)}}
+@keyframes cryo-thaw{to{opacity:0;transform:scale(1.14);filter:blur(8px)}}
+@keyframes cryo-catchup{0%{filter:blur(5px);transform:translateY(-5px)}60%{filter:blur(1px);transform:translateY(2px)}100%{filter:none;transform:none}}
+@media(prefers-reduced-motion:reduce){.cryo-ice,.cryo-layer.thawing .cryo-ice,:root[data-wall-thawing="on"] :is(.site-metrics,.reign-metrics) strong{animation:none}.cryo-layer.thawing .cryo-ice{opacity:0}}

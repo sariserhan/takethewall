@@ -33,6 +33,7 @@ export function HackerTerminal({
   const add = (line: string) => setLines((old) => [...old.slice(-29), line]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (document.documentElement.dataset.wallFrozen === "on") return;
       const target = e.target as HTMLElement;
       if (target.closest('input,textarea,select,[contenteditable="true"]'))
         return;
