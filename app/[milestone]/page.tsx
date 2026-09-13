@@ -1,3 +1,4 @@
+import { BrandLink } from "@/components/brand-link";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchQuery } from "convex/nextjs";
@@ -62,9 +63,7 @@ export default async function Page({
   return (
     <main className="document-page milestone-page">
       <header className="permanent-header">
-        <Link href="/" className="permanent-wordmark">
-          TAKE THE WALL
-        </Link>
+        <BrandLink className="permanent-wordmark" />
         <Link href="/" className="permanent-back">
           ← Back to the live wall
         </Link>

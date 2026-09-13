@@ -50,3 +50,11 @@ it("renders escaped metric cards and safe dashboard buttons in the shared email 
     }),
   ).toThrow("Invalid email URL");
 });
+
+it("escapes secondary action links and includes them in plain text", () => {
+  const email = emailTemplate("Report", "Ready", { secondaryCta: { label: "View <report>", url: "https://takethewall.com/owner#token=private&retake=1" } });
+  expect(email.html).toContain("View &lt;report&gt;");
+  expect(email.html).toContain("token=private&amp;retake=1");
+  expect(email.text).toContain("View <report>: https://takethewall.com/owner");
+  expect(() => emailTemplate("Report", "", { secondaryCta: { label: "Bad", url: "javascript:alert(1)" } })).toThrow("Invalid email URL");
+});

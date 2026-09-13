@@ -1,4 +1,5 @@
 "use client";
+import { BrandLink } from "./brand-link";
 import { DEFAULT_RULES } from "@/lib/reward-rules";
 import { LEGAL_VERSION } from "@/lib/config";
 import { AdminCheckoutControls } from "./admin-checkout-controls";
@@ -10,7 +11,6 @@ import { AdminFunnel } from "./admin-funnel";
 import { AdminNotifications } from "./admin-notifications";
 import { AdminDemoStats } from "./admin-demo-stats";
 import { AdminHealth } from "./admin-health";
-import Link from "next/link";
 import { LoadingSkeleton } from "./loading-skeleton";
 import { AdminPublish } from "./admin-publish";
 import { useMutation, useQuery } from "convex/react";
@@ -79,7 +79,7 @@ export function AdminDashboard() {
   return (
     <>
       <header>
-        <Link href="/">TAKE THE WALL</Link>
+        <BrandLink />
         <h1>ADMIN / {section.toUpperCase()}</h1>
       </header>
       <nav className="admin-nav" aria-label="Admin sections">

@@ -1,3 +1,4 @@
+import { syncHall } from "./hallModel";
 import { adminPage, claimDetails, ticketDetails } from "./adminValidators";
 import schema from "./schema";
 import { scheduleRewardDeadline } from "./rewardSchedule";
@@ -649,6 +650,7 @@ export const moderate = mutation({
     else if (a.rewardId)
       await ctx.db.patch(a.rewardId, { outboundLinkEnabled: false });
     else throw new Error("Target required");
+    if (a.takeoverId) await syncHall(ctx, a.takeoverId);
     await audit(
       ctx,
       actor,
@@ -1014,6 +1016,8 @@ export const publish = mutation({
       await enqueue(ctx, "activation_email", id);
       await enqueue(ctx, "takeover_activated", id);
     }
+    if (previous) await syncHall(ctx, previous._id);
+    await syncHall(ctx, id);
     await queueAdminTakeoverEmail(ctx, id);
     await audit(
       ctx,

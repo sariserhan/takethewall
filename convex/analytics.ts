@@ -1,3 +1,4 @@
+import { syncHall } from "./hallModel";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -212,6 +213,7 @@ export const flush = internalMutation({
           uniqueVisitors: delta.uniqueVisitors,
         });
     }
+    await syncHall(ctx, t._id);
     await ctx.db.delete(id);
     return null;
   },

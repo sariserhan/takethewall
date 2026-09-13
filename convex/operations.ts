@@ -1,3 +1,4 @@
+import { syncHall } from "./hallModel";
 import {
   internalMutation,
   internalQuery,
@@ -145,6 +146,7 @@ export async function disableCurrent(
   });
   if (removed.kind === "paid" || removed.kind === "admin_counted")
     await enqueue(ctx, "replacement_email", removed._id);
+  await syncHall(ctx, removed._id);
   return restoredId;
 }
 
@@ -153,6 +155,8 @@ export const cleanup = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now();
+    const growth = await ctx.db.query("growthSettings").withIndex("by_key", q => q.eq("key", "current")).unique();
+    if (growth?.hallEnabled && !growth.hallReady) await ctx.scheduler.runAfter(0, internal.hall.backfill, {});
     for (const table of ["receipts", "limits", "dailyVisitors"] as const) {
       const rows = await ctx.db
         .query(table)

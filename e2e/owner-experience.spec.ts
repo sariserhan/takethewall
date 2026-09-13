@@ -690,3 +690,66 @@ test("a live wall with zero views explains its counters", async ({ page }) => {
   await expect(page.locator(".owner-ad h2")).toContainText("Raven Studio");
   await expect(page.getByText("No regional breakdown yet.")).toBeVisible();
 });
+
+test("replacement email shortcut opens a prefilled draft without creating a payment", async ({
+  page,
+}) => {
+  await wallFixture(page);
+  let repeats = 0,
+    payments = 0;
+  await page.route("**/api/checkout", (r) => {
+    payments++;
+    return r.fulfill({ status: 500, json: {} });
+  });
+  await page.route("**/api/owner", (r) => {
+    const a = r.request().method() === "POST" ? r.request().postDataJSON() : {};
+    if (a.action === "repeat") {
+      repeats++;
+      return r.fulfill({
+        json: {
+          draft: {
+            contentType: "personal",
+            displayName: "Raven Studio",
+            description: "A little corner of the internet.",
+            websiteUrl: "",
+            logoUrl: "",
+            uploadKey: "",
+            buyerEmail: "owner@example.com",
+            weeklyDigestEnabled: false,
+          },
+        },
+      });
+    }
+    return r.fulfill({
+      json: {
+        dashboard: {
+          ...dashboard,
+          contentRevision: 0,
+          active: false,
+          replacedAt: Date.now(),
+        },
+      },
+    });
+  });
+  await page.route("**/takeover/**/card*", (r) =>
+    r.fulfill({ status: 404, body: "" }),
+  );
+  await page.goto("/owner#token=" + "a".repeat(64) + "&retake=1");
+  await expect(page).toHaveURL(/\/\?take=1$/);
+  const dialog = page.getByRole("dialog", { name: "MAKE IT YOURS." });
+  await expect(dialog.getByLabel("Display name")).toHaveValue("Raven Studio");
+  await expect(dialog.getByLabel("Optional message")).toHaveValue(
+    "A little corner of the internet.",
+  );
+  expect(repeats).toBe(1);
+  expect(payments).toBe(0);
+  await dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
+  await expect(dialog.getByLabel("Buyer email")).toHaveValue(
+    "owner@example.com",
+  );
+
+  await expect(
+    dialog.getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" }),
+  ).toBeVisible();
+  expect(payments).toBe(0);
+});

@@ -45,6 +45,7 @@ test("admin edits the notification recipient and toggle without leaving /admin",
   await page.route("**/api/admin/health", (r) =>
     r.fulfill({ status: 503, json: {} }),
   );
+  let hallEnabled = false;
   let settings = {
       enabled: true,
       recipient: "serhan.sari@yahoo.com",
@@ -80,7 +81,7 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     let version = { querySet: 0, identity: 0, ts: timestamp() };
     const queries = new Map<number, string>();
     const value = (path: string): unknown =>
-      path === "contactManagement:details"
+      path === "hall:settings" ? { enabled: hallEnabled, ready: true } : path === "growth:adminHistory" ? { entries: [], next: null } : path === "growth:visibility" ? true : path === "owners:recentFeedback" ? [] : path === "contactManagement:details"
         ? JSON.stringify(contactState)
         : path === "emailDirectory:list"
           ? JSON.stringify({
@@ -219,6 +220,12 @@ test("admin edits the notification recipient and toggle without leaving /admin",
         transition(changes, { querySet: msg.newVersion });
       }
       if (msg.type === "Mutation") {
+        if (msg.udfPath === "hall:setEnabled") {
+          hallEnabled = msg.args[0].enabled;
+          tick++; socket.send(JSON.stringify({ type: "MutationResponse", requestId: msg.requestId, success: true, result: null, ts: timestamp(), logLines: [] }));
+          transition([...queries].filter(([, path]) => path === "hall:settings").map(([id, path]) => ({ type: "QueryUpdated", queryId: id, value: value(path), logLines: [], journal: null })));
+          return;
+        }
         if (
           ["contactManagement:unsubscribe", "contactManagement:erase"].includes(
             msg.udfPath,
@@ -439,5 +446,10 @@ test("admin edits the notification recipient and toggle without leaving /admin",
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await page.getByRole("button", { name: "growth", exact: true }).click();
+  const hallToggle = page.getByLabel("Show Hall of Fame publicly");
+  await expect(hallToggle).not.toBeChecked(); await hallToggle.click(); await expect(hallToggle).toBeChecked();
+  expect(hallEnabled).toBe(true); await hallToggle.click(); await expect(hallToggle).not.toBeChecked();
+  expect(hallEnabled).toBe(false);
   expect(errors).toEqual([]);
 });

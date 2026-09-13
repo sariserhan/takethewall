@@ -285,7 +285,17 @@ export default defineSchema({
     .index("by_activationSequence", ["activationSequence"])
     .index("by_logoStorageId", ["logoStorageId"])
     .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
+  hallEntries: defineTable({
+    takeoverId: v.id("takeovers"), eligible: v.boolean(), completed: v.boolean(),
+    reignMs: v.number(), referrals: v.number(), clicks: v.number(),
+  }).index("by_takeover", ["takeoverId"])
+    .index("by_reign", ["eligible", "completed", "reignMs"])
+    .index("by_referrals", ["eligible", "referrals"])
+    .index("by_clicks", ["eligible", "clicks"]),
   growthSettings: defineTable({
+    hallEnabled: v.optional(v.boolean()),
+    hallReady: v.optional(v.boolean()),
+    hallCursor: v.optional(v.union(v.string(), v.null())),
     checkoutPaused: v.optional(v.boolean()),
     key: v.literal("current"),
     historyEnabled: v.boolean(),

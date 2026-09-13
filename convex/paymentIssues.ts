@@ -1,3 +1,4 @@
+import { syncHall } from "./hallModel";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { audit } from "./rewardModel";
@@ -53,6 +54,7 @@ export const record = internalMutation({
       else
         await cascade(ctx, c._id, "ineligible", a.reason, "payment-provider");
     }
+    await syncHall(ctx, p.takeoverId);
     return null;
   },
 });

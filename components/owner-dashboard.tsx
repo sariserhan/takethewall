@@ -7,6 +7,16 @@ import type { OwnerDashboard } from "@/lib/owner-types";
 import { ctr, duration } from "@/lib/validation";
 import { OwnerEditor } from "./owner-editor";
 import { StatHelp } from "./stat-help";
+function storeRepeatDraft(d: { contentType: string; [key: string]: unknown }) {
+  sessionStorage.setItem(
+    "ttw-draft",
+    JSON.stringify({
+      ...d,
+      category: d.contentType === "personal" ? "personal" : "website",
+      requestKey: crypto.randomUUID(),
+    }),
+  );
+}
 export function OwnerDashboardView() {
   const router = useRouter();
   const [data, setData] = useState<OwnerDashboard | null>(null),
@@ -29,6 +39,7 @@ export function OwnerDashboardView() {
     let alive = true;
     const params = new URLSearchParams(location.hash.slice(1));
     const token = params.get("token");
+    const retake = params.get("retake") === "1";
     if (token) history.replaceState(null, "", location.pathname);
     (async () => {
       try {
@@ -46,6 +57,13 @@ export function OwnerDashboardView() {
             setNow(Date.now());
           }
         } else if (alive) await refresh();
+        if (alive && retake) {
+          const result = await request("repeat");
+          if (alive) {
+            storeRepeatDraft(result.draft);
+            router.push("/?take=1");
+          }
+        }
       } catch (e) {
         if (alive)
           setError(e instanceof Error ? e.message : "Dashboard unavailable.");
@@ -56,7 +74,7 @@ export function OwnerDashboardView() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router]);
   useEffect(() => {
     if (!data) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -115,8 +133,8 @@ export function OwnerDashboardView() {
         </h1>
         <p>
           Use the private link in your activation email, or request it again
-          below. Closed the browser before or after paying? Leave the number blank to recover
-          your latest purchases. No account needed.
+          below. Closed the browser before or after paying? Leave the number
+          blank to recover your latest purchases. No account needed.
         </p>
         {error && <p role="alert">{error}</p>}
         <form
@@ -304,17 +322,7 @@ export function OwnerDashboardView() {
                 setError("");
                 try {
                   const result = await request("repeat");
-                  const d = result.draft;
-                  const category =
-                    d.contentType === "personal" ? "personal" : "website";
-                  sessionStorage.setItem(
-                    "ttw-draft",
-                    JSON.stringify({
-                      ...d,
-                      category,
-                      requestKey: crypto.randomUUID(),
-                    }),
-                  );
+                  storeRepeatDraft(result.draft);
                   router.push("/?take=1");
                 } catch (e) {
                   setError(

@@ -44,6 +44,13 @@ export interface FinalReportSnapshot extends DigestSnapshot {
   replacedAt: number;
   endReason: string;
 }
+function retakeUrl(url: string) {
+  const target = new URL(url),
+    fragment = new URLSearchParams(target.hash.slice(1));
+  fragment.set("retake", "1");
+  target.hash = fragment.toString();
+  return target.toString();
+}
 export function finalOwnerEmail(d: FinalReportSnapshot, dashboardUrl?: string) {
   const number =
     d.number === null ? "" : " #" + d.number.toLocaleString("en-US");
@@ -75,7 +82,26 @@ export function finalOwnerEmail(d: FinalReportSnapshot, dashboardUrl?: string) {
         },
       ],
       ...(dashboardUrl
-        ? { cta: { label: "View your takeover report", url: dashboardUrl } }
+        ? {
+            cta: {
+              label:
+                d.endReason === "moderation"
+                  ? "View your takeover report"
+                  : "Take the wall again — $4.99",
+              url:
+                d.endReason === "moderation"
+                  ? dashboardUrl
+                  : retakeUrl(dashboardUrl),
+            },
+          }
+        : {}),
+      ...(dashboardUrl && d.endReason !== "moderation"
+        ? {
+            secondaryCta: {
+              label: "View your takeover report",
+              url: dashboardUrl,
+            },
+          }
         : {}),
       footnote: `Started ${new Date(d.activatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC. Ended ${new Date(d.replacedAt).toISOString().replace("T", " ").slice(0, 19)} UTC. Measured totals for this reign, including accepted late events; demo additions are excluded.`,
     },

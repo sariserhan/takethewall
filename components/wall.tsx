@@ -1,4 +1,6 @@
 "use client";
+import { HallOfFame } from "./hall-of-fame";
+import { MobilePurchaseBar, TakeoverSound } from "./live-controls";
 import { publicConvexClient } from "@/lib/convex-client";
 import { trackVerifiedTakeover } from "@/lib/visitorping-client";
 import { RegionLabel } from "./region-label";
@@ -101,6 +103,7 @@ function WallView({
   const since = presentation?.ownerSince ?? data?.owner.activatedAt ?? 0;
   const owner = data?.owner,
     adRef = useRef<HTMLAnchorElement>(null),
+    purchaseRef = useRef<HTMLButtonElement>(null),
     previous = useRef<string | null>(null),
     tokenRef = useRef<string | null>(null);
   // Capture and strip the browser-only return token before event collection.
@@ -228,6 +231,7 @@ function WallView({
           <h1>TAKE THE WALL</h1>
           <div className="strap">
             <p>Your content takes over this page for $4.99.</p>
+            <TakeoverSound changed={changed} />
             <span className="connection">
               <i className={connected ? "online" : ""} />
               {connected ? "LIVE" : "CONNECTING"}
@@ -309,7 +313,10 @@ function WallView({
                   ? "ADMIN PLACEMENT"
                   : "HOUSE PLACEMENT"}
           </p>
-          <p className="eyebrow ownership-label" aria-live="polite">
+          <p
+            className={`eyebrow ownership-label${changed ? " takeover-arrived" : ""}`}
+            aria-live="polite"
+          >
             {presentation
               ? "SAMPLE CONTENT — NOT THE CURRENT OWNER"
               : changed
@@ -371,7 +378,18 @@ function WallView({
           ) : (
             <div className="owner-ad loading-owner">
               <div className="loading-mark">
-                <Image src="/brand/takethewall-icon.svg" alt="" width={80} height={80} unoptimized style={{ margin: "0 auto", width: "clamp(48px, 8dvh, 80px)", height: "auto" }} />
+                <Image
+                  src="/brand/takethewall-icon.svg"
+                  alt=""
+                  width={80}
+                  height={80}
+                  unoptimized
+                  style={{
+                    margin: "0 auto",
+                    width: "clamp(48px, 8dvh, 80px)",
+                    height: "auto",
+                  }}
+                />
               </div>
               <h2>
                 {data === undefined
@@ -494,6 +512,7 @@ function WallView({
             $4.99 USD plus applicable tax; final total shown at checkout.
           </p>
           <button
+            ref={purchaseRef}
             className="button primary"
             onClick={takeWall}
             disabled={checkoutPaused}
@@ -504,6 +523,12 @@ function WallView({
         </section>
       </div>
       <HomepageMilestones />
+      <HallOfFame />
+      <MobilePurchaseBar
+        target={purchaseRef}
+        onTake={takeWall}
+        paused={checkoutPaused}
+      />
       <section className="wall-follow" aria-labelledby="wall-follow-title">
         <div className="wall-follow-heading">
           <span className="eyebrow">FOLLOW ALONG</span>

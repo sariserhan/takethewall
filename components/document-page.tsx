@@ -1,3 +1,4 @@
+import { BrandLink } from "./brand-link";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -18,7 +19,7 @@ export function DocumentPage({ info }: { info: string }) {
   if (!page) notFound();
   return (
     <main className="document-page">
-      <Link href="/">TAKE THE WALL</Link>
+      <BrandLink />
       <h1>{page.title}</h1>
       <p className="lede">{page.intro}</p>
       {["terms", "privacy", "disclaimer", "disclosure"].includes(info) && (

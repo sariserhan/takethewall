@@ -1,3 +1,4 @@
+import { syncHall } from "./hallModel";
 import { isCheckoutPaused } from "./checkoutControls";
 import { previousOwnerName } from "./model";
 import { sha } from "../lib/audit";
@@ -364,6 +365,8 @@ export const activate = internalMutation({
       await incrementFunnel(ctx, "paidActivations");
     if (previous.kind === "paid" || previous.kind === "admin_counted")
       await enqueue(ctx, "replacement_email", previous._id);
+    await syncHall(ctx, previous._id);
+    await syncHall(ctx, t._id);
     return { activated: true, takeoverId: t._id };
   },
 });

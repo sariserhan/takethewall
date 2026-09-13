@@ -1,3 +1,4 @@
+import { syncHall } from "./hallModel";
 import {
   internalQuery,
   internalMutation,
@@ -138,6 +139,7 @@ export const visit = internalMutation({
         createdAt: Date.now(),
       });
       await ctx.db.patch(t._id, { shareVisitors: (t.shareVisitors ?? 0) + 1 });
+      await syncHall(ctx, t._id);
     }
     return true;
   },

@@ -25,6 +25,7 @@ export interface EmailPresentation {
   eyebrow?: string;
   metrics?: { label: string; value: string }[];
   cta?: { label: string; url: string };
+  secondaryCta?: { label: string; url: string };
   footnote?: string;
   unsubscribeUrl?: string;
   unsubscribeLabel?: string;
@@ -55,6 +56,9 @@ export function emailTemplate(
   const cta = presentation.cta
     ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:24px 0;"><tr><td align="center" bgcolor="#11110f" style="padding:18px;"><a href="${safeLink(presentation.cta.url)}" style="color:#d8ff36;font-size:16px;font-weight:bold;text-decoration:none;display:block;">${escapeHtml(presentation.cta.label)} &rarr;</a></td></tr></table>`
     : "";
+  const secondary = presentation.secondaryCta
+    ? `<p style="margin:16px 0;"><a href="${safeLink(presentation.secondaryCta.url)}" style="color:#11110f;text-decoration:underline;">${escapeHtml(presentation.secondaryCta.label)}</a></p>`
+    : "";
   const text =
     body +
     (presentation.metrics?.length
@@ -63,6 +67,9 @@ export function emailTemplate(
       : "") +
     (presentation.cta
       ? `\n\n${presentation.cta.label}: ${presentation.cta.url}`
+      : "") +
+    (presentation.secondaryCta
+      ? `\n\n${presentation.secondaryCta.label}: ${presentation.secondaryCta.url}`
       : "") +
     (presentation.footnote ? "\n\n" + presentation.footnote : "") +
     (presentation.unsubscribeUrl
@@ -83,7 +90,7 @@ export function emailTemplate(
 <p style="margin:0 0 18px;font-size:11px;letter-spacing:2px;color:#68685f;">${escapeHtml(presentation.eyebrow ?? "ONE WALL. ONE OWNER.")}</p>
 <h1 class="title" style="margin:0 0 24px;font-size:30px;line-height:1.2;font-weight:900;overflow-wrap:anywhere;">${title}</h1>
 <div style="font-size:16px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;">${bodyHtml(body)}</div>
-${presentation.imageUrl ? `<img src="${safeLink(presentation.imageUrl)}" width="536" alt="Takeover share card" style="display:block;width:100%;height:auto;margin:24px 0;border:0;">` : ""}${metrics}${cta}
+${presentation.imageUrl ? `<img src="${safeLink(presentation.imageUrl)}" width="536" alt="Takeover share card" style="display:block;width:100%;height:auto;margin:24px 0;border:0;">` : ""}${metrics}${cta}${secondary}
 ${presentation.footnote ? `<p style="font-size:12px;line-height:1.6;color:#68685f;">${escapeHtml(presentation.footnote)}</p>` : ""}
 </td></tr>
 <tr><td class="inner" style="padding:22px 32px;border-top:1px solid #babbb0;font-size:12px;line-height:1.6;color:#68685f;">

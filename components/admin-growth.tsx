@@ -11,12 +11,42 @@ export function AdminGrowth() {
   const feedback = useQuery(api.owners.recentFeedback, {});
   const enabled = useQuery(api.growth.visibility, {});
   const toggle = useMutation(api.growth.setHistoryVisibility);
+  const hall = useQuery(api.hall.settings, {});
+  const toggleHall = useMutation(api.hall.setEnabled);
   const [selected, setSelected] = useState(""),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false);
   return (
     <section>
       <h2>Growth & sharing</h2>
+      <label className="check-label">
+        <input
+          type="checkbox"
+          checked={hall?.enabled ?? false}
+          disabled={!hall || saving}
+          onChange={async (e) => {
+            setSaving(true);
+            setError("");
+            try {
+              await toggleHall({ enabled: e.target.checked });
+            } catch (e) {
+              setError(
+                e instanceof Error
+                  ? e.message
+                  : "Could not update Hall of Fame.",
+              );
+            } finally {
+              setSaving(false);
+            }
+          }}
+        />
+        Show Hall of Fame publicly
+      </label>
+      <p className="field-note">
+        Independent of Wall History. Hiding it removes the homepage section and
+        public rankings.{" "}
+        {hall?.enabled && !hall.ready ? "Preparing historical records…" : ""}
+      </p>
       <details className="owner-feedback">
         <summary>
           Owner feedback · {feedback?.length ?? "…"} recent responses
