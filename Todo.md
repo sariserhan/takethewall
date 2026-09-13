@@ -86,7 +86,7 @@
 - [x] **Blacklight:** persistent site-wide flashlight theme with a dark violet veil, pointer/touch and keyboard-focus tracking, visible exit and Escape shortcut. No separate dialog.
 - [x] **Theremin:** site-wide pointer/touch/focus instrument with explicit start/mute/exit controls; saved mode restores muted. Navigation stays usable, and form fields do not play notes.
 - [x] **Origami Brick:** six-face printable SVG net with seven glue tabs, takeover artwork/number, live-homepage QR, A4/Letter print document and browser Save as PDF. Geometry and digital print output verified; physical assembly still needs a real paper trial.
-- [x] Group visual/audio toys under **Experiments**; keep core utility buttons and Try Mine directly accessible.
+- [x] Group visual/audio toys under **Playground** at the end of the toolbar; keep Pulse, other core utilities and Try Mine directly accessible.
 - [ ] **Live Weather Sync:** optional owner-selected city, owner consent, weather provider, cached observations and source/update time. Do not infer owner location from audience countries. Manual Atmosphere is available now.
 - [ ] **Shared Thermal:** only after opt-in coarse cursor collection, throttled/batched updates, short retention, abuse/cost limits, and exclusion of forms/checkout/private pages. Never fabricate live spectators.
 - [ ] **Owner Blacklight messages:** opt-in moderated public messages and removal handling; never reveal hidden records or private credentials.

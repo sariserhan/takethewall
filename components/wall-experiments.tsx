@@ -67,14 +67,8 @@ export function MagneticTitle() {
     </h1>
   );
 }
-export function WallExperiments({
-  ownerId,
-  name,
-}: {
-  ownerId?: string;
-  name?: string;
-}) {
-  const [panel, setPanel] = useState<"Hold" | "Pulse" | null>(null),
+export function WallExperiments() {
+  const [panel, setPanel] = useState<"Hold" | null>(null),
     [rave, setRave] = useState(false),
     [beat, setBeat] = useState(false);
   useEffect(() => {
@@ -129,9 +123,6 @@ export function WallExperiments({
       <button className="wall-action" onClick={() => setPanel("Hold")}>
         <WallToolIcon name="hold" /> Hold
       </button>
-      <button className="wall-action" onClick={() => setPanel("Pulse")}>
-        <WallToolIcon name="pulse" /> Pulse
-      </button>
       <button
         className="wall-action"
         aria-pressed={rave}
@@ -148,7 +139,8 @@ export function WallExperiments({
           aria-pressed={beat}
           onClick={() => setBeat(!beat)}
         >
-          <WallToolIcon name={beat ? "sound" : "muted"} /> Rave beat {beat ? "on" : "off"}
+          <WallToolIcon name={beat ? "sound" : "muted"} /> Rave beat{" "}
+          {beat ? "on" : "off"}
         </button>
       )}
       <Dialog
@@ -157,9 +149,25 @@ export function WallExperiments({
         title={panel ?? "Wall tools"}
       >
         {panel === "Hold" && <Hold />}
-        {panel === "Pulse" && (
-          <Pulse key={ownerId} ownerId={ownerId} name={name} />
-        )}
+      </Dialog>
+    </>
+  );
+}
+export function PulseTool({
+  ownerId,
+  name,
+}: {
+  ownerId?: string;
+  name?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="wall-action" onClick={() => setOpen(true)}>
+        <WallToolIcon name="pulse" /> Pulse
+      </button>
+      <Dialog open={open} onClose={() => setOpen(false)} title="Pulse">
+        {open && <Pulse key={ownerId} ownerId={ownerId} name={name} />}
       </Dialog>
     </>
   );

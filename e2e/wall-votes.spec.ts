@@ -324,6 +324,8 @@ test("Wall experiments work and the magnetic title is always enabled", async ({p
  await expect(page.getByRole("dialog").getByLabel("Website URL",{exact:true})).toHaveValue("https://my-launch.com/");
  await page.keyboard.press("Escape");
  await page.locator(".experiments-menu > summary").click();
+ await expect(page.locator(".experiments-menu").getByRole("button",{name:"Pulse",exact:true})).toHaveCount(0);
+ await expect(page.locator(".wall-tools > details:last-child > summary")).toHaveText("Playground");
  await page.getByRole("button",{name:"Hold",exact:true}).click();
  const pad=page.getByRole("button",{name:"PRESS & HOLD"});
  await pad.focus(); await page.keyboard.down("Space");
