@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { siteUrl } from "@/lib/site-url";
 import { OwnershipBadge } from "./ownership-badge";
 import { Arrow } from "./arrow";
 import { Dialog } from "./dialog";
@@ -20,6 +21,14 @@ export function TakeoverShare({
   const [format, setFormat] = useState("landscape"),
     [message, setMessage] = useState("");
   const path = `/takeover/${publicId}?via=share`;
+  const tweetUrl =
+    "https://twitter.com/intent/tweet?" +
+    new URLSearchParams({
+      text: editorial
+        ? `${name.slice(0, 80)} took the wall. Who’s next?`
+        : "I just took the wall! 👑 Knock me off if you can.",
+      url: new URL(path, siteUrl()).href,
+    }).toString();
   const caption = () =>
     `${editorial ? name + " took the wall." : "I took the wall!"}${previousOwnerName ? " I replaced " + previousOwnerName + "." : ""} One wall. One owner. $4.99 to take over until the next owner replaces you. ${new URL(path, window.location.origin).href}`;
   const copy = async (text: string) => {
@@ -66,6 +75,14 @@ export function TakeoverShare({
         </p>
       )}
       <div className="owner-share-actions">
+        <a
+          className="button"
+          href={tweetUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Post to X <Arrow />
+        </a>
         <button
           className="button"
           onClick={async () => {
@@ -98,7 +115,9 @@ export function TakeoverShare({
         >
           Download image
         </a>
-        <a href={`/takeover/${publicId}/certificate`}>Print placement certificate</a>
+        <a href={`/takeover/${publicId}/certificate`}>
+          Print placement certificate
+        </a>
         <a href={path}>
           Open public page <Arrow />
         </a>

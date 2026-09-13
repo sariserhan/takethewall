@@ -3,6 +3,7 @@ import { OwnerAma } from "./micro-ama";
 import { OwnershipBadge } from "./ownership-badge";
 import { RegionLabel } from "./region-label";
 import Image from "next/image";
+import { siteUrl } from "@/lib/site-url";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { OwnerDashboard } from "@/lib/owner-types";
@@ -420,6 +421,23 @@ export function OwnerDashboardView() {
             unoptimized
           />
           <div className="owner-share-actions">
+            <a
+              className="button"
+              target="_blank"
+              rel="noopener noreferrer"
+              href={
+                "https://twitter.com/intent/tweet?" +
+                new URLSearchParams({
+                  text: "I just took the wall! 👑 Knock me off if you can.",
+                  url: new URL(
+                    `/takeover/${data.publicId}?via=share`,
+                    siteUrl(),
+                  ).href,
+                }).toString()
+              }
+            >
+              Post to X ↗
+            </a>
             <button className="button" onClick={() => void share()}>
               Share takeover ↗
             </button>
@@ -442,7 +460,9 @@ export function OwnerDashboardView() {
             >
               Download card
             </a>
-            <a href={`/takeover/${data.publicId}/certificate`}>Print placement certificate</a>
+            <a href={`/takeover/${data.publicId}/certificate`}>
+              Print placement certificate
+            </a>
           </div>
           <label>
             Public share link

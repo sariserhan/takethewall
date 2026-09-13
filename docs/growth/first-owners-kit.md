@@ -9,11 +9,11 @@ Record the actual app, with readable captions and a vertical crop for mobile.
 | Time | Visual | Caption / narration |
 | --- | --- | --- |
 | 0–3s | Current wall | “One website. One owner.” |
-| 3–6s | Enter a project and preview it | “Your project can take over for $3.99.” |
+| 3–6s | Enter a project and preview it | “Your project can take over for $4.99.” |
 | 6–11s | Cut from payment to verified activation | “It stays until somebody replaces you.” |
 | 11–15s | New wall and website address | “What would you put here? takethewall.com” |
 
-For a development recording, keep “Test purchase demonstration” visible. Cut around card fields, buyer email, receipts, and private owner links. Do not imply that an edited payment sequence is instantaneous. Caption: “Browse free. Taking over costs $3.99. No guaranteed duration or audience.”
+For a development recording, keep “Test purchase demonstration” visible. Cut around card fields, buyer email, receipts, and private owner links. Do not imply that an edited payment sequence is instantaneous. Caption: “Browse free. Taking over costs $4.99. No guaranteed duration or audience.”
 
 ## Personal invitations
 
@@ -21,11 +21,11 @@ Choose 20 relevant people manually: eight makers with a recent project launch, s
 
 Personalize the opening with something specific you actually saw:
 
-> Hey [name] — I saw [specific project/update]. I built Take The Wall: one public page with one featured owner. For $3.99, your project replaces the current content and stays until someone else takes over. It’s an early internet experiment, with no guaranteed audience or duration. Would you be interested in trying it with [project]? You can browse it here: https://takethewall.com/?utm_source=personal&utm_medium=outreach&utm_campaign=first_owners&utm_content=invitation
+> Hey [name] — I saw [specific project/update]. I built Take The Wall: one public page with one featured owner. For $4.99, your project replaces the current content and stays until someone else takes over. It’s an early internet experiment, with no guaranteed audience or duration. Would you be interested in trying it with [project]? You can browse it here: https://takethewall.com/?utm_source=personal&utm_medium=outreach&utm_campaign=first_owners&utm_content=invitation
 
 For someone who has already expressed interest:
 
-> Thanks for checking it out. I’m planning a short live launch on [date] at [time and timezone]. We’ll watch the wall change as people participate. Browsing is free and a takeover costs $3.99. Want me to send you the details once the time is confirmed?
+> Thanks for checking it out. I’m planning a short live launch on [date] at [time and timezone]. We’ll watch the wall change as people participate. Browsing is free and a takeover costs $4.99. Want me to send you the details once the time is confirmed?
 
 Do not send the placeholder version. No automated follow-up sequence.
 
@@ -37,7 +37,7 @@ Review the destination’s current rules before posting. Adapt the framing to th
 
 Title: I built a website with one owner at a time — does the idea make sense?
 
-I wanted to try a very simple internet experiment: one public page that anyone can take over. You can put up your website, app, social profile, or message. A takeover costs $3.99 and stays until the next person replaces it; there’s no minimum duration or guaranteed audience.
+I wanted to try a very simple internet experiment: one public page that anyone can take over. You can put up your website, app, social profile, or message. A takeover costs $4.99 and stays until the next person replaces it; there’s no minimum duration or guaranteed audience.
 
 Here’s a short demonstration: [attach video].
 
@@ -49,7 +49,7 @@ https://takethewall.com/?utm_source=maker_community&utm_medium=community&utm_cam
 
 I built Take The Wall around one question: what would you put on a web page that somebody else can take over?
 
-There’s one featured owner. Browsing is free. Paying $3.99 replaces the current content until the next takeover. You can share your takeover’s public page afterward.
+There’s one featured owner. Browsing is free. Paying $4.99 replaces the current content until the next takeover. You can share your takeover’s public page afterward.
 
 I’m looking for the first people who find this experiment interesting. I’d love to hear what you would put on the wall.
 
@@ -59,7 +59,7 @@ https://takethewall.com/?utm_source=founder_community&utm_medium=community&utm_c
 
 One website. One owner.
 
-$3.99 puts your project on the wall until somebody replaces you.
+$4.99 puts your project on the wall until somebody replaces you.
 
 What would you put there?
 
@@ -79,7 +79,7 @@ Choose a date only after the production checkout and webhook are verified. Confi
 
 Announcement draft:
 
-> I’m running a 30-minute Take The Wall launch on [date], [time/timezone]. Watch one page change owners, or put your project up for $3.99. Your content stays until the next takeover replaces it. Come watch for free: https://takethewall.com/?utm_source=x&utm_medium=social&utm_campaign=first_owners&utm_content=launch_event
+> I’m running a 30-minute Take The Wall launch on [date], [time/timezone]. Watch one page change owners, or put your project up for $4.99. Your content stays until the next takeover replaces it. Come watch for free: https://takethewall.com/?utm_source=x&utm_medium=social&utm_campaign=first_owners&utm_content=launch_event
 
 ## Measurement and next decision
 

@@ -62,9 +62,10 @@ export function finalOwnerEmail(d: FinalReportSnapshot, dashboardUrl?: string) {
         : "Another confirmed purchase took the wall.";
   return emailTemplate(
     `Your final takeover report${number}`,
-    `${d.displayName}, your reign has ended. ${reason} Here is what your takeover achieved.${dashboardUrl ? " Open your private report to view your results. If you purchased this placement, you can also answer one optional question: was your takeover worth $4.99?" : ""}`,
+    `${d.displayName}, your reign has ended. ${reason} Here is what your takeover achieved.${dashboardUrl && d.endReason !== "moderation" ? " Take it back with your previous content prefilled. Review your draft and confirm a new payment; applicable tax is added at checkout." : ""}${dashboardUrl ? " Open your private report to view your results. If you purchased this placement, you can also answer one optional question: was your takeover worth $4.99?" : ""}`,
     {
       eyebrow: "YOUR FINAL OWNER REPORT",
+      ctaBeforeMetrics: true,
       metrics: [
         {
           label: "Reign duration",
@@ -87,7 +88,7 @@ export function finalOwnerEmail(d: FinalReportSnapshot, dashboardUrl?: string) {
               label:
                 d.endReason === "moderation"
                   ? "View your takeover report"
-                  : "Take the wall again — $4.99",
+                  : "TAKE IT BACK — $4.99",
               url:
                 d.endReason === "moderation"
                   ? dashboardUrl

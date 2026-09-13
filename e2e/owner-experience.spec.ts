@@ -495,6 +495,16 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
     }),
   );
   await page.goto("/owner");
+  const postToX = page.getByRole("link", { name: "Post to X" });
+  await expect(postToX).toHaveAttribute(
+    "href",
+    /twitter\.com\/intent\/tweet\?/,
+  );
+  const intent = new URL((await postToX.getAttribute("href"))!);
+  expect(intent.searchParams.get("url")).toContain("/takeover/");
+  expect(intent.searchParams.get("url")).toContain("via=share");
+  expect(intent.href).not.toContain("token");
+
   await page
     .getByText("Share your referral link · Website banner & footer", {
       exact: true,
