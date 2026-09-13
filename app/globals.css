@@ -1248,3 +1248,5 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .referral-embed-preview{margin:16px 0;max-width:100%}.referral-embed-preview.banner{display:flex;justify-content:center;align-items:center;padding:16px;background:#11110f;border-radius:8px}.referral-embed-preview img{display:block;width:100%;max-width:400px;height:auto}.referral-footer-preview{display:inline-flex;align-items:center;padding:8px 12px;background:#d8ff36;color:#11110f!important;font:600 13px/1.5 Arial,sans-serif;text-decoration:none;border-radius:4px}.ownership-badge textarea{width:100%;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}.ownership-badge input{width:100%;min-width:0}
 
 .vote-controls button:not(:disabled):first-child:is(:hover,:focus-visible){background:#b8f252;color:#11110f}.vote-controls button:not(:disabled):last-child:is(:hover,:focus-visible){background:#ff8a80;color:#11110f}
+
+.footer-winner-groups{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px}.footer-winner-groups .milestone-footer{flex:0 1 auto;min-width:0;max-width:100%}
