@@ -46,86 +46,144 @@ export default async function SharedPage({ params, searchParams }: Props) {
   if (!data) notFound();
   const owner = data.owner;
   const via = (await searchParams).via;
-  if (via === "share") redirect(`/?ref=${encodeURIComponent(publicId)}&via=share`);
+  if (via === "share")
+    redirect(`/?ref=${encodeURIComponent(publicId)}&via=share`);
+  const name = owner.displayName || owner.domain;
+  const utc = (value: number) =>
+    new Date(value).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const number = owner.takeoverNumber
+    ? `#${owner.takeoverNumber.toLocaleString("en-US")}`
+    : "";
   return (
     <main className="owner-page public-takeover">
       <header className="owner-page-header">
         <Link href="/">TAKE THE WALL</Link>
-        <span>{data.active ? "LIVE NOW" : "WALL HISTORY"}</span>
-      </header>
-      <section className="shared-takeover-stage">
-        <p className="eyebrow">
-          TAKEOVER {owner.takeoverNumber ? `#${owner.takeoverNumber}` : ""}
-        </p>
-        <h1>{data.active ? "ON THE WALL." : "I TOOK THE WALL."}</h1>
-        {owner.canvasDesign && <WallCanvas linksEnabled={owner.canvasLinksEnabled ?? owner.outboundLinkEnabled} design={owner.canvasDesign} images={owner.canvasImages} href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined} />}
-        {!owner.canvasDesign && owner.logoUrl && (
-          <Image
-            src={owner.logoUrl}
-            width={160}
-            height={160}
-            alt={owner.displayName}
-            unoptimized
-          />
-        )}
-        <h2>{owner.displayName || owner.domain}</h2>
-        <p>{owner.description}</p>
-        {data.editorial && (
-          <section className="editorial-overview">
-            <h2>About this takeover</h2>
-            <p>{data.editorial}</p>
-          </section>
-        )}
-        <p className="field-note">
-          Activated{" "}
-          {new Date(owner.activatedAt)
-            .toISOString()
-            .replace("T", " ")
-            .slice(0, 19)}{" "}
-          UTC
-          {data.replacedAt
-            ? ` · Reign ended ${new Date(data.replacedAt).toISOString().replace("T", " ").slice(0, 19)} UTC`
-            : ""}
-        </p>
-        {owner.outboundLinkEnabled && owner.websiteUrl && (
-          <a
-            href={owner.websiteUrl}
-            target="_blank"
-            rel="noopener noreferrer nofollow sponsored"
-          >
-            Visit their link ↗
-          </a>
-        )}
-        <div className="owner-share-actions">
-          <a
-            href={`/takeover/${publicId}/card?download=1&format=landscape`}
-            download
-          >
-            Download share card
-          </a>
-          <a
-            href={`/takeover/${publicId}/card?download=1&format=square`}
-            download
-          >
-            Square card
-          </a>
-          <a
-            href={`/takeover/${publicId}/card?download=1&format=portrait`}
-            download
-          >
-            Portrait card
-          </a>
-        </div>
-        <Link href={`/takeover/${publicId}/certificate`}>Print placement certificate</Link>
-        <OwnershipBadge publicId={publicId} />
-        <Link className="button" href="/">
-          See the live wall ↗
+        <Link href="/" className="takeover-back">
+          Back to the live wall ↗
         </Link>
+      </header>
+      <section className="takeover-record-heading">
+        <div>
+          <p className="eyebrow">TAKEOVER {number}</p>
+          <h1>{name}</h1>
+        </div>
+        <span
+          className={`takeover-record-status ${data.active ? "live" : "ended"}`}
+        >
+          {data.active ? "● CURRENT OWNER" : "PAST OWNER"}
+        </span>
+      </section>
+      <section
+        className={`shared-takeover-stage ${owner.canvasDesign ? "designed-record" : "simple-record"}`}
+        aria-label="Takeover content"
+      >
+        {owner.canvasDesign ? (
+          <WallCanvas
+            linksEnabled={owner.canvasLinksEnabled ?? owner.outboundLinkEnabled}
+            design={owner.canvasDesign}
+            images={owner.canvasImages}
+            href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined}
+          />
+        ) : (
+          <>
+            {owner.logoUrl && (
+              <Image
+                src={owner.logoUrl}
+                width={200}
+                height={200}
+                alt={name}
+                unoptimized
+              />
+            )}
+            <h2>{name}</h2>
+            {owner.description && <p>{owner.description}</p>}
+            {owner.outboundLinkEnabled && owner.websiteUrl && (
+              <a
+                className="button"
+                href={owner.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow sponsored"
+              >
+                Visit {owner.domain || "their website"} ↗
+              </a>
+            )}
+          </>
+        )}
+      </section>
+      <section
+        className="takeover-record-stats"
+        aria-label="Takeover statistics"
+      >
+        {[
+          ["Impressions", owner.impressions],
+          ["Unique visitors", owner.uniqueVisitors],
+          ["Clicks", owner.clicks],
+        ].map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong>{Number(value).toLocaleString("en-US")}</strong>
+          </div>
+        ))}
+        <div className="takeover-record-time">
+          <span>Owner since</span>
+          <time dateTime={new Date(owner.activatedAt).toISOString()}>
+            {utc(owner.activatedAt)}
+          </time>
+          {data.replacedAt && <small>Ended {utc(data.replacedAt)}</small>}
+        </div>
+      </section>
+      {data.editorial && (
+        <section className="editorial-overview">
+          <h2>About this takeover</h2>
+          <p>{data.editorial}</p>
+        </section>
+      )}
+      <section
+        className="takeover-record-sharing"
+        aria-labelledby="record-sharing-title"
+      >
+        <div className="takeover-sharing-intro">
+          <p className="eyebrow">KEEP YOUR MOMENT</p>
+          <h2 id="record-sharing-title">Share the takeover.</h2>
+          <p>
+            Download a card, save your certificate, or share a referral link to
+            the live wall.
+          </p>
+        </div>
+        <div className="takeover-record-downloads">
+          <div className="owner-share-actions">
+            <a
+              href={`/takeover/${publicId}/card?download=1&format=landscape`}
+              download
+            >
+              Landscape card ↗
+            </a>
+            <a
+              href={`/takeover/${publicId}/card?download=1&format=square`}
+              download
+            >
+              Square card ↗
+            </a>
+            <a
+              href={`/takeover/${publicId}/card?download=1&format=portrait`}
+              download
+            >
+              Portrait card ↗
+            </a>
+            <Link href={`/takeover/${publicId}/certificate`}>
+              Print certificate ↗
+            </Link>
+          </div>
+          <OwnershipBadge publicId={publicId} />
+        </div>
       </section>
       <footer className="owner-page-footer">
-        <HistoryLink>Browse wall history</HistoryLink>
-        <Link href="/?info=how-it-works">How it works</Link>
-        <Link href="/?info=content-policy">Content policy</Link>
+        <div>
+          <HistoryLink>Browse wall history</HistoryLink>
+          <Link href="/?info=how-it-works">How it works</Link>
+          <Link href="/?info=content-policy">Content policy</Link>
+        </div>
+        <small>Public ID · {publicId}</small>
       </footer>
     </main>
   );

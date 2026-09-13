@@ -49,6 +49,7 @@ async function fixture(page: Page, ama = false) {
         return {
           owner: {
             id: "owner-" + owner,
+            publicId: "ttw_" + String(owner).repeat(32),
             contentType: "personal",
             linkType: "other",
             displayName: "Owner " + owner,
@@ -566,4 +567,13 @@ test("homepage referrals keep the sharing owner and AMA has readable actions", a
  await expect(ama.getByRole("status")).toContainText("Question sent privately");
  await ama.scrollIntoViewIfNeeded();await page.screenshot({path:`/tmp/ttw-ama-polish-${info.project.name}.png`});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+});
+
+
+test("current takeover toolbar link follows the live owner", async ({page}) => {
+ const wall=await fixture(page);await page.goto("/");
+ const link=page.getByRole("link",{name:"Current takeover",exact:true});
+ await expect(link).toHaveAttribute("href","/takeover/ttw_"+"1".repeat(32));
+ wall.changeOwner();
+ await expect(link).toHaveAttribute("href","/takeover/ttw_"+"2".repeat(32));
 });

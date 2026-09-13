@@ -44,6 +44,15 @@ test("history, public referral link, and published sharing work on desktop and m
   expect(new URL(page.url()).searchParams.get("ref")).toBe(entry.publicId);
   await page.goto(`/takeover/${entry.publicId}`);
   expect(visits).toBe(1);
+  await expect(page.getByRole("region",{name:"Takeover content"})).toBeVisible();
+  await expect(page.getByRole("region",{name:"Takeover statistics"})).toBeVisible();
+  const contentBounds = await page.getByRole("region",{name:"Takeover content"}).boundingBox();
+  const statBounds = await page.getByRole("region",{name:"Takeover statistics"}).boundingBox();
+  expect(contentBounds!.x).toBeCloseTo(statBounds!.x,0);
+  expect(contentBounds!.width).toBeCloseTo(statBounds!.width,0);
+  await expect(page.getByRole("heading",{name:"Share the takeover."})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  await page.screenshot({path:`/tmp/ttw-takeover-record-${info.project.name}.png`,fullPage:true});
   await page.route("**/api/status", (r) =>
     r.fulfill({
       json: { state: "replaced", publicId: entry.publicId, durationMs: 1000 },

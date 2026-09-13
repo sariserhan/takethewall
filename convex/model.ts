@@ -7,6 +7,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { jobKind } from "./schema";
 export const publicOwner = v.object({
   id: v.id("takeovers"),
+  publicId: v.optional(v.string()),
   contentType: v.string(),
   linkType: v.string(),
   displayName: v.string(),
@@ -31,6 +32,7 @@ export const publicOwner = v.object({
 export async function projectOwner(ctx: QueryCtx, t: Doc<"takeovers">) {
   return {
     id: t._id,
+    ...(t.publicTakeoverId ? { publicId: t.publicTakeoverId } : {}),
     contentType: t.contentType ?? "link",
     linkType: t.linkType ?? "website",
     displayName: t.displayName ?? t.domain,
