@@ -6,6 +6,11 @@
 - [x] Completed-reign cards in landscape, square, and portrait: dark styling, recorded duration, unique visitors, outbound clicks, and a QR link. Existing live placement cards remain available. Cards reflect recorded counters at export, not an immutable analytics snapshot.
 - [x] Existing admin social post kit offers reviewed captions and downloadable images. Existing Hall of Fame has an independent admin visibility toggle, defaults off, and excludes demo additions/test purchases.
 
+- [x] Crumbling Wall: admin-controlled homepage posters for past production placements, bounded Load More, and respect for the main history visibility switch.
+- [x] Hacker terminal: keyboard shortcut and mobile button, public live stats, a small command set, and prefilled checkout requiring normal review/payment.
+- [x] Community hour: admin-configured UTC schedule, public countdown, title, description, and visibility control. Normal prices and reward rules remain in effect.
+- [x] Gazette newsroom: fact-based draft generation for completed UTC days, optional automatic drafts at 00:05 UTC, editable headline/story, source links, revision checks, explicit publication/withdrawal, and public visibility control.
+
 ## Next: controlled X and Farcaster publishing
 
 - [ ] Connect the official accounts: obtain X API credentials/write access and a Farcaster account with an approved signer/provider configuration. Check current provider pricing and posting limits.
@@ -26,7 +31,9 @@
 ## Publishing and physical archive ideas
 
 - [ ] **Annual Wall Almanac:** explore a limited-edition hardcover at year-end or every 10,000 takeovers, provisionally titled "Take The Wall: Year One — The Complete Historical Archive." Include eligible public placements, reign duration, dates, public IDs, and verified timestamp proofs only where available. Define reproduction permission, moderation/removal handling, archive cutoff, print layout, and proof verification before publishing. Validate demand with a sample/PDF and preorders; estimate printing, shipping, tax, and fulfillment before setting a $50–$100 price. Do not promise every placement or a Bitcoin proof for every entry until supported.
-- [ ] **Wall Gazette:** prototype a retro one-page recap of the previous UTC day's actual takeovers and recorded stats, generated after 00:00 UTC. Start as an admin-reviewed draft with an enable/disable control; publish less frequently when activity is low. Keep playful headlines grounded in facts, label AI-assisted satire, exclude private data and removed content, and never invent battles, visitors, nations, or verified proofs. Add issue deduplication, bounded generation cost, retries, and correction controls. Social distribution depends on the controlled publishing integration; email only to subscribers who opted into this content, with unsubscribe support.
+- [ ] **Wall Gazette expansion:** the reviewed, fact-based newsroom is implemented. Later consider optional AI-assisted satire with bounded generation cost and source checking, downloadable newspaper images, an issue archive, and opt-in subscriber delivery. Social distribution depends on the controlled publishing integration. Do not repurpose existing transactional-email consent for Gazette emails.
+- [ ] **Community hour expansion:** assess attendance before adding recurring schedules, calendar downloads, commemorative badges, livestream integration, promotional prices, or physical trophies. Any timed prize needs explicit server-side cutoff and payment rules before implementation.
+
 
 ## Deferred product changes — decide before building
 

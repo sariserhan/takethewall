@@ -283,6 +283,7 @@ export default defineSchema({
     .index("by_seo_sequence", ["seoApproved", "activationSequence"])
     .index("by_status", ["status"])
     .index("by_activationSequence", ["activationSequence"])
+    .index("by_activatedAt", ["activatedAt"])
     .index("by_logoStorageId", ["logoStorageId"])
     .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
   hallEntries: defineTable({
@@ -292,7 +293,16 @@ export default defineSchema({
     .index("by_reign", ["eligible", "completed", "reignMs"])
     .index("by_referrals", ["eligible", "referrals"])
     .index("by_clicks", ["eligible", "clicks"]),
+  gazetteIssues: defineTable({
+    date: v.string(), headline: v.string(), body: v.string(),
+    status: v.union(v.literal("draft"), v.literal("published")),
+    sources: v.array(v.id("takeovers")), revision: v.number(), createdAt: v.number(),
+  }).index("by_date", ["date"]).index("by_status_date", ["status", "date"]),
   growthSettings: defineTable({
+    crumblingEnabled: v.optional(v.boolean()),
+    gazetteEnabled: v.optional(v.boolean()),
+    gazetteAuto: v.optional(v.boolean()),
+    communityEvent: v.optional(v.object({ enabled: v.boolean(), title: v.string(), description: v.string(), start: v.number(), end: v.number() })),
     hallEnabled: v.optional(v.boolean()),
     hallReady: v.optional(v.boolean()),
     hallCursor: v.optional(v.union(v.string(), v.null())),

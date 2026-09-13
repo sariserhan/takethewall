@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { AdminCommunity } from "./admin-community";
 import { TakeoverShare } from "./takeover-share";
 export function AdminGrowth() {
   const [before, setBefore] = useState<number | undefined>();
@@ -19,6 +20,7 @@ export function AdminGrowth() {
   return (
     <section>
       <h2>Growth & sharing</h2>
+      <AdminCommunity />
       <label className="check-label">
         <input
           type="checkbox"

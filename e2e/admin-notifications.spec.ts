@@ -46,6 +46,8 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     r.fulfill({ status: 503, json: {} }),
   );
   let hallEnabled = false;
+  const community = { crumblingEnabled:false,gazetteEnabled:false,gazetteAuto:false,event:null as null | {enabled:boolean;title:string;description:string;start:number;end:number} };
+  const issues:{id:string;date:string;headline:string;body:string;status:string;revision:number;entries:{publicId:string;name:string}[]}[]=[];
   let settings = {
       enabled: true,
       recipient: "serhan.sari@yahoo.com",
@@ -81,7 +83,7 @@ test("admin edits the notification recipient and toggle without leaving /admin",
     let version = { querySet: 0, identity: 0, ts: timestamp() };
     const queries = new Map<number, string>();
     const value = (path: string): unknown =>
-      path === "hall:settings" ? { enabled: hallEnabled, ready: true } : path === "growth:adminHistory" ? { entries: [], next: null } : path === "growth:visibility" ? true : path === "owners:recentFeedback" ? [] : path === "contactManagement:details"
+      path === "community:controls" ? community : path === "community:issues" ? issues : path === "hall:settings" ? { enabled: hallEnabled, ready: true } : path === "growth:adminHistory" ? { entries: [], next: null } : path === "growth:visibility" ? true : path === "owners:recentFeedback" ? [] : path === "contactManagement:details"
         ? JSON.stringify(contactState)
         : path === "emailDirectory:list"
           ? JSON.stringify({
@@ -220,6 +222,15 @@ test("admin edits the notification recipient and toggle without leaving /admin",
         transition(changes, { querySet: msg.newVersion });
       }
       if (msg.type === "Mutation") {
+        if(msg.udfPath.startsWith("community:")){
+          const a=msg.args[0]; let result:unknown=null;
+          if(msg.udfPath==="community:configure") Object.assign(community,{[a.feature]:a.enabled});
+          if(msg.udfPath==="community:scheduleEvent") community.event=a.event;
+          if(msg.udfPath==="community:createDraft"){issues.push({id:"gazette-fixture",date:a.date,headline:"Another day on the wall.",body:"A selection of public placements.",status:"draft",revision:0,entries:[{publicId:"ttw_"+"a".repeat(32),name:"Raven Studio"}]});result="gazette-fixture";}
+          if(msg.udfPath==="community:review") Object.assign(issues[0],{headline:a.headline,body:a.body,status:a.publish?"published":"draft",revision:issues[0].revision+1});
+          tick++;socket.send(JSON.stringify({type:"MutationResponse",requestId:msg.requestId,success:true,result,ts:timestamp(),logLines:[]}));
+          transition([...queries].filter(([,path])=>path.startsWith("community:")).map(([id,path])=>({type:"QueryUpdated",queryId:id,value:value(path),logLines:[],journal:null})));return;
+        }
         if (msg.udfPath === "hall:setEnabled") {
           hallEnabled = msg.args[0].enabled;
           tick++; socket.send(JSON.stringify({ type: "MutationResponse", requestId: msg.requestId, success: true, result: null, ts: timestamp(), logLines: [] }));
@@ -451,5 +462,9 @@ test("admin edits the notification recipient and toggle without leaving /admin",
   await expect(hallToggle).not.toBeChecked(); await hallToggle.click(); await expect(hallToggle).toBeChecked();
   expect(hallEnabled).toBe(true); await hallToggle.click(); await expect(hallToggle).not.toBeChecked();
   expect(hallEnabled).toBe(false);
+  const crumbling=page.getByLabel("Show Crumbling Wall on homepage");await crumbling.click();await expect(crumbling).toBeChecked();expect(community.crumblingEnabled).toBe(true);await crumbling.click();await expect(crumbling).not.toBeChecked();
+  await page.getByText("Schedule a community hour",{exact:true}).click();await page.getByLabel("Starts (UTC)").fill("2026-09-18T19:00");await page.getByLabel("Ends (UTC)").fill("2026-09-18T20:00");await page.getByLabel("Show event publicly").check();await page.getByRole("button",{name:"Save community event"}).click();await expect.poll(()=>community.event?.enabled).toBe(true);
+  await page.getByLabel("Issue date (completed UTC day)").fill("2026-09-12");await page.getByRole("button",{name:"Prepare draft",exact:true}).click();await page.locator(".gazette-review summary").click();await page.getByLabel("Gazette headline").fill("Projects make their mark");await page.getByRole("button",{name:"Approve & publish Gazette"}).click();await expect(page.locator(".gazette-review summary")).toContainText("published");expect(issues[0].headline).toBe("Projects make their mark");
+
   expect(errors).toEqual([]);
 });

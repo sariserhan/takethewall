@@ -17,6 +17,7 @@ import type * as auditTrail from "../auditTrail.js";
 import type * as auth from "../auth.js";
 import type * as checkoutControls from "../checkoutControls.js";
 import type * as claimAuth from "../claimAuth.js";
+import type * as community from "../community.js";
 import type * as contactManagement from "../contactManagement.js";
 import type * as crons from "../crons.js";
 import type * as delivery from "../delivery.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   checkoutControls: typeof checkoutControls;
   claimAuth: typeof claimAuth;
+  community: typeof community;
   contactManagement: typeof contactManagement;
   crons: typeof crons;
   delivery: typeof delivery;

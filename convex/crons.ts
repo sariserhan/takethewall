@@ -98,4 +98,5 @@ crons.interval(
   internal.analytics.recover,
   {},
 );
+crons.daily("Gazette draft", { hourUTC: 0, minuteUTC: 5 }, internal.community.midnight, {});
 export default crons;

@@ -1,4 +1,6 @@
 "use client";
+import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
+import { HackerTerminal } from "./hacker-terminal";
 import { HallOfFame } from "./hall-of-fame";
 import { MobilePurchaseBar, TakeoverSound } from "./live-controls";
 import { publicConvexClient } from "@/lib/convex-client";
@@ -88,6 +90,7 @@ function WallView({
   data: WallData | undefined;
   connected: boolean;
 }) {
+  const [draftVersion, setDraftVersion] = useState(0);
   const [open, setOpen] = useState(false),
     [confirmation, setConfirmation] = useState<Confirmation | null>(null),
     [statusError, setStatusError] = useState(false),
@@ -522,8 +525,11 @@ function WallView({
           </button>
         </section>
       </div>
+      <CommunityEvent />
       <HomepageMilestones />
       <HallOfFame />
+      <CrumblingWall />
+      <Gazette />
       <MobilePurchaseBar
         target={purchaseRef}
         onTake={takeWall}
@@ -538,13 +544,32 @@ function WallView({
         <WallSubscription />
         <MilestoneAlerts />
       </section>
+      <HackerTerminal
+        connected={connected}
+        paused={checkoutPaused}
+        snapshot={
+          owner
+            ? {
+                name: owner.displayName,
+                number: owner.takeoverNumber,
+                impressions: owner.impressions,
+                visitors: owner.uniqueVisitors,
+                clicks: owner.clicks,
+              }
+            : null
+        }
+        onPrepare={() => {
+          setDraftVersion((v) => v + 1);
+          setOpen(true);
+        }}
+      />
       <PublicFooter home />
       <ResumeCheckout />
       <PurchaseSheet
         key={
           confirmation?.state === "active" || confirmation?.state === "replaced"
-            ? "confirmed:" + returnToken
-            : "draft"
+            ? "confirmed:" + returnToken + ":" + draftVersion
+            : "draft:" + draftVersion
         }
         open={open}
         onClose={() => setOpen(false)}
