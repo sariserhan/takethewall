@@ -184,7 +184,8 @@ export const cleanup = internalMutation({
               )
               .first()
           : null;
-        if (!reference && !original) await ctx.storage.delete(u.storageId);
+        const canvas = await ctx.db.query("canvasImageRefs").withIndex("by_storage",q=>q.eq("storageId",u.storageId!)).first();
+        if (!reference && !original && !canvas) await ctx.storage.delete(u.storageId);
       }
       await ctx.db.delete(u._id);
     }
@@ -200,6 +201,14 @@ export const cleanup = internalMutation({
       if (p.sessionId && !p.expiredConfirmed) continue;
       const t = await ctx.db.get(p.takeoverId);
       if (!t || t.status !== "pending") continue;
+      const canvasRefs=await ctx.db.query("canvasImageRefs").withIndex("by_takeover_storage",q=>q.eq("takeoverId",t._id)).take(16);
+      for(const ref of canvasRefs) await ctx.db.delete(ref._id);
+      for(const ref of canvasRefs){
+        const other=await ctx.db.query("canvasImageRefs").withIndex("by_storage",q=>q.eq("storageId",ref.storageId)).first();
+        const logo=await ctx.db.query("takeovers").withIndex("by_logoStorageId",q=>q.eq("logoStorageId",ref.storageId)).first();
+        const original=await ctx.db.query("takeovers").withIndex("by_originalLogoStorageId",q=>q.eq("originalContent.logoStorageId",ref.storageId)).first();
+        if(!other && !logo && !original)await ctx.storage.delete(ref.storageId);
+      }
       await ctx.db.delete(t._id);
       const other = await ctx.db
         .query("takeovers")
@@ -207,8 +216,10 @@ export const cleanup = internalMutation({
           q.eq("logoStorageId", t.logoStorageId),
         )
         .first();
-      if (!other)
-        if (t.logoStorageId) await ctx.storage.delete(t.logoStorageId);
+      if (!other && t.logoStorageId) {
+        const canvas=await ctx.db.query("canvasImageRefs").withIndex("by_storage",q=>q.eq("storageId",t.logoStorageId!)).first();
+        if(!canvas)await ctx.storage.delete(t.logoStorageId);
+      }
       await ctx.db.delete(p._id);
     }
     const contacts = await ctx.db

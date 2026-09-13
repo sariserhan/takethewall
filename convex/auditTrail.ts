@@ -48,6 +48,7 @@ export const migrate = internalMutation({
           displayName: content.displayName ?? content.domain,
           description: content.description,
           ...(content?.morseMessage ? { morseMessage: content.morseMessage } : {}),
+          ...(content?.canvasDesign ? {canvasDesign:content.canvasDesign,canvasAssets:("canvasAssets" in content ? content.canvasAssets : []) ?? []} : {}),
           imageStorageId: content.logoStorageId ?? null,
         }),
         previousAuditHash: previous,
@@ -175,6 +176,7 @@ export const verify = query({
           displayName: content?.displayName ?? content?.domain,
           description: content?.description,
           ...(content?.morseMessage ? { morseMessage: content.morseMessage } : {}),
+          ...(content?.canvasDesign ? {canvasDesign:content.canvasDesign,canvasAssets:("canvasAssets" in content ? content.canvasAssets : []) ?? []} : {}),
           imageStorageId: content?.logoStorageId ?? null,
         }) !== r.contentHash
       )

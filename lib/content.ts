@@ -1,3 +1,4 @@
+import { parseWallDesign } from "./wall-design";
 import { validateMorseMessage } from "./morse";
 import { validateUrl, validateContent } from "./validation";
 export const linkTypes = [
@@ -65,6 +66,7 @@ export function validateWallContent(a: {
   displayName?: string;
   description: string;
   morseMessage?: string;
+  canvasDesign?: string;
   linkType?: string;
 }) {
   if (a.contentType && !["personal", "link"].includes(a.contentType))
@@ -77,12 +79,14 @@ export function validateWallContent(a: {
     a.displayName || (personal ? "" : url.domain),
     60,
   );
+  const design = parseWallDesign(a.canvasDesign);
+  const canvasDesign = design ? JSON.stringify(design) : undefined;
   const morseMessage = validateMorseMessage(a.morseMessage);
   const description = plainText(a.description, 120, false);
   const linkType = personal ? "other" : detectLinkType(url.websiteUrl);
   validateContent(
     url.domain,
-    displayName + " " + description + " " + morseMessage,
+    displayName + " " + description + " " + morseMessage + " " + (design?.blocks.map(b=>b.text).join(" ") ?? ""),
     process.env.BLOCKED_DOMAINS,
   );
   return {
@@ -94,6 +98,7 @@ export function validateWallContent(a: {
         : linkType,
     displayName,
     description,
+    ...(canvasDesign ? { canvasDesign } : {}),
     ...(morseMessage ? { morseMessage } : {}),
   };
 }

@@ -1,3 +1,4 @@
+import { designUploadReferences } from "@/lib/wall-design";
 import { recoverPayment } from "@/lib/payment-recovery";
 import { cookies } from "next/headers";
 import {
@@ -51,7 +52,8 @@ export async function POST(req: Request) {
         { takeoverId: string; sessionId: string | null; paid: boolean }[]
       >("recoveryFind", { email, ipHash: clientHash(req) });
       for (const p of matches) {
-        if (!p.paid && p.sessionId) await recoverPayment(p.sessionId, p.takeoverId);
+        if (!p.paid && p.sessionId)
+          await recoverPayment(p.sessionId, p.takeoverId);
         await backend("recoverySend", { takeoverId: p.takeoverId, email });
       }
       return Response.json(
@@ -126,6 +128,8 @@ export async function POST(req: Request) {
         displayName: String(a.displayName ?? ""),
         description: String(a.description ?? ""),
         morseMessage: a.morseMessage ?? "",
+        canvasDesign: a.canvasDesign ?? "",
+        canvasUploads: designUploadReferences(a.canvasImages),
         uploadKey: String(a.uploadKey ?? ""),
         ownerHash: clientHash(req),
         removeImage: a.removeImage,

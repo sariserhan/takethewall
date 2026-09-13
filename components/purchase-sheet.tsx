@@ -1,4 +1,5 @@
 "use client";
+import type { DesignImage } from "@/lib/wall-design";
 import { MorseMessageField } from "./morse-message-field";
 import { celebrations } from "@/lib/celebrations";
 import { useQuery } from "convex/react";
@@ -8,6 +9,7 @@ import { TakeoverPreview } from "./takeover-preview";
 import { validateWallContent } from "@/lib/content";
 import dynamic from "next/dynamic";
 import type { CheckoutSession } from "./embedded-payment";
+const WallDesigner = dynamic(() => import("./wall-designer"));
 const EmbeddedPayment = dynamic(() => import("./embedded-payment"), {
   ssr: false,
   loading: () => <p role="status">Loading secure payment…</p>,
@@ -25,6 +27,8 @@ interface Draft {
   websiteUrl: string;
   description: string;
   morseMessage: string;
+  canvasDesign: string;
+  canvasImages: DesignImage[];
   buyerEmail: string;
   uploadKey: string;
   logoUrl: string;
@@ -38,6 +42,8 @@ const empty: Draft = {
   websiteUrl: "",
   description: "",
   morseMessage: "",
+  canvasDesign: "",
+  canvasImages: [] as DesignImage[],
   buyerEmail: "",
   uploadKey: "",
   logoUrl: "",
@@ -56,10 +62,13 @@ export function PurchaseSheet({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false);
+  const [canvasUploading, setCanvasUploading] = useState(false);
   const controls = useQuery(api.checkoutControls.state);
   const [reviewedOwner, setReviewedOwner] = useState<string | null>(null);
   const [serverChanged, setServerChanged] = useState(false);
-  const ownerChanged = serverChanged || (!!reviewedOwner && !!controls && reviewedOwner !== controls.ownerId);
+  const ownerChanged =
+    serverChanged ||
+    (!!reviewedOwner && !!controls && reviewedOwner !== controls.ownerId);
   const [reviewing, setReviewing] = useState(false);
   const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   // Hydrate a browser-only saved draft after server rendering.
@@ -89,19 +98,24 @@ export function PurchaseSheet({
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (busy || uploading) return;
+    if (busy || uploading || canvasUploading) return;
     setError("");
     try {
       validateWallContent(draft);
-      if (controls?.paused) throw new Error("New checkouts are temporarily paused.");
-      if (!controls) throw new Error("Loading the current wall. Please try again.");
+      if (controls?.paused)
+        throw new Error("New checkouts are temporarily paused.");
+      if (!controls)
+        throw new Error("Loading the current wall. Please try again.");
       if (!reviewing) {
         setReviewedOwner(controls.ownerId);
         setServerChanged(false);
         setReviewing(true);
         return;
       }
-      if (ownerChanged || !reviewedOwner) throw new Error("The wall changed. Review the current owner before paying.");
+      if (ownerChanged || !reviewedOwner)
+        throw new Error(
+          "The wall changed. Review the current owner before paying.",
+        );
       validateEmail(draft.buyerEmail);
       setBusy(true);
       const requestKey = draft.requestKey || crypto.randomUUID();
@@ -147,12 +161,39 @@ export function PurchaseSheet({
       title="MAKE IT YOURS."
       wide
     >
-      {controls?.paused && <p role="status" className="form-error">New checkouts are temporarily paused. The current wall remains visible. Already-open payments may still complete.</p>}
-      {reviewing && controls && <div className="purchase-contact">
-        <p>Current owner: <strong>{controls.ownerName}</strong></p>
-        {ownerChanged && <><p role="alert">The wall changed while you were reviewing. Check the new owner before continuing. Checkout does not reserve the wall.</p>
-        {!checkout && <button type="button" onClick={() => { setReviewedOwner(controls.ownerId); setServerChanged(false); setError(""); }}>I reviewed the current owner</button>}</>}
-      </div>}
+      {controls?.paused && (
+        <p role="status" className="form-error">
+          New checkouts are temporarily paused. The current wall remains
+          visible. Already-open payments may still complete.
+        </p>
+      )}
+      {reviewing && controls && (
+        <div className="purchase-contact">
+          <p>
+            Current owner: <strong>{controls.ownerName}</strong>
+          </p>
+          {ownerChanged && (
+            <>
+              <p role="alert">
+                The wall changed while you were reviewing. Check the new owner
+                before continuing. Checkout does not reserve the wall.
+              </p>
+              {!checkout && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReviewedOwner(controls.ownerId);
+                    setServerChanged(false);
+                    setError("");
+                  }}
+                >
+                  I reviewed the current owner
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
       {checkout ? (
         open && (
           <EmbeddedPayment
@@ -170,7 +211,9 @@ export function PurchaseSheet({
       ) : reviewing ? (
         <form className="purchase-review" onSubmit={submit}>
           <p className="sheet-intro">
-            Check your content, then add your email to continue to payment. The base price is $4.99 USD plus applicable tax. Stripe shows the final total and eligible local-currency options before you pay.
+            Check your content, then add your email to continue to payment. The
+            base price is $4.99 USD plus applicable tax. Stripe shows the final
+            total and eligible local-currency options before you pay.
           </p>
           <TakeoverPreview draft={draft} />
           <fieldset disabled={busy} className="purchase-contact">
@@ -215,7 +258,11 @@ export function PurchaseSheet({
             >
               Edit content
             </button>
-            <button type="submit" className="button pay" disabled={busy || ownerChanged || !controls || controls.paused}>
+            <button
+              type="submit"
+              className="button pay"
+              disabled={busy || ownerChanged || !controls || controls.paused}
+            >
               {busy ? "Preparing checkout…" : "PAY $4.99 & TAKE THE WALL"}
               <Arrow />
             </button>
@@ -262,7 +309,31 @@ export function PurchaseSheet({
                     ),
                   )}
                 </div>
-                {draft.contentType === "personal" && <details className="celebration-templates"><summary>Start with a celebration template</summary><p>Choose a starting message, then personalize it before previewing.</p><div className="owner-share-actions">{celebrations.map(t=><button key={t.label} type="button" onClick={()=>change({displayName:t.displayName,description:t.description})}>{t.label}</button>)}</div></details>}
+                {draft.contentType === "personal" && (
+                  <details className="celebration-templates">
+                    <summary>Start with a celebration template</summary>
+                    <p>
+                      Choose a starting message, then personalize it before
+                      previewing.
+                    </p>
+                    <div className="owner-share-actions">
+                      {celebrations.map((t) => (
+                        <button
+                          key={t.label}
+                          type="button"
+                          onClick={() =>
+                            change({
+                              displayName: t.displayName,
+                              description: t.description,
+                            })
+                          }
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </details>
+                )}
                 <label>
                   Display name{" "}
                   {draft.contentType !== "personal" && (
@@ -325,7 +396,21 @@ export function PurchaseSheet({
                     onChange={(e) => change({ description: e.target.value })}
                   />
                 </label>
-              <MorseMessageField value={draft.morseMessage} fallback={draft.description || draft.displayName} onChange={(morseMessage) => change({ morseMessage })} />
+                <WallDesigner
+                  value={draft.canvasDesign}
+                  images={draft.canvasImages}
+                  title={draft.displayName}
+                  message={draft.description}
+                  onPending={setCanvasUploading}
+                  onChange={(canvasDesign, canvasImages) =>
+                    change({ canvasDesign, canvasImages })
+                  }
+                />
+                <MorseMessageField
+                  value={draft.morseMessage}
+                  fallback={draft.description || draft.displayName}
+                  onChange={(morseMessage) => change({ morseMessage })}
+                />
               </fieldset>
               {error && (
                 <p className="form-error" role="alert">
@@ -334,7 +419,13 @@ export function PurchaseSheet({
               )}
               <button
                 className="button pay"
-                disabled={busy || uploading || !controls || controls.paused}
+                disabled={
+                  busy ||
+                  uploading ||
+                  canvasUploading ||
+                  !controls ||
+                  controls.paused
+                }
                 type="submit"
               >
                 {busy ? "Preparing checkout…" : "PREVIEW YOUR TAKEOVER"}

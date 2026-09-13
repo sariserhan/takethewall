@@ -26,6 +26,7 @@ import type * as deliveryAdmin from "../deliveryAdmin.js";
 import type * as deliverySchedule from "../deliverySchedule.js";
 import type * as demoStats from "../demoStats.js";
 import type * as demoValues from "../demoValues.js";
+import type * as designAssets from "../designAssets.js";
 import type * as documents from "../documents.js";
 import type * as emailDelivery from "../emailDelivery.js";
 import type * as emailDirectory from "../emailDirectory.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   deliverySchedule: typeof deliverySchedule;
   demoStats: typeof demoStats;
   demoValues: typeof demoValues;
+  designAssets: typeof designAssets;
   documents: typeof documents;
   emailDelivery: typeof emailDelivery;
   emailDirectory: typeof emailDirectory;

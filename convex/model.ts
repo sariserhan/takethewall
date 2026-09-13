@@ -1,3 +1,4 @@
+import { projectDesignImages, publicDesignImages } from "./designAssets";
 import { scheduleDelivery } from "./deliverySchedule";
 import { numberingOffset } from "./numbering";
 import { v } from "convex/values";
@@ -15,6 +16,8 @@ export const publicOwner = v.object({
   domain: v.string(),
   description: v.string(),
   morseMessage: v.optional(v.string()),
+  canvasDesign: v.optional(v.string()),
+  canvasImages: v.optional(publicDesignImages),
   logoUrl: v.union(v.string(), v.null()),
   activatedAt: v.number(),
   activationSequence: v.number(),
@@ -39,6 +42,7 @@ export async function projectOwner(ctx: QueryCtx, t: Doc<"takeovers">) {
     websiteUrl: t.websiteUrl,
     domain: t.domain,
     description: t.description,
+    ...(t.canvasDesign ? { canvasDesign: t.canvasDesign, canvasImages: await projectDesignImages(ctx,t.canvasAssets) } : {}),
     ...(t.morseMessage ? { morseMessage: t.morseMessage } : {}),
     logoUrl: t.logoStorageId ? await ctx.storage.getUrl(t.logoStorageId) : null,
     activatedAt: t.activatedAt ?? 0,

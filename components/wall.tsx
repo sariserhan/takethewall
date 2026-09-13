@@ -21,6 +21,7 @@ import { PublishedShare } from "./takeover-share";
 import { WallSubscription } from "./wall-subscription";
 import { MilestoneAlerts } from "./milestone-alerts";
 import { ReportContent } from "./report-content";
+import { WallCanvas } from "./wall-canvas";
 import { StatHelp } from "./stat-help";
 import { contentCta } from "@/lib/content";
 import { HomepageMilestones } from "./milestones";
@@ -117,7 +118,7 @@ function WallView({
     sample?.takeoverCount ?? presentation?.takeoverCount;
   const since = presentation?.ownerSince ?? data?.owner.activatedAt ?? 0;
   const owner = data?.owner,
-    adRef = useRef<HTMLAnchorElement>(null),
+    adRef = useRef<HTMLElement>(null),
     purchaseRef = useRef<HTMLButtonElement>(null),
     previous = useRef<string | null>(null),
     tokenRef = useRef<string | null>(null);
@@ -317,7 +318,7 @@ function WallView({
             </strong>
           </div>
         </section>
-        <section className="owner-section" aria-label="Current owner">
+        <section ref={adRef} className={`owner-section${owner?.canvasDesign && !presentation && !trying ? " has-wall-design" : ""}`} aria-label="Current owner">
           <p className="eyebrow">
             CURRENT TAKEOVER{" "}
             {presentation
@@ -356,10 +357,11 @@ function WallView({
                 </a>
               )}
             </div>
+          ) : owner?.canvasDesign ? (
+            <div className="canvas-owner-ad"><WallCanvas design={owner.canvasDesign} images={owner.canvasImages} href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined} onVisit={() => void wallEvent(owner.id,"click")} /></div>
           ) : owner ? (
             <a
               key={owner.id}
-              ref={adRef}
               className="owner-ad"
               href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined}
               target="_blank"

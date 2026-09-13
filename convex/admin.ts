@@ -992,6 +992,7 @@ export const publish = mutation({
           displayName: content.displayName,
           description: content.description,
           ...(content?.morseMessage ? { morseMessage: content.morseMessage } : {}),
+          ...(content?.canvasDesign ? {canvasDesign:content.canvasDesign,canvasAssets:("canvasAssets" in content ? content.canvasAssets : []) ?? []} : {}),
           imageStorageId: null,
         }),
         previousAuditHash: site?.auditHash ?? "",

@@ -1,5 +1,8 @@
 "use client";
+import type { DesignImage } from "@/lib/wall-design";
 import { MorseMessageField } from "./morse-message-field";
+import dynamic from "next/dynamic";
+const WallDesigner = dynamic(() => import("./wall-designer"));
 import { useState } from "react";
 import type { OwnerDashboard } from "@/lib/owner-types";
 import { validateWallContent } from "@/lib/content";
@@ -19,6 +22,7 @@ export function OwnerEditor({
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [imagePending, setImagePending] = useState(false);
+  const [canvasPending, setCanvasPending] = useState(false);
   const [revision, setRevision] = useState(0);
   const [draft, setDraft] = useState({
     contentType: "link",
@@ -26,6 +30,8 @@ export function OwnerEditor({
     websiteUrl: "",
     description: "",
     morseMessage: "",
+    canvasDesign: "",
+    canvasImages: [] as DesignImage[],
     logoUrl: "",
     uploadKey: "",
     removeImage: false,
@@ -37,6 +43,8 @@ export function OwnerEditor({
       websiteUrl: data.owner.websiteUrl,
       description: data.owner.description,
       morseMessage: data.owner.morseMessage ?? "",
+      canvasDesign: data.owner.canvasDesign ?? "",
+      canvasImages: data.owner.canvasImages ?? [],
       logoUrl: data.owner.logoUrl ?? "",
       uploadKey: "",
       removeImage: false,
@@ -53,7 +61,7 @@ export function OwnerEditor({
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (busy || imagePending) return;
+    if (busy || imagePending || canvasPending) return;
     setError("");
     try {
       validateWallContent(draft);
@@ -73,6 +81,8 @@ export function OwnerEditor({
           websiteUrl: draft.websiteUrl,
           description: draft.description,
           morseMessage: draft.morseMessage,
+          canvasDesign: draft.canvasDesign,
+          canvasImages: draft.canvasImages,
           uploadKey: draft.uploadKey,
           removeImage: draft.removeImage,
         }),
@@ -162,7 +172,22 @@ export function OwnerEditor({
                   onChange={(e) => field("description", e.target.value)}
                 />
               </label>
-              <MorseMessageField value={draft.morseMessage} fallback={draft.description || draft.displayName} onChange={(value) => field("morseMessage", value)} />
+              <WallDesigner
+                value={draft.canvasDesign}
+                images={draft.canvasImages}
+                title={draft.displayName}
+                message={draft.description}
+                onPending={setCanvasPending}
+                onChange={(canvasDesign, canvasImages) => {
+                  setDraft((d) => ({ ...d, canvasDesign, canvasImages }));
+                  setReview(false);
+                }}
+              />
+              <MorseMessageField
+                value={draft.morseMessage}
+                fallback={draft.description || draft.displayName}
+                onChange={(value) => field("morseMessage", value)}
+              />
               <ImageUpload
                 key={String(open)}
                 label="Replace image"
@@ -210,7 +235,7 @@ export function OwnerEditor({
             <button
               type="submit"
               className="button"
-              disabled={busy || imagePending || !data.active}
+              disabled={busy || imagePending || canvasPending || !data.active}
             >
               {busy
                 ? "Saving…"

@@ -1,3 +1,4 @@
+import { WallCanvas } from "@/components/wall-canvas";
 import { OwnershipBadge } from "@/components/ownership-badge";
 import { HistoryLink } from "@/components/history-link";
 import { ReferralVisit } from "@/components/referral-visit";
@@ -58,7 +59,8 @@ export default async function SharedPage({ params, searchParams }: Props) {
           TAKEOVER {owner.takeoverNumber ? `#${owner.takeoverNumber}` : ""}
         </p>
         <h1>{data.active ? "ON THE WALL." : "I TOOK THE WALL."}</h1>
-        {owner.logoUrl && (
+        {owner.canvasDesign && <WallCanvas design={owner.canvasDesign} images={owner.canvasImages} href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined} />}
+        {!owner.canvasDesign && owner.logoUrl && (
           <Image
             src={owner.logoUrl}
             width={160}

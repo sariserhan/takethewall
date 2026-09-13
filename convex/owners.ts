@@ -1,3 +1,4 @@
+import { resolveDesignAssets, retainDesignAssets, designUploads } from "./designAssets";
 import { ownerFeedback } from "./schema";
 import { query } from "./_generated/server";
 import { previousOwnerName } from "./model";
@@ -321,9 +322,11 @@ export const edit = internalMutation({
     displayName: v.string(),
     description: v.string(),
     morseMessage: v.optional(v.string()),
+    canvasDesign: v.optional(v.string()),
     uploadKey: v.string(),
     ownerHash: v.string(),
     removeImage: v.boolean(),
+    canvasUploads: v.optional(designUploads),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -364,6 +367,8 @@ export const edit = internalMutation({
       logoStorageId = upload.storageId;
       await ctx.db.patch(upload._id, { claimed: true });
     }
+    const canvasAssets = await resolveDesignAssets(ctx, content.canvasDesign, a.canvasUploads, a.ownerHash, t.canvasAssets);
+    await retainDesignAssets(ctx,t._id,canvasAssets);
     const before = {
       contentType: t.contentType ?? "link",
       linkType: t.linkType ?? "website",
@@ -371,14 +376,17 @@ export const edit = internalMutation({
       domain: t.domain,
       displayName: t.displayName ?? t.domain,
       description: t.description,
+      ...(t.canvasDesign ? { canvasDesign:t.canvasDesign,canvasAssets:t.canvasAssets ?? [] } : {}),
       ...(t.morseMessage ? { morseMessage: t.morseMessage } : {}),
       ...(t.logoStorageId ? { logoStorageId: t.logoStorageId } : {}),
     };
-    const after = { ...content, ...(logoStorageId ? { logoStorageId } : {}) };
+    const after = { ...content, ...(content.canvasDesign ? {canvasAssets} : {}), ...(logoStorageId ? { logoStorageId } : {}) };
     await ctx.db.patch(t._id, {
       ...content,
       logoStorageId,
       morseMessage: content.morseMessage,
+      canvasDesign: content.canvasDesign,
+      canvasAssets: content.canvasDesign ? canvasAssets : undefined,
       originalContent: t.originalContent ?? before,
       contentRevision: (t.contentRevision ?? 0) + 1,
     });
@@ -398,11 +406,13 @@ export const repeat = internalMutation({
     displayName: v.string(),
     description: v.string(),
     morseMessage: v.optional(v.string()),
+    canvasDesign: v.optional(v.string()),
     websiteUrl: v.string(),
     logoUrl: v.string(),
     uploadKey: v.string(),
     buyerEmail: v.string(),
     weeklyDigestEnabled: v.boolean(),
+    canvasImages: v.optional(v.array(v.object({key:v.string(),url:v.string(),uploadKey:v.string()}))),
   }),
   handler: async (ctx, a) => {
     const access = await ownerAccess(ctx, a.token);
@@ -436,7 +446,16 @@ export const repeat = internalMutation({
         });
       }
     }
+    const canvasImages = [];
+    for(const asset of t.canvasAssets ?? []) {
+      const url=await ctx.storage.getUrl(asset.storageId);
+      if(!url)continue;
+      const key=crypto.randomUUID();
+      await ctx.db.insert("uploads",{key,ownerHash:a.ownerHash,storageId:asset.storageId,claimed:false,expiresAt:Date.now()+48*3600_000});
+      canvasImages.push({key:asset.key,url,uploadKey:key});
+    }
     return {
+      ...(content.canvasDesign ? {canvasDesign:content.canvasDesign,canvasImages} : {}),
       contentType: content.contentType,
       displayName: content.displayName,
       description: content.description,

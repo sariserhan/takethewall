@@ -11,6 +11,8 @@ export interface SharedTakeover {
     domain: string;
     description: string;
     morseMessage?: string;
+    canvasDesign?: string;
+    canvasImages?: import("./wall-design").DesignImage[];
     logoUrl: string | null;
     activatedAt: number;
     activationSequence: number;

@@ -1,3 +1,4 @@
+import { resolveDesignAssets, retainDesignAssets, designUploads } from "./designAssets";
 import { syncHall } from "./hallModel";
 import { isCheckoutPaused } from "./checkoutControls";
 import { previousOwnerName } from "./model";
@@ -41,6 +42,8 @@ export const pending = internalMutation({
     websiteUrl: v.string(),
     description: v.string(),
     morseMessage: v.optional(v.string()),
+    canvasDesign: v.optional(v.string()),
+    canvasUploads: v.optional(designUploads),
     buyerEmail: v.string(),
     environment: v.union(v.literal("test"), v.literal("production")),
   },
@@ -98,7 +101,9 @@ export const pending = internalMutation({
       (upload && upload.expiresAt <= Date.now())
     )
       throw new Error("Upload expired. Choose your logo again.");
+    const canvasAssets = await resolveDesignAssets(ctx, content.canvasDesign, a.canvasUploads, a.ownerHash);
     const id = await ctx.db.insert("takeovers", {
+      ...(content.canvasDesign ? { canvasAssets } : {}),
       ...content,
       ...(upload?.storageId ? { logoStorageId: upload.storageId } : {}),
       kind: "paid",
@@ -107,6 +112,7 @@ export const pending = internalMutation({
       createdAt: Date.now(),
       ...zeros,
     });
+    await retainDesignAssets(ctx,id,canvasAssets);
     const checkoutExpiresAt =
       Math.floor(Date.now() / 1000) * 1000 + 24 * 3600_000;
     const referral = a.referralPublicId
@@ -288,6 +294,7 @@ export const activate = internalMutation({
       displayName: t.displayName ?? t.domain,
       description: t.description,
       ...(t.morseMessage ? { morseMessage: t.morseMessage } : {}),
+      ...(t.canvasDesign ? { canvasDesign:t.canvasDesign,canvasAssets:t.canvasAssets ?? [] } : {}),
       imageStorageId: t.logoStorageId ?? null,
     });
     const audit = {

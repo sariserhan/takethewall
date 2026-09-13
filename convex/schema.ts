@@ -1,3 +1,4 @@
+import { designAssets } from "./designAssets";
 import { demoValues, demoPresentation } from "./demoValues";
 import { rewardTables, emailSenderFields } from "./rewardSchema";
 import { defineSchema, defineTable } from "convex/server";
@@ -61,6 +62,8 @@ export const editableContent = v.object({
   displayName: v.string(),
   description: v.string(),
   morseMessage: v.optional(v.string()),
+  canvasDesign: v.optional(v.string()),
+  canvasAssets: v.optional(designAssets),
   logoStorageId: v.optional(v.id("_storage")),
 });
 export const finalReportSnapshot = v.object({
@@ -69,6 +72,7 @@ export const finalReportSnapshot = v.object({
   endReason: v.string(),
 });
 export default defineSchema({
+  canvasImageRefs: defineTable({takeoverId:v.id("takeovers"),storageId:v.id("_storage")}).index("by_storage",["storageId"]).index("by_takeover_storage",["takeoverId","storageId"]),
   deliveryClock: defineTable({
     key: v.literal("email"),
     nextAt: v.number(),
@@ -252,6 +256,8 @@ export default defineSchema({
     domain: v.string(),
     description: v.string(),
   morseMessage: v.optional(v.string()),
+  canvasDesign: v.optional(v.string()),
+  canvasAssets: v.optional(designAssets),
     logoStorageId: v.optional(v.id("_storage")),
     contentType: v.optional(v.union(v.literal("link"), v.literal("personal"))),
     linkType: v.optional(v.string()),

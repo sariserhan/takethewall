@@ -1,3 +1,4 @@
+import { designUploadReferences } from "@/lib/wall-design";
 import { NextRequest } from "next/server";
 import { readReferral, REFERRAL_COOKIE } from "@/lib/referral";
 import { validateWallContent } from "@/lib/content";
@@ -30,9 +31,27 @@ export async function POST(req: Request) {
         !opaqueId(a.uploadKey))
     )
       throw new HttpError("Invalid checkout or image reference.");
-    const controls = await backend<{paused:boolean;ownerId:string;ownerName:string}>("checkoutControls", {});
-    if (controls.paused) return Response.json({ error: "New checkouts are temporarily paused. The current wall remains visible." }, { status: 503 });
-    if (a.expectedCurrentId !== controls.ownerId) return Response.json({ error: "The wall changed. Review the current owner before paying.", currentOwner: controls }, { status: 409 });
+    const controls = await backend<{
+      paused: boolean;
+      ownerId: string;
+      ownerName: string;
+    }>("checkoutControls", {});
+    if (controls.paused)
+      return Response.json(
+        {
+          error:
+            "New checkouts are temporarily paused. The current wall remains visible.",
+        },
+        { status: 503 },
+      );
+    if (a.expectedCurrentId !== controls.ownerId)
+      return Response.json(
+        {
+          error: "The wall changed. Review the current owner before paying.",
+          currentOwner: controls,
+        },
+        { status: 409 },
+      );
     const content = validateWallContent(a);
     if (content.contentType !== "personal")
       await publicDestination(content.websiteUrl);
@@ -73,6 +92,7 @@ export async function POST(req: Request) {
           content,
           buyerEmail,
           a.uploadKey,
+          designUploadReferences(a.canvasImages),
           a.weeklyDigestEnabled !== false,
         ]),
       ),
@@ -81,6 +101,8 @@ export async function POST(req: Request) {
       uploadKey: a.uploadKey ?? "",
       websiteUrl: content.websiteUrl,
       description: content.description,
+      canvasDesign: content.canvasDesign,
+      canvasUploads: designUploadReferences(a.canvasImages),
       ...(content.morseMessage ? { morseMessage: content.morseMessage } : {}),
       displayName: content.displayName,
       contentType: content.contentType,

@@ -1,4 +1,5 @@
 "use client";
+import { WallCanvas } from "./wall-canvas";
 import Image from "next/image";
 import { useState } from "react";
 import { contentCta, detectLinkType } from "@/lib/content";
@@ -14,6 +15,8 @@ export function TakeoverPreview({
     websiteUrl: string;
     logoUrl: string;
     contentType: string;
+    canvasDesign?: string;
+    canvasImages?: import("@/lib/wall-design").DesignImage[];
   };
 }) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -48,24 +51,32 @@ export function TakeoverPreview({
       <div className={`preview-device ${device}`} data-preview-device={device}>
         <div className="preview-masthead">TAKE THE WALL</div>
         <div className="preview-context">THIS WALL BELONGS TO</div>
-        <div className="preview-creative">
-          {draft.logoUrl && (
-            <Image
-              src={draft.logoUrl}
-              alt="Your image"
-              width={140}
-              height={140}
-              unoptimized
-            />
-          )}
-          <h3>{draft.displayName || domain}</h3>
-          {draft.description && <p>{draft.description}</p>}
-          {draft.contentType !== "personal" && (
-            <span className="visit">
-              {contentCta(linkType)} <Arrow />
-            </span>
-          )}
-        </div>
+        {draft.canvasDesign ? (
+          <WallCanvas
+            design={draft.canvasDesign}
+            images={draft.canvasImages}
+            device={device}
+          />
+        ) : (
+          <div className="preview-creative">
+            {draft.logoUrl && (
+              <Image
+                src={draft.logoUrl}
+                alt="Your image"
+                width={140}
+                height={140}
+                unoptimized
+              />
+            )}
+            <h3>{draft.displayName || domain}</h3>
+            {draft.description && <p>{draft.description}</p>}
+            {draft.contentType !== "personal" && (
+              <span className="visit">
+                {contentCta(linkType)} <Arrow />
+              </span>
+            )}
+          </div>
+        )}
         <div className="preview-bottom">ONE WALL. YOUR MOMENT.</div>
       </div>
       <p className="field-note">

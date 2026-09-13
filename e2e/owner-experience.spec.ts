@@ -31,7 +31,7 @@ const dashboard = {
     { regionCode: "GB", impressions: 30 },
   ],
 };
-async function wallFixture(page: Page, impressions = 120) {
+async function wallFixture(page: Page, impressions = 120, canvasDesign?: string) {
   await page.route("**/api/context", (r) =>
     r.fulfill({ status: 503, body: "" }),
   );
@@ -45,7 +45,7 @@ async function wallFixture(page: Page, impressions = 120) {
     const value = (path: string) => {
       if (path === "wall:current")
         return {
-          owner: { ...owner, impressions },
+          owner: { ...owner, impressions, ...(canvasDesign ? {canvasDesign, canvasImages:[]} : {}) },
           totalVisitors: 42,
           totalTakeovers: 16,
           numberingOffset: 15,
@@ -863,4 +863,41 @@ test("replacement email shortcut opens a prefilled draft without creating a paym
     dialog.getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" }),
   ).toBeVisible();
   expect(payments).toBe(0);
+});
+
+
+test("wall designer saves independent device layouts and keeps controls outside the canvas", async ({ page }) => {
+  const { designTemplate } = await import("../lib/wall-design");
+  const design=JSON.stringify(designTemplate("poster","THE OWNER CANVAS","Between the stats"));
+  await wallFixture(page,120,design);
+  await page.addInitScript(() => sessionStorage.setItem("ttw-draft",JSON.stringify({contentType:"personal",category:"personal",displayName:"Canvas owner",description:"Welcome",websiteUrl:"",logoUrl:"",uploadKey:"",buyerEmail:"owner@example.com",requestKey:crypto.randomUUID()})));
+  await page.goto("/?take=1");
+  const wall=page.getByRole("region",{name:"Current owner"});
+  await expect(wall.getByLabel("Owner designed wall")).toBeVisible();
+  await expect(wall.getByRole("heading",{name:"THE OWNER CANVAS"})).toBeVisible();
+  const dialog=page.getByRole("dialog",{name:"MAKE IT YOURS."});
+  await dialog.getByRole("button",{name:"Design my wall",exact:true}).click();
+  const designer=dialog.getByRole("region",{name:"Wall Designer"});
+  await designer.getByRole("button",{name:"Add text",exact:true}).click();
+  await designer.getByRole("textbox",{name:"Block text",exact:true}).fill("My movable message");
+  await designer.getByLabel("Left %",{exact:true}).fill("14");
+  await designer.getByLabel("Width %",{exact:true}).fill("60");
+  const canvas=designer.locator(".designer-stage");
+  const selected=canvas.locator(".canvas-block.selected");
+  await selected.scrollIntoViewIfNeeded();
+  const rect=(await selected.boundingBox())!;
+  await page.mouse.move(rect.x+20,rect.y+20);await page.mouse.down();await page.mouse.move(rect.x+40,rect.y+30,{steps:3});await page.mouse.up();
+  const desktopLeft=await designer.getByLabel("Left %",{exact:true}).inputValue();
+  expect(Number(desktopLeft)).toBeGreaterThan(14);
+  await designer.getByRole("button",{name:"Mobile canvas",exact:true}).click();
+  await designer.getByLabel("Left %",{exact:true}).fill("4");
+  await designer.getByRole("button",{name:"Desktop canvas",exact:true}).click();
+  await expect(designer.getByLabel("Left %",{exact:true})).toHaveValue(desktopLeft);
+  await canvas.screenshot({path:`/tmp/wall-designer-${test.info().project.name}.png`});
+  const saved=await page.evaluate(()=>JSON.parse(sessionStorage.getItem("ttw-draft")!).canvasDesign);
+  const parsed=JSON.parse(saved);expect(parsed.blocks.at(-1).mobile.x).toBe(4);
+  await dialog.getByRole("button",{name:"PREVIEW YOUR TAKEOVER"}).click();
+  await expect(dialog.getByLabel("Takeover preview").getByLabel("Owner designed wall")).toBeVisible();
+  await expect(dialog.getByRole("button",{name:"PAY $4.99 & TAKE THE WALL"})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });

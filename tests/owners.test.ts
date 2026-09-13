@@ -847,3 +847,16 @@ it("saves, exposes, repeats and clears a Morse message while preserving the seal
   expect((await t.run(ctx => ctx.db.get(id)))?.morseMessage).toBeUndefined();
   expect(await t.query(api.auditTrail.verify, {})).toMatchObject({ valid: true });
 });
+
+it("owner can revise, repeat and remove a canvas without altering its original seal", async () => {
+  const { designTemplate } = await import("../lib/wall-design");
+  const {t,id,token}=await setup();
+  const canvasDesign=JSON.stringify(designTemplate("poster","New wall","Designed by the owner"));
+  await t.mutation(internal.owners.edit,{...edits,token,canvasDesign});
+  expect((await t.query(api.wall.current,{}))?.owner.canvasDesign).toBe(canvasDesign);
+  expect((await t.mutation(internal.owners.repeat,{token,ownerHash:"repeat"})).canvasDesign).toBe(canvasDesign);
+  expect(await t.query(api.auditTrail.verify,{})).toMatchObject({valid:true});
+  await t.mutation(internal.owners.edit,{...edits,token,expectedRevision:1,canvasDesign:""});
+  expect((await t.run(ctx=>ctx.db.get(id)))?.canvasDesign).toBeUndefined();
+  expect(await t.query(api.auditTrail.verify,{})).toMatchObject({valid:true});
+});
