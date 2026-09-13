@@ -1059,7 +1059,7 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .wall-follow .milestone-alert-signup h3 { margin: 0 0 8px; font-size: 18px; }
 .wall-follow .milestone-alert-signup p { font-size: 14px; line-height: 1.6; }
 .wall-follow .milestone-alert-signup > button { margin-top: auto; min-height: 44px; padding: 12px 16px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
-.wall-follow .milestone-alert-signup > button:hover { background: var(--accent); }
+.wall-follow .milestone-alert-signup > button:is(:hover,:focus-visible) { background: var(--accent); color: #11110f; }
 @media (max-width: 760px) {
   .wall-page .owner-logo { width: 160px; height: 120px; }
   .wall-page .owner-ad h2 { font-size: clamp(32px, 9vw, 44px); }

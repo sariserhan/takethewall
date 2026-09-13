@@ -219,6 +219,13 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
  await expect(page.locator("html")).toHaveAttribute("data-wall-theme","obsidian");
  await page.evaluate(()=>window.scrollTo(0,0));
  await page.screenshot({path:`/tmp/ttw-obsidian-${info.project.name}.png`});
+ const notifyButtons=page.locator(".wall-follow .milestone-alert-signup > button");
+ for(let i=0;i<await notifyButtons.count();i++){
+   await notifyButtons.nth(i).hover();
+   await expect(notifyButtons.nth(i)).toHaveCSS("color","rgb(17, 17, 15)");
+   const hoverContrast=await new AxeBuilder({page}).include(".wall-follow").withRules(["color-contrast"]).analyze();
+   expect(hoverContrast.violations).toEqual([]);
+ }
  const contrast=await new AxeBuilder({page}).withRules(["color-contrast"]).analyze();
  expect(contrast.violations.flatMap(v=>v.nodes.map(n=>({html:n.html,summary:n.failureSummary})))).toEqual([]);
  await page.reload();

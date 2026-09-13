@@ -67,9 +67,35 @@ export async function backend<T>(op: string, args: unknown): Promise<T> {
   return response.json();
 }
 export function sameOrigin(req: Request) {
-  const expected = new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  ).origin;
+  const target = new URL(req.url);
+  const localHosts = ["localhost", "127.0.0.1", "[::1]"];
+  const loopback = localHosts.includes(target.hostname);
+  // Next can normalize the request URL hostname to localhost. Only recover
+  // the actual Host when it is itself loopback and has the same server port.
+  const host = req.headers.get("host");
+  let localOrigin = target.origin;
+  if (loopback && host) {
+    try {
+      const incoming = new URL(`${target.protocol}//${host}`);
+      if (
+        incoming.host === host &&
+        localHosts.includes(incoming.hostname) &&
+        incoming.port === target.port
+      )
+        localOrigin = incoming.origin;
+    } catch {
+      /* Invalid Host cannot expand the allowed origin. */
+    }
+  }
+  // Local Next servers may use any port, including a production build run
+  // locally. Match that exact origin, never a different localhost port.
+  // Vercel and public hosts keep the configured canonical-origin boundary.
+  const expected =
+    process.env.VERCEL !== "1" && loopback
+      ? localOrigin
+      : new URL(
+          process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000",
+        ).origin;
   if (req.headers.get("origin") !== expected)
     throw new HttpError("Invalid request origin", 403);
 }
