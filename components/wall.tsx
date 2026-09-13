@@ -1,5 +1,7 @@
 "use client";
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
+import { MicroAma } from "./micro-ama";
+import { PopOutWall } from "./wall-companion";
 import { HackerTerminal } from "./hacker-terminal";
 import { HallOfFame } from "./hall-of-fame";
 import { MobilePurchaseBar, TakeoverSound } from "./live-controls";
@@ -524,6 +526,7 @@ function WallView({
           </button>
         </section>
       </div>
+      {owner && <MicroAma key={owner.id} takeoverId={owner.id} name={owner.displayName} />}
       <CommunityEvent />
       <HomepageMilestones />
       <HallOfFame />
@@ -564,6 +567,7 @@ function WallView({
           }}
         />
         <TakeoverSound changed={changed} />
+        <PopOutWall />
       </div>
       <PublicFooter home />
       <ResumeCheckout />

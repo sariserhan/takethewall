@@ -115,6 +115,7 @@ export default async function SharedPage({ params, searchParams }: Props) {
             Portrait card
           </a>
         </div>
+        <Link href={`/takeover/${publicId}/certificate`}>Print placement certificate</Link>
         <OwnershipBadge publicId={publicId} />
         <Link className="button" href="/">
           See the live wall ↗

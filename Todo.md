@@ -11,6 +11,11 @@
 - [x] Community hour: admin-configured UTC schedule, public countdown, title, description, and visibility control. Normal prices and reward rules remain in effect.
 - [x] Gazette newsroom: fact-based draft generation for completed UTC days, optional automatic drafts at 00:05 UTC, editable headline/story, source links, revision checks, explicit publication/withdrawal, and public visibility control.
 
+- [x] Micro-AMA: owner opt-in, private bounded inbox, answered questions shown live, reporting through the existing placement-report flow, request limits, and automatic closure on replacement/moderation.
+- [x] Celebration templates: editable birthday, proposal, new-arrival, and launch-day messages inside personal-placement checkout.
+- [x] Printable placement certificate: public record, UTC activation, recorded visitor count, completed duration, and browser Print / Save as PDF. No unverified blockchain or real-world-event certification.
+- [x] Pop-out companion: native Document Picture-in-Picture where available, ordinary window fallback, public live placement view, and no duplicate wall-impression events.
+
 ## Next: controlled X and Farcaster publishing
 
 - [ ] Connect the official accounts: obtain X API credentials/write access and a Farcaster account with an approved signer/provider configuration. Check current provider pricing and posting limits.
@@ -46,3 +51,18 @@
 
 - [ ] Compare share-tool usage, referred visits, and completed purchases by source; exclude badge image fetches/crawlers from visitor and referral counts.
 - [ ] Review results after sufficient real traffic rather than assuming conversion improvements. Keep controls and copy understandable before introducing additional game mechanics.
+
+## Further interactive-wall ideas
+
+- [ ] **Playable wall:** pilot a small first-party game template with owner branding (Snake/Pong) and mobile/keyboard support. Measure outbound clicks separately from play time. Uploaded games require isolated hosting, a restrictive sandbox, asset limits, review, and explicit network permissions before acceptance.
+- [ ] **Live-data ads:** start with a validated public GitHub repository and server-cached star counts. Show source and last-update time; handle rate limits and outages. Add crowdfunding feeds only through supported providers; do not accept arbitrary API URLs or credentials. Defer market tickers pending a clear use case and data-provider terms.
+- [ ] **Cursed takeover campaign:** use existing moderated images/messages; no special payment mechanic required. Do not manufacture audience reactions or make payment the way to report/remove prohibited material.
+- [ ] **WebOS template:** optional fixed desktop with readme, gallery, and reviewed product links. A demo icon opens web content; it must not execute uploaded binaries or scripts. Consider arbitrary apps only after isolation/review infrastructure exists.
+- [ ] **AI announcer:** separate opt-in from the chime, short moderated scripts, approved synthetic voices, pronunciation handling, cost limits, and replay/deduplication controls. Keep audio off by default.
+- [ ] **Wall Passport:** start with cosmetic browser-local stamps. Clearly distinguish these from verified achievements. Free credits require server-side identities, witnessed-event verification, abuse controls, and a credit ledger; do not infer owner nationality from visitor location.
+- [ ] **Keep or Yeet:** not planned as a pricing mechanic. Evaluate harmless reactions first; do not let anonymous voting automatically discount purchases or punish individual owners.
+- [ ] **Dynasties and crests:** verified opt-in account association, cumulative measured reign time, and a small accessible accent palette. Never merge owners by public name or expose buyer emails. Assess repeat usage before adding paid status incentives.
+- [ ] **Architectural projection:** a future venue-backed pilot with owner/building permission, practical equipment tests, operating arrangements, content review, budget, and a clear exposure/outage policy before advertising physical placement.
+- [ ] **AMA follow-ups:** question retention/cleanup policy, dedicated admin question moderation, and notifications only if owners explicitly request them. Current polling refreshes the private inbox every 15 seconds while the page is visible; public answers are reactive.
+- [ ] **Certificate upgrades:** downloadable PDF generation, optional verified timestamp-proof links, and print fulfillment after demand is established. The current version uses the browser's vector-text Print / Save as PDF workflow.
+- [ ] **Companion upgrades:** dedicated optional chime, takeover animation, and broader device testing. Ordinary pop-out windows cannot promise always-on-top placement.

@@ -1,4 +1,5 @@
 "use client";
+import { celebrations } from "@/lib/celebrations";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ImageUpload } from "./image-upload";
@@ -258,6 +259,7 @@ export function PurchaseSheet({
                     ),
                   )}
                 </div>
+                {draft.contentType === "personal" && <details className="celebration-templates"><summary>Start with a celebration template</summary><p>Choose a starting message, then personalize it before previewing.</p><div className="owner-share-actions">{celebrations.map(t=><button key={t.label} type="button" onClick={()=>change({displayName:t.displayName,description:t.description})}>{t.label}</button>)}</div></details>}
                 <label>
                   Display name{" "}
                   {draft.contentType !== "personal" && (

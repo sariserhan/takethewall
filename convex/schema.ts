@@ -238,7 +238,9 @@ export default defineSchema({
     lastError: v.optional(v.string()),
     snapshot: v.optional(visitorPingSnapshot),
   }).index("by_key", ["key"]),
+  amaQuestions: defineTable({ takeoverId:v.id("takeovers"), question:v.string(), answer:v.optional(v.string()), state:v.union(v.literal("pending"),v.literal("answered"),v.literal("dismissed")), createdAt:v.number() }).index("by_owner_state",["takeoverId","state","createdAt"]),
   takeovers: defineTable({
+    amaEnabled: v.optional(v.boolean()),
     originalContent: v.optional(editableContent),
     contentRevision: v.optional(v.number()),
     websiteUrl: v.string(),

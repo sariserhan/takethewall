@@ -98,6 +98,7 @@ export function TakeoverShare({
         >
           Download image
         </a>
+        <a href={`/takeover/${publicId}/certificate`}>Print placement certificate</a>
         <a href={path}>
           Open public page <Arrow />
         </a>

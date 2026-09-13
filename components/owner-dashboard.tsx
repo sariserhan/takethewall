@@ -1,4 +1,5 @@
 "use client";
+import { OwnerAma } from "./micro-ama";
 import { OwnershipBadge } from "./ownership-badge";
 import { RegionLabel } from "./region-label";
 import Image from "next/image";
@@ -378,6 +379,7 @@ export function OwnerDashboardView() {
             Refresh stats
           </button>
         </section>
+        <OwnerAma />
         <section className="owner-share-card">
           <h2>
             {!data.active && data.replacedAt !== null
@@ -440,6 +442,7 @@ export function OwnerDashboardView() {
             >
               Download card
             </a>
+            <a href={`/takeover/${data.publicId}/certificate`}>Print placement certificate</a>
           </div>
           <label>
             Public share link

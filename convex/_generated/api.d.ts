@@ -11,6 +11,7 @@
 import type * as admin from "../admin.js";
 import type * as adminNotifications from "../adminNotifications.js";
 import type * as adminValidators from "../adminValidators.js";
+import type * as ama from "../ama.js";
 import type * as analytics from "../analytics.js";
 import type * as anchoring from "../anchoring.js";
 import type * as auditTrail from "../auditTrail.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   adminNotifications: typeof adminNotifications;
   adminValidators: typeof adminValidators;
+  ama: typeof ama;
   analytics: typeof analytics;
   anchoring: typeof anchoring;
   auditTrail: typeof auditTrail;

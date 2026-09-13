@@ -68,6 +68,9 @@ http.route({
         case "alertManage":
           result = await ctx.runMutation(internal.milestoneAlerts.manage, args);
           break;
+        case "amaInbox": result = await ctx.runQuery(internal.ama.inbox, args); break;
+        case "amaAsk": result = await ctx.runMutation(internal.ama.ask, args); break;
+        case "amaManage": result = await ctx.runMutation(internal.ama.manage, args); break;
         case "ownerRepeat":
           result = await ctx.runMutation(internal.owners.repeat, args);
           break;
