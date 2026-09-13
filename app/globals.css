@@ -1204,7 +1204,7 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .radio-lamp {width:36px;height:36px;margin:20px auto;border-radius:50%;background:#4a2911;border:3px solid #a96c2b;}
 .radio-lamp.lit {background:#ffcf75;box-shadow:0 0 24px #ffaf42;}
 .morse-code {white-space:pre-wrap;overflow-wrap:anywhere;line-height:2;max-height:200px;overflow:auto;font-size:18px;}
-.theremin-pad,.thermal-stage,.blacklight-stage {display:block;box-sizing:border-box;width:100%;height:auto;aspect-ratio:2/1;margin:20px 0;touch-action:none;border:1px solid var(--rule);background:#04050f;}
+.theremin-pad,.thermal-stage {display:block;box-sizing:border-box;width:100%;height:auto;aspect-ratio:2/1;margin:20px 0;touch-action:none;border:1px solid var(--rule);background:#04050f;}
 .theremin-pad {position:relative;min-height:220px;overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0 49px,#91c4ff22 50px),linear-gradient(135deg,#14274b,#24153c);color:#def5ff;}
 .theremin-pad strong {position:absolute;left:20px;bottom:20px;pointer-events:none;font:14px monospace;}
 .theremin-pad span {position:absolute;transform:translate(-50%,-50%);width:35px;height:35px;border-radius:50%;border:1px solid #fff;box-shadow:0 0 30px #90f4ff;pointer-events:none;}
@@ -1212,3 +1212,14 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .paper-brick select {padding:12px;background:var(--paper);color:var(--ink);border:1px solid var(--rule);font:inherit;}
 .paper-brick img {display:block;width:min(100%,570px);height:auto;margin:auto;background:white;}
 @media(prefers-reduced-motion:reduce) {.wall-atmosphere i {animation:none;top:40%;} .atmosphere-rain i{height:5vh;} .radio-lamp.lit{background:#4a2911;box-shadow:none;} }
+
+/* Site-wide Blacklight: a non-interactive veil leaves links and scrolling usable. */
+:root[data-wall-blacklight="on"] { --paper:#10071c; --ink:#eeebff; --muted:#c4b7d5; --rule:#81718f; --accent:#d8ff36; color-scheme:dark; }
+.blacklight-shade { position:fixed; inset:0; z-index:2147483645; pointer-events:none; background:radial-gradient(circle var(--blacklight-radius,clamp(140px,22vmin,240px)) at var(--blacklight-x,50vw) var(--blacklight-y,50vh),transparent 0%,rgba(27,7,50,.08) 58%,rgba(10,2,20,.8) 86%,rgba(5,1,12,.985) 110%); }
+.blacklight-controls { position:fixed; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); z-index:2147483646; display:flex; align-items:center; gap:16px; padding:12px; border:1px solid #cda6ff; background:#180b28; color:#f4edff; box-shadow:0 4px 24px #0008; font:12px/1.5 var(--body); max-width:calc(100vw - 24px); box-sizing:border-box; }
+.blacklight-controls span { font-weight:700; letter-spacing:.05em; }
+.blacklight-controls small { display:block; font-weight:400; letter-spacing:0; color:#d3c1e9; }
+.blacklight-controls button { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:10px 12px; border:1px solid #dfc6ff; color:#fff; background:#38204c; cursor:pointer; font:inherit; white-space:nowrap; }
+.blacklight-controls button:focus-visible { outline:3px solid #d8ff36; outline-offset:3px; }
+@media(max-width:480px) { .blacklight-controls {gap:8px;padding:8px;} .blacklight-controls small {font-size:10px;} .blacklight-controls kbd {display:none;} }
+@media print { .blacklight-shade,.blacklight-controls {display:none!important;} :root[data-wall-blacklight="on"] {--paper:#fff;--ink:#111;--muted:#555;--rule:#777;color-scheme:light;} }

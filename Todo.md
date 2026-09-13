@@ -83,7 +83,7 @@
 - [x] **Decade Warp:** Present / 1984 / 1996 / 2077 selector replaces Retro. Checkout stays readable; no flashing text.
 - [x] **Thermal:** clearly labeled personal cursor/touch/keyboard trail; no shared tracking or network collection.
 - [x] **Morse:** public owner message translated to visible Morse and explicit Play/Stop audio; unsupported characters omitted, bounded length, stops when hidden or closed.
-- [x] **Blacklight:** local UV exploration of curated site Easter eggs, keyboard/touch support and reveal-all alternative.
+- [x] **Blacklight:** persistent site-wide flashlight theme with a dark violet veil, pointer/touch and keyboard-focus tracking, visible exit and Escape shortcut. No separate dialog.
 - [x] **Theremin:** separate play surface, explicit sound start/stop, pointer/touch/keyboard control, no ad-link clicks.
 - [x] **Origami Brick:** six-face printable SVG net with seven glue tabs, takeover artwork/number, live-homepage QR, A4/Letter print document and browser Save as PDF. Geometry and digital print output verified; physical assembly still needs a real paper trial.
 - [x] Group visual/audio toys under **Experiments**; keep core utility buttons and Try Mine directly accessible.

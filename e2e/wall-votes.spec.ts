@@ -393,7 +393,7 @@ test("Creative experiments provide local visuals, opt-in audio and printable bri
  dialog=await open('Atmosphere');await dialog.getByRole('button',{name:'Clear / off',exact:true}).click();await page.keyboard.press('Escape');await expect(page.locator('.wall-atmosphere')).toHaveCount(0);
  dialog=await open('Decade Warp');for(const [label,era] of [['1984 · Monochrome','1984'],['1996 · Early web','1996'],['2077 · Neon future','2077'],['Present day','present']]){await dialog.getByRole('button',{name:label,exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-wall-era',era);}await page.keyboard.press('Escape');
  dialog=await open('Thermal');const thermal=dialog.locator('canvas');const blank=await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL());await thermal.focus();await page.keyboard.press('ArrowRight');expect(await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).not.toBe(blank);await dialog.getByRole('button',{name:'Clear trail'}).click();expect(await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).toBe(blank);await page.keyboard.press('Escape');
- dialog=await open('Blacklight');await dialog.getByRole('button',{name:'Reveal all secrets'}).click();await expect(dialog).toContainText('One wall. Many stories.');await dialog.screenshot({path:`/tmp/ttw-blacklight-${info.project.name}.png`});await page.keyboard.press('Escape');
+ await page.locator('.experiment-menu-controls').getByRole('button',{name:'Blacklight',exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-wall-blacklight','on');await expect(page.getByRole('dialog',{name:'Blacklight',exact:true})).toHaveCount(0);await page.screenshot({path:`/tmp/ttw-blacklight-${info.project.name}.png`});await page.keyboard.press('Escape');await expect(page.locator('html')).toHaveAttribute('data-wall-blacklight','off');
  dialog=await open('Morse');await expect(dialog).toContainText('Radio silent.');await dialog.getByRole('button',{name:'Play Morse'}).click();await expect(dialog).toContainText('Transmitting…');await dialog.getByRole('button',{name:'Stop',exact:true}).click();await expect(dialog).toContainText('Radio silent.');await page.keyboard.press('Escape');
  dialog=await open('Theremin');await dialog.getByRole('button',{name:'Start instrument'}).click();await expect(dialog).toContainText('Instrument ready');await dialog.getByRole('application').focus();await page.keyboard.press('ArrowRight');await dialog.getByRole('button',{name:'Stop instrument'}).click();await expect(dialog).toContainText('Sound off.');await page.keyboard.press('Escape');
  dialog=await open('Origami');
@@ -407,4 +407,21 @@ test("Creative experiments provide local visuals, opt-in audio and printable bri
  await popup.screenshot({path:`/tmp/ttw-paper-brick-${paper}-${info.project.name}.png`,fullPage:true});await popup.close();
  }
  await page.keyboard.press('Escape');expect(errors).toEqual([]);
+});
+
+test("Blacklight follows navigation and focus without blocking the page",async({page},info)=>{
+ await fixture(page);await page.goto('/');await page.locator('.experiments-menu > summary').click();
+ const toggle=page.getByRole('button',{name:'Blacklight',exact:true});await toggle.click();
+ await expect(toggle).toHaveAttribute('aria-pressed','true');await expect(page.locator('dialog[open]')).toHaveCount(0);
+ const shade=page.locator('.blacklight-shade');await expect(shade).toBeVisible();await expect(shade).toHaveCSS('pointer-events','none');
+ await page.evaluate(()=>window.scrollTo(0,0));await page.mouse.move(120,260);
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.style.getPropertyValue('--blacklight-x'))).toBe('120px');
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.style.getPropertyValue('--blacklight-y'))).toBe('260px');
+ await page.screenshot({path:`/tmp/ttw-blacklight-page-${info.project.name}.png`});
+ const keep=page.locator('.keep-or-yeet').getByRole('button',{name:/^KEEP/});await keep.click();await expect(keep).toHaveAttribute('aria-pressed','true');
+ const whisper=page.locator('.whisper-preview').getByLabel('Your whisper',{exact:true});await whisper.focus();await expect.poll(()=>page.evaluate(()=>document.documentElement.style.getPropertyValue('--blacklight-radius'))).not.toBe('');
+ await page.goto('/about');await expect(page.locator('html')).toHaveAttribute('data-wall-blacklight','on');await expect(page.getByRole('button',{name:/Exit Blacklight/})).toBeVisible();
+ await page.getByRole('button',{name:/Exit Blacklight/}).click();await expect(shade).toHaveCount(0);
+ expect(await page.evaluate(()=>localStorage.getItem('ttw-blacklight'))).toBe('off');
+ await page.reload();await expect(page.locator('html')).toHaveAttribute('data-wall-blacklight','off');
 });

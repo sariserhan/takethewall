@@ -1,5 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
+import { setBlacklight, useBlacklight } from "./wall-blacklight";
 import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
 import { WallFreeze } from "./wall-freeze";
@@ -19,6 +20,7 @@ export type CreativePanel =
   | "Shatter";
 export type CreativeData = WallSnapshot & { id: string; message: string };
 export function WallCreativeTools({ data }: { data: CreativeData | null }) {
+  const blacklight = useBlacklight();
   const [panel, setPanel] = useState<CreativePanel | null>(null),
     [sky, setSky] = useState("clear"),
     [era, setEra] = useState("present");
@@ -47,7 +49,8 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
         <button
           className="wall-action"
           key={name}
-          onClick={() => setPanel(name)}
+          aria-pressed={name === "Blacklight" ? blacklight : undefined}
+          onClick={() => name === "Blacklight" ? setBlacklight(!blacklight) : setPanel(name)}
         >
           <CreativeIcon name={name} />
           {name}
