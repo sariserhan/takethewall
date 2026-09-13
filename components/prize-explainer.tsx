@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { rewardStatus } from "@/lib/reward-status";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 type Overview = FunctionReturnType<typeof api.rewards.overview>;
@@ -101,6 +102,88 @@ export function PrizeExplainer({
           </p>
         </div>
       )}
+      {next && (
+        <div className="reward-paths" aria-label="Ways to earn a reward">
+          <article>
+            <span className="eyebrow">REWARD A · MILESTONE PLACEMENT</span>
+            <h3>REACH #{format(next.number)}</h3>
+            <strong>${format(next.rewardUsd)} reward</strong>
+            <p>
+              The qualifying placement at this milestone starts the claim.
+              Activation assigns your number; checkout does not reserve it.
+            </p>
+            <Link href={`/${next.number}`}>
+              Milestone prize & permanent winner page →
+            </Link>
+          </article>
+          {next.performance && (
+            <article>
+              <span className="eyebrow">REWARD B · REFERRAL LEADER</span>
+              <h3>BRING THE MOST VISITORS</h3>
+              <strong>${format(next.performance.rewardUsd)} reward</strong>
+              <p>
+                Takeovers #{format(next.performance.cohortFrom)}–#
+                {format(next.performance.cohortTo)}: share your owner-dashboard
+                referral link. The entrant with the most verified referrals at
+                the cutoff starts a separate claim.
+              </p>
+              <p>
+                At least one verified referral is required. Ranking is
+                calculated when #{format(next.number)} goes live.
+              </p>
+              <Link href={`/${next.number}/referral`}>
+                Referral prize & permanent winner page →
+              </Link>
+            </article>
+          )}
+        </div>
+      )}
+      {ordered.some(
+        (m) =>
+          m.status !== "future" ||
+          (m.performance && m.performance.status !== "future"),
+      ) && (
+        <section
+          className="reward-results"
+          aria-label="Reward recipients and winners"
+        >
+          <h3>RECIPIENTS & CONFIRMED WINNERS</h3>
+          <div className="reward-paths">
+            {ordered
+              .flatMap((m) => [
+                { ...m, label: "Reward A", href: `/${m.number}` },
+                ...(m.performance
+                  ? [
+                      {
+                        ...m.performance,
+                        number: m.number,
+                        label: "Reward B",
+                        href: `/${m.number}/referral`,
+                      },
+                    ]
+                  : []),
+              ])
+              .filter((r) => r.status !== "future")
+              .map((r) => (
+                <article key={r.href}>
+                  <span className="eyebrow">
+                    {r.label} · #{format(r.number)}
+                  </span>
+                  <h3>{rewardStatus(r.status)}</h3>
+                  <p>
+                    {r.status === "paid" && r.snapshot
+                      ? r.snapshot.displayName
+                      : r.candidateNumber > 0 &&
+                          !["selecting", "unawarded"].includes(r.status)
+                        ? `Provisional recipient: takeover #${format(r.candidateNumber)}`
+                        : "No confirmed winner yet."}
+                  </p>
+                  <Link href={r.href}>View permanent reward page →</Link>
+                </article>
+              ))}
+          </div>
+        </section>
+      )}
       <details className="prize-details">
         <summary>How claiming a reward works</summary>
         <ol className="prize-steps">
@@ -114,8 +197,11 @@ export function PrizeExplainer({
           <li>
             <span>02</span>
             <div>
-              <h3>Hit a prize number</h3>
-              <p>We email you a link to start your claim.</p>
+              <h3>Qualify through either path</h3>
+              <p>
+                Reach a milestone or lead its eligible referral cohort. We email
+                the selected recipient a protected claim link.
+              </p>
             </div>
           </li>
           <li>
@@ -149,29 +235,29 @@ export function PrizeExplainer({
       </p>
       <nav className="prize-milestones" aria-label="Prize milestones">
         {ordered.map((m) => (
-          <Link href={`/${m.number}`} key={m.number}>
-            <span>#{format(m.number)}</span>
-            <strong>
-              {m.performance ? "2 × " : ""}${format(m.rewardUsd)}
-            </strong>
-            <small>
-              {m.status === "future"
-                ? m.number === next?.number
-                  ? "In progress"
-                  : "Upcoming"
-                : (rewardLabels[m.status] ?? "Under review")}
-            </small>
-            {m.performance && (
+          <div className="reward-milestone-pair" key={m.number}>
+            <Link href={`/${m.number}`}>
+              <span>#{format(m.number)}</span>
+              <strong>${format(m.rewardUsd)} · A</strong>
               <small>
-                Referral reward:{" "}
+                {m.status === "future"
+                  ? m.number === next?.number
+                    ? "In progress"
+                    : "Upcoming"
+                  : (rewardLabels[m.status] ?? "Under review")}
+              </small>
+            </Link>
+            {m.performance && (
+              <Link href={`/${m.number}/referral`}>
+                Reward B · Referral winner:{" "}
                 {m.performance.status === "future"
                   ? m.number === next?.number
                     ? "In progress"
                     : "Upcoming"
                   : (rewardLabels[m.performance.status] ?? "Under review")}
-              </small>
+              </Link>
             )}
-          </Link>
+          </div>
         ))}
       </nav>
     </section>

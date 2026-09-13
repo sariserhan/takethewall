@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { BackendProvider } from "./backend-provider";
@@ -126,6 +127,13 @@ function Portal({ session }: { session: string }) {
           : `Submission deadline: ${new Date(data.deadlineAt).toUTCString()}`}
       </p>
       <p>Payout: {data.payoutStatus}</p>
+      <p>
+        <Link
+          href={`/${data.milestone}${data.rewardKind === "performance_traffic" ? "/referral" : ""}`}
+        >
+          View your public reward page →
+        </Link>
+      </p>
       <h2>Claim checklist</h2>
       <ul>
         {data.requiredActions.map((action) => (

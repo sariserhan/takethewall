@@ -31,9 +31,17 @@ export function PublicFooter({ home = false }: { home?: boolean }) {
           ))}
         </nav>
         <nav className="milestone-footer" aria-label="Milestone walls">
-          <span>PERMANENT WALLS</span>
+          <span>MILESTONE WINNERS · REWARD A</span>
           {MILESTONES.map((m) => (
             <Link key={m.takeoverNumber} href={`/${m.takeoverNumber}`}>
+              #{m.takeoverNumber.toLocaleString("en-US")}
+            </Link>
+          ))}
+        </nav>
+        <nav className="milestone-footer" aria-label="Referral winner walls">
+          <span>REFERRAL WINNERS · REWARD B</span>
+          {MILESTONES.map((m) => (
+            <Link key={m.takeoverNumber} href={`/${m.takeoverNumber}/referral`}>
               #{m.takeoverNumber.toLocaleString("en-US")}
             </Link>
           ))}

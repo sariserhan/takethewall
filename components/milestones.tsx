@@ -206,7 +206,7 @@ function MilestoneView({ number }: { number: number }) {
     <>
       <div className="permanent-heading">
         <p className="eyebrow">
-          PERMANENT WALL / #{number.toLocaleString("en-US")}
+          REWARD A · PERMANENT WALL / #{number.toLocaleString("en-US")}
         </p>
         <h1>
           {data.promotionEnabled
@@ -385,68 +385,16 @@ function MilestoneView({ number }: { number: number }) {
         </>
       ) : null}
       {m.performance && (
-        <section
-          className="permanent-benefits"
-          aria-label="Referral leader reward"
-        >
-          <p className="eyebrow">REWARD B · REFERRAL LEADER</p>
-          <h2>
-            ${m.performance.rewardUsd.toLocaleString("en-US")} REFERRAL REWARD
-          </h2>
+        <section className="permanent-benefits">
+          <p className="eyebrow">A SECOND PERMANENT WALL</p>
+          <h2>REWARD B · REFERRAL WINNER</h2>
           <p>
-            Takeovers #{m.performance.cohortFrom.toLocaleString("en-US")}–#
-            {m.performance.cohortTo.toLocaleString("en-US")}. Most verified
-            referral visitors before milestone #{number.toLocaleString("en-US")}{" "}
-            closes the cohort.
+            The preceding cohort’s verified referral leader has a separate
+            reward and permanent page.
           </p>
-          <p>
-            {m.performance.status === "future"
-              ? (m.performance.cohortFrom === 1 || data.currentNumber >= m.performance.cohortFrom ? "In progress" : "Upcoming")
-              : m.performance.status === "unawarded"
-                ? "Unawarded — no eligible referral entrant"
-                : m.performance.status === "paid"
-                  ? "Completed — paid"
-                  : m.performance.status === "selecting"
-                    ? "Evaluating referral traffic"
-                    : `Verification in progress · takeover #${m.performance.candidateNumber}`}
-          </p>
-          {m.performance.verifiedReferrals > 0 && (
-            <p>
-              {m.performance.verifiedReferrals.toLocaleString("en-US")} verified
-              referral visitors at the cutoff.
-            </p>
-          )}
-          <p>
-            At least one verified referral is required. Ties use unique
-            visitors, then the earlier takeover number. If an entrant fails
-            verification, the next eligible ranked entrant is considered.
-          </p>
-          {m.performance.snapshot && (
-            <div className="trophy-ad">
-              {m.performance.logoUrl && (
-                <Image
-                  src={m.performance.logoUrl}
-                  width={200}
-                  height={200}
-                  unoptimized
-                  alt={m.performance.snapshot.displayName}
-                />
-              )}
-              <h3>{m.performance.snapshot.displayName}</h3>
-              <p>{m.performance.snapshot.description}</p>
-              {m.performance.outboundLinkEnabled &&
-                m.performance.snapshot.contentType !== "personal" && (
-                  <a
-                    className="button"
-                    href={m.performance.snapshot.websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer sponsored"
-                  >
-                    Visit winner →
-                  </a>
-                )}
-            </div>
-          )}
+          <Link href={`/${number}/referral`}>
+            View referral reward & winner →
+          </Link>
         </section>
       )}
       {!!data.numberingOffset && (

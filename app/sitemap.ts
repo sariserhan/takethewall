@@ -19,10 +19,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           },
         ]
       : []),
-    ...MILESTONES.map(({ takeoverNumber }) => ({
-      url: new URL(`/${takeoverNumber}`, origin).href,
-      changeFrequency: "daily" as const,
-      priority: 0.8,
-    })),
+    ...MILESTONES.flatMap(({ takeoverNumber }) => [
+      {
+        url: new URL(`/${takeoverNumber}`, origin).href,
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+      },
+      {
+        url: new URL(`/${takeoverNumber}/referral`, origin).href,
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+      },
+    ]),
   ];
 }
