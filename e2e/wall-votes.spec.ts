@@ -61,6 +61,7 @@ async function fixture(page: Page) {
             activationSequence: owner,
             impressions: 10,
             uniqueVisitors: 5,
+            shareVisitors: owner === 1 ? 12 : 0,
             clicks: 0,
             kind: "paid",
           },
@@ -473,4 +474,18 @@ test("Playground stays in place and changes color when selected",async({page})=>
  await button.click();await expect(button).toHaveAttribute("aria-expanded","true");await expect(page.locator("#playground-controls")).toBeVisible();
  const after=await position();expect(after.x).toBeCloseTo(before.x,0);expect(after.y).toBeCloseTo(before.y,0);expect(after.bg).not.toBe(before.bg);
  await button.click();await expect(page.locator("#playground-controls")).toBeHidden();await expect(button).toHaveAttribute("aria-expanded","false");
+});
+
+test("current wall referral counter follows the owner and explains accepted visits", async ({ page }) => {
+  const wall = await fixture(page);
+  await page.goto("/");
+  const stats = page.getByRole("region", { name: "Current reign analytics" });
+  const counter = stats.locator(".metric").filter({ has: page.getByRole("button", { name: "REFERRALS", exact: true }) });
+  await expect(counter.locator(":scope > strong")).toHaveText("12");
+  await stats.getByRole("button", { name: "REFERRALS", exact: true }).click();
+  await expect(page.getByText(/Accepted distinct browser visits/)).toBeVisible();
+  await page.keyboard.press("Escape");
+  wall.changeOwner();
+  await expect(counter.locator(":scope > strong")).toHaveText("0");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
 });

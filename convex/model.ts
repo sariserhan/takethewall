@@ -21,6 +21,7 @@ export const publicOwner = v.object({
   impressions: v.number(),
   uniqueVisitors: v.number(),
   clicks: v.number(),
+  shareVisitors: v.optional(v.number()),
   kind: v.string(),
 });
 export async function projectOwner(ctx: QueryCtx, t: Doc<"takeovers">) {
@@ -45,6 +46,7 @@ export async function projectOwner(ctx: QueryCtx, t: Doc<"takeovers">) {
     impressions: t.impressions,
     uniqueVisitors: t.uniqueVisitors,
     clicks: t.clicks,
+    shareVisitors: t.shareVisitors ?? 0,
     kind: t.kind,
   };
 }

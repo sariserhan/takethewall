@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { siteUrl } from "@/lib/site-url";
 import { OwnershipBadge } from "./ownership-badge";
 import { Arrow } from "./arrow";
@@ -157,9 +158,9 @@ export function PublishedShare({
           available in your owner dashboard. Reopen it using the private link in
           your email, or request a fresh link with your purchase email.
         </p>
-        <a href="/owner" className="button">
+        <Link href="/owner" className="button">
           Open owner dashboard <Arrow />
-        </a>
+        </Link>
         <TakeoverShare
           publicId={publicId}
           previousOwnerName={previousOwnerName}

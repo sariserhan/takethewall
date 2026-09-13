@@ -22,6 +22,7 @@ const explanations: Record<string, string> = {
   CLICKS:
     "Recorded clicks on the current owner's outbound link during this reign. These are link clicks, not clicks on the Take the Wall purchase button.",
   CTR: "Click-through rate: clicks divided by impressions, multiplied by 100. For example, 5 clicks from 100 impressions is a 5% CTR. When demo counts are enabled, this uses the combined counts.",
+  REFERRALS: "Accepted distinct browser visits through this takeover’s shared referral link. Visitors must keep the page visible for at least 5 seconds and pass automated checks. Repeat visits and identifiable owner self-visits do not add credit. This total belongs to this takeover, not the whole site; reward eligibility is reviewed separately.",
   "TOP REGIONS":
     "Where views of the current owner's content came from, grouped by region. Percentages are shares of impressions, not unique people. Location is approximate; Unknown means a region could not be determined.",
 };

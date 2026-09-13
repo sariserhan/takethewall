@@ -478,6 +478,7 @@ function WallView({
                 : "—"
             }
           />
+          <Metric label="REFERRALS" value={owner ? numbers(owner.shareVisitors ?? 0) : "—"} />
           <div className="regions">
             <span className="eyebrow">
               <StatHelp label="TOP REGIONS" />

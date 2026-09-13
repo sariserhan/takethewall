@@ -71,6 +71,7 @@ it("deduplicates referred browsers, ignores test traffic, and refuses blocked pa
   expect(
     (await t.run((ctx) => ctx.db.get(source.takeoverId)))?.shareVisitors,
   ).toBe(1);
+  expect((await t.query(api.wall.current, {}))?.owner.shareVisitors).toBe(1);
   vi.stubEnv("WALL_ENVIRONMENT", "test");
   expect(
     await t.mutation(internal.growth.visit, {
