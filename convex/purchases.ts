@@ -438,3 +438,18 @@ export const expire = internalMutation({
     return null;
   },
 });
+
+// Only the server can obtain a Stripe session, scoped to a valid confirmation token.
+export const confirmationRecovery = internalMutation({
+  args: { tokenHash: v.string() },
+  returns: v.union(v.null(), v.object({ sessionId: v.string(), takeoverId: v.id("takeovers") })),
+  handler: async (ctx, { tokenHash }) => {
+    const p = await ctx.db.query("purchases").withIndex("by_tokenHash", q => q.eq("tokenHash", tokenHash)).unique();
+    const now = Date.now();
+    if (!p || p.paidAt || p.issuedAt || p.paymentIssue || !p.sessionId || p.expiredConfirmed || p.tokenExpiresAt < now || p.environment !== (process.env.WALL_ENVIRONMENT ?? "test") || (p.confirmationCheckedAt !== undefined && now - p.confirmationCheckedAt < 30_000)) return null;
+    const takeover = await ctx.db.get(p.takeoverId);
+    if (!takeover || takeover.blocked || takeover.status !== "pending") return null;
+    await ctx.db.patch(p._id, { confirmationCheckedAt: now });
+    return { sessionId: p.sessionId, takeoverId: p.takeoverId };
+  },
+});

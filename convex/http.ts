@@ -149,6 +149,9 @@ http.route({
         case "expire":
           result = await ctx.runMutation(internal.purchases.expire, args);
           break;
+        case "confirmationRecovery":
+          result = await ctx.runMutation(internal.purchases.confirmationRecovery, args);
+          break;
         case "status":
           result = await ctx.runMutation(internal.purchases.confirmation, args);
           break;

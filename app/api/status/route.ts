@@ -1,3 +1,4 @@
+import { recoverPayment } from "@/lib/payment-recovery";
 import { visitorPingProperties } from "@/lib/delivery";
 import { trafficContext } from "@/lib/server";
 import {
@@ -16,11 +17,24 @@ export async function POST(req: Request) {
     await rate(req, "status", 40);
     const { token } = await jsonBody(req);
     if (!opaqueId(token)) throw new HttpError("Invalid confirmation token");
-    const result = await backend<{
+    let result = await backend<{
       state: string;
       analyticsAllowed?: boolean;
       owner: { id: string; domain: string; websiteUrl: string } | null;
     }>("status", { tokenHash: hash(token) });
+    if (result.state === "pending") {
+      const candidate = await backend<{
+        sessionId: string;
+        takeoverId: string;
+      } | null>("confirmationRecovery", { tokenHash: hash(token) });
+      if (
+        candidate &&
+        (await recoverPayment(candidate.sessionId, candidate.takeoverId))
+      )
+        result = await backend<typeof result>("status", {
+          tokenHash: hash(token),
+        });
+    }
     const visitorPing =
       result.analyticsAllowed &&
       !trafficContext(req).excluded &&

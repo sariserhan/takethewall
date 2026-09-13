@@ -339,6 +339,7 @@ export default defineSchema({
       ),
     ),
     stripeCheckedAt: v.optional(v.number()),
+    confirmationCheckedAt: v.optional(v.number()),
     resumeSeed: v.optional(v.string()),
     resumeHash: v.optional(v.string()),
     referralSource: v.optional(v.id("takeovers")),

@@ -903,3 +903,19 @@ it("preserves an old checkout quote and rejects an old amount for a new purchase
   expect(next.basePriceCents).toBe(499);
   await expect(t.mutation(internal.purchases.activate, { ...payment(next.takeoverId, "wrong-price"), amountCents: 399 })).rejects.toThrow("Invalid payment");
 });
+
+it("confirmation recovery is token-scoped, throttled, and refuses settled or invalid purchases", async () => {
+  const t = make(), p = await pending(t);
+  const args = { tokenHash: p.args.tokenHash };
+  expect(await t.mutation(internal.purchases.confirmationRecovery, args)).toBeNull();
+  await t.mutation(internal.purchases.attach, { purchaseId: p.purchaseId, sessionId: "cs_recovery", checkoutUrl: "" });
+  expect(await t.mutation(internal.purchases.confirmationRecovery, { tokenHash: "other" })).toBeNull();
+  expect(await t.mutation(internal.purchases.confirmationRecovery, args)).toEqual({ sessionId: "cs_recovery", takeoverId: p.takeoverId });
+  expect(await t.mutation(internal.purchases.confirmationRecovery, args)).toBeNull();
+  await t.run(ctx => ctx.db.patch(p.purchaseId, { confirmationCheckedAt: Date.now() - 31_000 }));
+  expect(await t.mutation(internal.purchases.confirmationRecovery, args)).not.toBeNull();
+  await t.run(ctx => ctx.db.patch(p.purchaseId, { confirmationCheckedAt: 0, tokenExpiresAt: Date.now() - 1 }));
+  expect(await t.mutation(internal.purchases.confirmationRecovery, args)).toBeNull();
+  await t.run(ctx => ctx.db.patch(p.purchaseId, { tokenExpiresAt: Date.now() + 60000, paymentIssue: "refunded" }));
+  expect(await t.mutation(internal.purchases.confirmationRecovery, args)).toBeNull();
+});
