@@ -234,7 +234,6 @@ function WallView({
           <h1>TAKE THE WALL</h1>
           <div className="strap">
             <p>Your content takes over this page for $4.99.</p>
-            <TakeoverSound changed={changed} />
             <span className="connection">
               <i className={connected ? "online" : ""} />
               {connected ? "LIVE" : "CONNECTING"}
@@ -544,25 +543,28 @@ function WallView({
         <WallSubscription />
         <MilestoneAlerts />
       </section>
-      <HackerTerminal
-        connected={connected}
-        paused={checkoutPaused}
-        snapshot={
-          owner
-            ? {
-                name: owner.displayName,
-                number: owner.takeoverNumber,
-                impressions: owner.impressions,
-                visitors: owner.uniqueVisitors,
-                clicks: owner.clicks,
-              }
-            : null
-        }
-        onPrepare={() => {
-          setDraftVersion((v) => v + 1);
-          setOpen(true);
-        }}
-      />
+      <div className="wall-tools">
+        <HackerTerminal
+          connected={connected}
+          paused={checkoutPaused}
+          snapshot={
+            owner
+              ? {
+                  name: owner.displayName,
+                  number: owner.takeoverNumber,
+                  impressions: owner.impressions,
+                  visitors: owner.uniqueVisitors,
+                  clicks: owner.clicks,
+                }
+              : null
+          }
+          onPrepare={() => {
+            setDraftVersion((v) => v + 1);
+            setOpen(true);
+          }}
+        />
+        <TakeoverSound changed={changed} />
+      </div>
       <PublicFooter home />
       <ResumeCheckout />
       <PurchaseSheet
