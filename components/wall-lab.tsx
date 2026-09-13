@@ -52,7 +52,6 @@ export function WallLab({ data }: { data: LabData | null }) {
           "Globe",
           "Snapshot",
           "Audit",
-          "Whisper",
           "QR Code",
           "Shatter",
         ] as LabPanel[]
@@ -88,7 +87,6 @@ function ToolIcon({ name }: { name: string }) {
     Snapshot: "M3 7h5l2-3h4l2 3h5v13H3Z M16 13a4 4 0 1 0-8 0 4 4 0 0 0 8 0",
     Audit:
       "M10 8l3-3a4 4 0 0 1 6 6l-3 3 M14 16l-3 3a4 4 0 0 1-6-6l3-3 M8 16l8-8",
-    Whisper: "M3 4h18v13H9l-6 4V4Z M7 9h10 M7 13h6",
     "QR Code": "M3 3h6v6H3Z M15 3h6v6h-6Z M3 15h6v6H3Z M15 15h3v3h3v3h-6Z",
     Shatter: "M3 3h18v18H3Z M13 3l-4 7 7 3-5 8 M3 14l6-4 M16 13l5-4",
   };

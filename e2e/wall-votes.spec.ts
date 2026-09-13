@@ -5,6 +5,14 @@ async function fixture(page: Page) {
     enabled = true;
   let update = () => {};
   const choices = new Map<number, "keep" | "yeet">();
+  const whispers = new Map<number, { id: string; text: string; createdAt: number }[]>();
+  await page.route("**/api/whisper", async r => {
+    const a = r.request().postDataJSON();
+    expect(a.takeoverId).toBe("owner-" + owner);
+    const rows = whispers.get(owner) ?? [];
+    whispers.set(owner, [{id:"message-" + Date.now(),text:a.text,createdAt:Date.now()}, ...rows]);
+    await r.fulfill({json:{ok:true}}); update();
+  });
   await page.route("**/api/wall-vote**", async (r) => {
     if (r.request().method() === "GET")
       return r.fulfill({ json: { choice: choices.get(owner) ?? null } });
@@ -26,7 +34,7 @@ async function fixture(page: Page) {
       };
     const queries = new Map<number, string>();
     const value = (path: string): unknown => {
-      if (path === "whispers:history") return { page: [], isDone: true, continueCursor: "" };
+      if (path === "whispers:history") return { page: whispers.get(owner) ?? [], isDone: true, continueCursor: "" };
       if (path === "whispers:messages" || path === "auditTrail:checkpoints") return [];
       if (path === "auditTrail:entries") return { entries: [], next: null };
       if (path === "auditTrail:verify") return { valid: true, next: null, reason: null };
@@ -132,6 +140,7 @@ async function fixture(page: Page) {
     });
   });
   return {
+    seedWhispers: () => { whispers.set(owner, [4,3,2,1].map(i=>({id:"msg-"+i,text:"Message "+i,createdAt:Date.now()-i*1000}))); update(); },
     changeOwner: () => {
       owner++;
       update();
@@ -236,11 +245,10 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
  expect(await page.evaluate(()=>getComputedStyle(document.body,"::after").position)).toBe("fixed");
  await page.screenshot({path:`/tmp/ttw-retro-${info.project.name}.png`});
  await expect(tools.getByRole("button",{name:/X-Ray/})).toHaveCount(0);
- for(const name of ["Globe","Audit","Whisper","QR Code","Shatter","Snapshot"]){
+ for(const name of ["Globe","Audit","QR Code","Shatter","Snapshot"]){
    await tools.getByRole("button",{name:new RegExp(name)}).click();
    const dialog=page.getByRole("dialog",{name,exact:true});await expect(dialog).toBeVisible();
    if(name==="Globe") await expect(dialog.locator(".earth-country")).toHaveCount(177);
-   if(name==="Whisper") await expect(dialog.getByText("No whispers yet. Start the conversation.")).toBeVisible();
    if(name==="Audit") await expect(dialog.getByRole("heading",{name:"Chain records"})).toBeVisible();
    if(name==="Audit") await expect(dialog.getByText("Image dimensions",{exact:true})).toBeVisible();
    if(name==="QR Code")await expect(dialog.getByAltText("Scan to open takeover checkout")).toBeVisible();
@@ -338,4 +346,33 @@ test("Wall experiments work and the magnetic title is always enabled", async ({p
  await page.getByRole("button",{name:"Rave",exact:true}).click();
  await expect(page.locator("html")).toHaveAttribute("data-wall-rave","off");
  await expect(page.getByRole("button",{name:/Rave beat/})).toHaveCount(0);
+});
+
+test("Whisper previews the latest three messages below voting and resets with the owner", async ({page}, info) => {
+ const state=await fixture(page); state.seedWhispers(); await page.goto("/");
+ const preview=page.locator(".whisper-preview");
+ await expect(page.locator(".keep-or-yeet + .whisper-preview")).toBeVisible();
+ await expect(preview.getByRole("heading",{name:"Whispers about Owner 1"})).toBeVisible();
+ await expect(preview.locator(".whisper-log > p")).toHaveCount(3);
+ await expect(preview.locator(".whisper-log")).not.toContainText("Message 1");
+ await expect(page.locator(".wall-tools").getByRole("button",{name:"Whisper",exact:true})).toHaveCount(0);
+ await preview.getByRole("button",{name:"View conversation"}).click();
+ const dialog=page.getByRole("dialog",{name:"Whispers about Owner 1",exact:true});
+ await expect(dialog.locator(".whisper-log > p")).toHaveCount(4);
+ await expect(dialog.locator(".whisper-log")).toContainText("Message 1");
+ await page.keyboard.press("Escape");
+ await preview.getByLabel("Your whisper",{exact:true}).fill("Great launch!");
+ await preview.getByRole("button",{name:"Send whisper",exact:true}).click();
+ await expect(preview.locator(".whisper-log")).toContainText("Great launch!");
+ await expect(preview.locator(".whisper-log > p")).toHaveCount(3);
+ await preview.screenshot({path:`/tmp/ttw-whisper-inline-${info.project.name}.png`});
+ await page.getByRole("button",{name:"Theme",exact:true}).click();
+ const contrast=await new AxeBuilder({page}).include(".whisper-preview").withRules(["color-contrast"]).analyze();
+ expect(contrast.violations).toEqual([]);
+ await preview.getByRole("button",{name:"View conversation"}).click();
+ state.changeOwner();
+ await expect(page.getByRole("dialog",{name:"Whispers about Owner 1",exact:true})).toHaveCount(0);
+ await expect(preview.getByRole("heading",{name:"Whispers about Owner 2"})).toBeVisible();
+ await expect(preview).toContainText("No whispers yet. Start the conversation.");
+ await expect(preview.getByLabel("Your whisper",{exact:true})).toHaveValue("");
 });

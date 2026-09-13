@@ -1,5 +1,6 @@
 "use client";
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
+import { WhisperPreview } from "./whisper-room";
 import { KeepOrYeet } from "./keep-or-yeet";
 import { MicroAma } from "./micro-ama";
 import { TryMine } from "./try-mine";
@@ -536,6 +537,7 @@ function WallView({
         </section>
       </div>
       {owner && <KeepOrYeet key={"vote:"+owner.id} takeoverId={owner.id} name={owner.displayName} />}
+      {owner && <WhisperPreview key={"whisper:"+owner.id} takeoverId={owner.id} name={owner.displayName} />}
       {owner && <MicroAma key={owner.id} takeoverId={owner.id} name={owner.displayName} />}
       <CommunityEvent />
       <HomepageMilestones />
