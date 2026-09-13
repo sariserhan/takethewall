@@ -1,6 +1,6 @@
 "use client";
-import {trackVerifiedTakeover} from "@/lib/visitorping-client";
-import {RegionLabel} from "./region-label";
+import { trackVerifiedTakeover } from "@/lib/visitorping-client";
+import { RegionLabel } from "./region-label";
 import { ResumeCheckout } from "./resume-checkout";
 import { PublishedShare } from "./takeover-share";
 import { WallSubscription } from "./wall-subscription";
@@ -450,22 +450,29 @@ function WallView({
               <ul>
                 {regions.map((r) => (
                   <li key={r.regionCode}>
-                    <RegionLabel code={r.regionCode}/>
+                    <RegionLabel code={r.regionCode} />
                     <span>{r.percent.toFixed(0)}%</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p>{owner ? "No regional breakdown yet." : "Waiting for analytics."}</p>
+              <p>
+                {owner
+                  ? "No regional breakdown yet."
+                  : "Waiting for analytics."}
+              </p>
             )}
           </div>
         </section>
         {(!connected || !owner || owner.impressions === 0) && (
           <p className="analytics-status" role="status">
             {!connected
-              ? owner ? "Reconnecting. Showing the last received counts while your placement stays visible." : "Connecting to the wall. Counts will appear when data is available."
-              : !owner ? "Waiting for the wall’s analytics. Unavailable counts are shown as a dash, not zero."
-              : "This placement is live. Recorded views and clicks will appear here as they arrive."}
+              ? owner
+                ? "Reconnecting. Showing the last received counts while your placement stays visible."
+                : "Connecting to the wall. Counts will appear when data is available."
+              : !owner
+                ? "Waiting for the wall’s analytics. Unavailable counts are shown as a dash, not zero."
+                : "This placement is live. Recorded views and clicks will appear here as they arrive."}
           </p>
         )}
         <a
@@ -485,14 +492,26 @@ function WallView({
             <br />
             $3.99 USD plus applicable tax; final total shown at checkout.
           </p>
-          <button className="button primary" onClick={takeWall} disabled={checkoutPaused}>
-            {checkoutPaused ? "NEW CHECKOUTS PAUSED" : "TAKE THE WALL — $3.99"} <Arrow />
+          <button
+            className="button primary"
+            onClick={takeWall}
+            disabled={checkoutPaused}
+          >
+            {checkoutPaused ? "NEW CHECKOUTS PAUSED" : "TAKE THE WALL — $3.99"}{" "}
+            <Arrow />
           </button>
         </section>
       </div>
       <HomepageMilestones />
-      <WallSubscription />
-      <MilestoneAlerts />
+      <section className="wall-follow" aria-labelledby="wall-follow-title">
+        <div className="wall-follow-heading">
+          <span className="eyebrow">FOLLOW ALONG</span>
+          <h2 id="wall-follow-title">Stay in the loop.</h2>
+          <p>Choose the updates you want. Unsubscribe anytime.</p>
+        </div>
+        <WallSubscription />
+        <MilestoneAlerts />
+      </section>
       <PublicFooter home />
       <ResumeCheckout />
       <PurchaseSheet

@@ -8,7 +8,7 @@ export function WallSubscription() {
   return (
     <section className="milestone-alert-signup">
       <div>
-        <h2>See who takes the wall next.</h2>
+        <h3>Wall changes</h3>
         <p>A new owner, a new story. Get each takeover or one daily update.</p>
       </div>
       <button onClick={() => setOpen(true)}>

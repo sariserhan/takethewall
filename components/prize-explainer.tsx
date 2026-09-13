@@ -22,9 +22,6 @@ export function PrizeExplainer({
   const format = (n: number) => n.toLocaleString("en-US");
   return (
     <section className="prize-explainer" aria-labelledby="prize-title">
-      {!!data.numberingOffset && (
-        <p className="numbering-note">Public takeover numbers include a starting offset of {data.numberingOffset}. The offset is not a set of completed takeovers; prizes follow the public milestone numbers.</p>
-      )}
       {demo && (
         <p className="demo-progress-notice">
           <strong>DEMO PROGRESS</strong> — Displayed progress combines real
@@ -87,42 +84,51 @@ export function PrizeExplainer({
           </p>
         </div>
       )}
-      <ol className="prize-steps">
-        <li>
-          <span>01</span>
-          <div>
-            <h3>Publish for $3.99</h3>
-            <p>Get your number when your takeover goes live.</p>
-          </div>
-        </li>
-        <li>
-          <span>02</span>
-          <div>
-            <h3>Hit a prize number</h3>
-            <p>We email you a link to start your claim.</p>
-          </div>
-        </li>
-        <li>
-          <span>03</span>
-          <div>
-            <h3>Complete verification</h3>
-            <p>If approved and paid, you get a permanent winner page.</p>
-          </div>
-        </li>
-      </ol>
-      <div className="prize-difference">
-        <span>
-          <b>LIVE WALL</b> · Temporary placement
-        </span>
-        <span>
-          <b>WINNER PAGE</b> · Permanent after confirmed payout
-        </span>
-      </div>
+      <details className="prize-details">
+        <summary>How claiming a reward works</summary>
+        <ol className="prize-steps">
+          <li>
+            <span>01</span>
+            <div>
+              <h3>Publish for $3.99</h3>
+              <p>Get your number when your takeover goes live.</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>Hit a prize number</h3>
+              <p>We email you a link to start your claim.</p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>Complete verification</h3>
+              <p>If approved and paid, you get a permanent winner page.</p>
+            </div>
+          </li>
+        </ol>
+        <div className="prize-difference">
+          <span>
+            <b>LIVE WALL</b> · Temporary placement
+          </span>
+          <span>
+            <b>WINNER PAGE</b> · Permanent after confirmed payout
+          </span>
+        </div>
+      </details>
+      {!!data.numberingOffset && (
+        <p className="numbering-note">
+          Numbering starts with an offset of {data.numberingOffset}, not
+          completed takeovers. Prizes follow the public numbers.
+        </p>
+      )}
       <p className="prize-admin-note">
-        <strong>What counts?</strong> Paid takeovers and counted admin
-        placements advance the number. Counted admin placements skip payment but
-        can qualify for prizes; they are labeled publicly. Uncounted placements
-        do neither. <Link href="/?info=how-prizes-work">Details & rules →</Link>
+        <strong>What counts?</strong> Paid takeovers and labeled, counted admin
+        placements advance the number and can qualify. Counted admin placements
+        skip payment; uncounted placements do neither.{" "}
+        <Link href="/?info=how-prizes-work">Details &amp; rules →</Link>
       </p>
       <nav className="prize-milestones" aria-label="Prize milestones">
         {ordered.map((m) => (

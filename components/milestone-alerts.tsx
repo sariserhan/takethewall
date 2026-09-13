@@ -8,7 +8,7 @@ export function MilestoneAlerts() {
   return (
     <section className="milestone-alert-signup">
       <div>
-        <h2>Keep an eye on the next milestone.</h2>
+        <h3>Milestone alerts</h3>
         <p>
           Get an email when a milestone is within 10 counted takeovers. No
           number is reserved.
