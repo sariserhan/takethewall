@@ -49,13 +49,13 @@ export function emailTemplate(
             .metrics!.slice(i * 2, i * 2 + 2)
             .map(
               (m) =>
-                `<td ${i * 2 + 1 >= presentation.metrics!.length ? 'colspan="2" width="100%"' : 'width="50%"'} valign="top" style="padding:16px 12px;border:1px solid #babbb0;"><span style="font-size:11px;text-transform:uppercase;color:#68685f;">${escapeHtml(m.label)}</span><br><strong style="font-size:30px;line-height:1.4;">${escapeHtml(m.value)}</strong></td>`,
+                `<td ${i * 2 + 1 >= presentation.metrics!.length ? 'colspan="2" width="100%"' : 'width="50%"'} valign="top" style="padding:16px 12px;border:1px solid #babbb0;"><span style="font-size:11px;text-transform:uppercase;color:#4b4b43;">${escapeHtml(m.label)}</span><br><strong style="font-size:30px;line-height:1.4;color:#11110f;">${escapeHtml(m.value)}</strong></td>`,
             )
             .join("")}</tr>`,
       ).join("")}</table>`
     : "";
   const cta = presentation.cta
-    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:24px 0;"><tr><td align="center" bgcolor="#11110f" style="padding:18px;"><a href="${safeLink(presentation.cta.url)}" style="color:#d8ff36;font-size:16px;font-weight:bold;text-decoration:none;display:block;">${escapeHtml(presentation.cta.label)} &rarr;</a></td></tr></table>`
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:24px 0;"><tr><td align="center" bgcolor="#11110f" style="padding:18px;"><a href="${safeLink(presentation.cta.url)}" style="color:#ffffff;font-size:16px;font-weight:bold;text-decoration:none;display:block;">${escapeHtml(presentation.cta.label)} &rarr;</a></td></tr></table>`
     : "";
   const secondary = presentation.secondaryCta
     ? `<p style="margin:16px 0;"><a href="${safeLink(presentation.secondaryCta.url)}" style="color:#11110f;text-decoration:underline;">${escapeHtml(presentation.secondaryCta.label)}</a></p>`
@@ -85,17 +85,17 @@ export function emailTemplate(
 <!--[if mso]><table role="presentation" width="600"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;border:1px solid #11110f;background:#f4f3eb;table-layout:fixed;">
 <tr><td class="inner" style="padding:28px 32px;background:#d8ff36;border-bottom:1px solid #11110f;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="60" style="width:60px;"><img src="cid:takethewall-logo" width="44" height="44" alt="Take The Wall" style="display:block;border:0;"></td><td class="brand" style="font-size:24px;font-weight:900;letter-spacing:-1px;">TAKE THE WALL</td></tr></table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="44" valign="middle" style="width:44px;"><img src="cid:takethewall-logo" width="44" height="44" alt="Take The Wall" style="display:block;border:0;"></td><td width="20" aria-hidden="true" style="width:20px;min-width:20px;font-size:0;line-height:0;">&nbsp;</td><td class="brand" valign="middle" style="font-size:24px;font-weight:900;letter-spacing:-1px;color:#11110f;">TAKE THE WALL</td></tr></table>
 </td></tr>
-<tr><td class="inner" height="300" valign="top" style="height:300px;padding:32px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;">
-<p style="margin:0 0 18px;font-size:11px;letter-spacing:2px;color:#68685f;">${escapeHtml(presentation.eyebrow ?? "ONE WALL. ONE OWNER.")}</p>
-<h1 class="title" style="margin:0 0 24px;font-size:30px;line-height:1.2;font-weight:900;overflow-wrap:anywhere;">${title}</h1>
-<div style="font-size:16px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;">${bodyHtml(body)}</div>
+<tr><td class="inner" height="300" valign="top" style="height:300px;padding:32px;color:#11110f;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;">
+<p style="margin:0 0 18px;font-size:11px;letter-spacing:2px;color:#4b4b43;">${escapeHtml(presentation.eyebrow ?? "ONE WALL. ONE OWNER.")}</p>
+<h1 class="title" style="margin:0 0 24px;font-size:30px;line-height:1.2;font-weight:900;color:#11110f;overflow-wrap:anywhere;">${title}</h1>
+<div style="font-size:16px;line-height:1.7;color:#11110f;overflow-wrap:anywhere;word-break:break-word;">${bodyHtml(body)}</div>
 ${presentation.imageUrl ? `<img src="${safeLink(presentation.imageUrl)}" width="536" alt="Takeover share card" style="display:block;width:100%;height:auto;margin:24px 0;border:0;">` : ""}${presentation.ctaBeforeMetrics ? cta + metrics : metrics + cta}${secondary}
-${presentation.footnote ? `<p style="font-size:12px;line-height:1.6;color:#68685f;">${escapeHtml(presentation.footnote)}</p>` : ""}
+${presentation.footnote ? `<p style="font-size:12px;line-height:1.6;color:#4b4b43;">${escapeHtml(presentation.footnote)}</p>` : ""}
 </td></tr>
-<tr><td class="inner" style="padding:22px 32px;border-top:1px solid #babbb0;font-size:12px;line-height:1.6;color:#68685f;">
-<strong style="color:#11110f;">Take The Wall</strong><br>This is a service notification from Take The Wall.<br><a href="https://www.takethewall.com" style="color:#11110f;">Visit the wall</a> &nbsp;·&nbsp; <a href="mailto:support@takethewall.com" style="color:#11110f;">Get help</a>${presentation.unsubscribeUrl ? `<br><a href="${safeLink(presentation.unsubscribeUrl)}" style="color:#68685f;">${escapeHtml(presentation.unsubscribeLabel ?? "Unsubscribe from weekly summaries")}</a>` : ""}
+<tr><td class="inner" style="padding:22px 32px;border-top:1px solid #babbb0;font-size:12px;line-height:1.6;color:#4b4b43;">
+<strong style="color:#11110f;">Take The Wall</strong><br>This is a service notification from Take The Wall.<br><a href="https://www.takethewall.com" style="color:#11110f;">Visit the wall</a> &nbsp;·&nbsp; <a href="mailto:support@takethewall.com" style="color:#11110f;">Get help</a>${presentation.unsubscribeUrl ? `<br><a href="${safeLink(presentation.unsubscribeUrl)}" style="color:#4b4b43;">${escapeHtml(presentation.unsubscribeLabel ?? "Unsubscribe from weekly summaries")}</a>` : ""}
 </td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>`,
