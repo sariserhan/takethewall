@@ -63,6 +63,9 @@ export function PurchaseSheet({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false);
+  const [draftSave, setDraftSave] = useState<"ready" | "saved" | "failed">(
+    "ready",
+  );
   const [canvasUploading, setCanvasUploading] = useState(false);
   const controls = useQuery(api.checkoutControls.state);
   const [reviewedOwner, setReviewedOwner] = useState<string | null>(null);
@@ -81,20 +84,28 @@ export function PurchaseSheet({
         if (
           typeof parsed.websiteUrl === "string" &&
           typeof parsed.logoUrl === "string"
-        )
+        ) {
           // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize browser storage or a verified network result after hydration.
           setDraft({ ...empty, ...parsed });
+          setDraftSave("saved");
+        }
       }
-    } catch {}
+    } catch {
+      setDraftSave("failed");
+    }
   }, []);
+  function persistDraft(next: Draft) {
+    try {
+      sessionStorage.setItem("ttw-draft", JSON.stringify(next));
+      setDraftSave("saved");
+    } catch {
+      setDraftSave("failed");
+    }
+  }
   function change(patch: Partial<Draft>) {
-    setDraft((old) => {
-      const next = { ...old, ...patch, requestKey: crypto.randomUUID() };
-      try {
-        sessionStorage.setItem("ttw-draft", JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+    const next = { ...draft, ...patch, requestKey: crypto.randomUUID() };
+    setDraft(next);
+    persistDraft(next);
     setError("");
   }
   async function submit(e: React.FormEvent) {
@@ -122,9 +133,7 @@ export function PurchaseSheet({
       const requestKey = draft.requestKey || crypto.randomUUID();
       const saved = { ...draft, requestKey };
       setDraft(saved);
-      try {
-        sessionStorage.setItem("ttw-draft", JSON.stringify(saved));
-      } catch {}
+      persistDraft(saved);
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,6 +171,26 @@ export function PurchaseSheet({
       title="MAKE IT YOURS."
       wide
     >
+      {!checkout && (
+        <div
+          className="draft-save-status"
+          data-state={draftSave}
+          role={draftSave === "failed" ? "alert" : "status"}
+        >
+          <strong>
+            {draftSave === "saved"
+              ? "Draft saved in this tab"
+              : draftSave === "failed"
+                ? "Draft could not be saved"
+                : "Your draft saves as you edit"}
+          </strong>
+          <span>
+            {draftSave === "failed"
+              ? "Keep this page open. Your edits are still here, but may be lost if you reload or close this tab."
+              : "You can close this panel and return in the same tab. Closing the tab or clearing browser data may remove your draft."}
+          </span>
+        </div>
+      )}
       {controls?.paused && (
         <p role="status" className="form-error">
           New checkouts are temporarily paused. The current wall remains
@@ -216,7 +245,7 @@ export function PurchaseSheet({
             base price is $4.99 USD plus applicable tax. Stripe shows the final
             total and eligible local-currency options before you pay.
           </p>
-          <TakeoverPreview draft={draft} />
+          <TakeoverPreview draft={draft} finalReview />
           <fieldset disabled={busy} className="purchase-contact">
             <legend>Where should we send your receipt?</legend>
             <label>

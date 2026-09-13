@@ -7,8 +7,10 @@ import { Arrow } from "./arrow";
 export function TakeoverPreview({
   draft,
   editing = false,
+  finalReview = false,
 }: {
   editing?: boolean;
+  finalReview?: boolean;
   draft: {
     displayName: string;
     description: string;
@@ -29,7 +31,9 @@ export function TakeoverPreview({
   return (
     <section className="takeover-preview" aria-label="Takeover preview">
       <div className="preview-toolbar">
-        <span className="eyebrow">YOUR WALL PREVIEW</span>
+        <span className="eyebrow">
+          {finalReview ? "FINAL PREVIEW BEFORE PAYMENT" : "YOUR WALL PREVIEW"}
+        </span>
         <div aria-label="Preview device">
           {(["desktop", "mobile"] as const).map((mode) => (
             <button
@@ -43,6 +47,12 @@ export function TakeoverPreview({
           ))}
         </div>
       </div>
+      {finalReview && (
+        <p className="preview-review-note">
+          Switch between Desktop and Mobile to review your layout. Use Edit
+          content below if anything needs adjusting.
+        </p>
+      )}
       <p className="preview-size">
         {device === "desktop"
           ? "Desktop · wide layout"
@@ -86,9 +96,13 @@ export function TakeoverPreview({
         <div className="preview-bottom">ONE WALL. YOUR MOMENT.</div>
       </div>
       <p className="field-note">
+        Approximate {device} layout.{" "}
+        {draft.canvasDesign
+          ? "Your chosen image cropping and block positions are shown. The live canvas adapts to the visitor’s screen."
+          : "Images fit inside their space without cropping."}{" "}
         {editing
-          ? `Approximate ${device} layout. Images fit inside their space without cropping. Saving updates your live content without starting a new takeover.`
-          : `Approximate ${device} layout. Images fit inside their space without cropping. Your number and start time are assigned after payment; this preview does not reserve the wall.`}
+          ? "Saving updates your live content without starting a new takeover."
+          : "Your number and start time are assigned after payment; this preview does not reserve the wall."}
       </p>
     </section>
   );

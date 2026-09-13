@@ -959,6 +959,14 @@ test("designer uploads appear immediately and independent button links survive p
  await dialog.getByRole("button",{name:"PREVIEW YOUR TAKEOVER"}).click();
  await expect(dialog.locator(".takeover-preview .canvas-image img")).toHaveCount(3);
  await expect(dialog.locator(".takeover-preview .canvas-block a")).toHaveCount(0);
+ await expect(dialog).toContainText("Draft saved in this tab");
+ await expect(dialog).toContainText("FINAL PREVIEW BEFORE PAYMENT");
+ const preview = dialog.getByRole("region", {name:"Takeover preview"});
+ await preview.getByRole("button", {name:"Mobile",exact:true}).click();
+ await expect(preview.locator(".wall-canvas")).toHaveAttribute("data-device","mobile");
+ await expect(preview.locator(".canvas-delete,.canvas-resize,.editable")).toHaveCount(0);
+ await preview.getByRole("button", {name:"Desktop",exact:true}).click();
+ await expect(preview.locator(".wall-canvas")).toHaveAttribute("data-device","desktop");
 });
 
 test("published canvas buttons each use their own destination",async({page})=>{
@@ -1042,4 +1050,26 @@ test("designer history restores deletions and warns about overflowing text", asy
   expect(toolbar!.y + toolbar!.height).toBeLessThan(canvas!.y);
   await designer.locator(".designer-canvas-toolbar").scrollIntoViewIfNeeded();
   await page.screenshot({ path: `/tmp/ttw-designer-history-${testInfo.project.name}.png` });
+});
+
+
+test("draft storage failure is visible and editing continues", async ({ page }) => {
+  await wallFixture(page);
+  await page.addInitScript(() => {
+    sessionStorage.setItem("ttw-draft", JSON.stringify({contentType:"personal",category:"personal",displayName:"My homepage",description:"Welcome",websiteUrl:"",logoUrl:"",buyerEmail:"owner@example.com",requestKey:crypto.randomUUID()}));
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key === "ttw-draft") throw new DOMException("Storage full", "QuotaExceededError");
+      original.call(this, key, value);
+    };
+  });
+  await page.goto("/?take=1");
+  const dialog = page.getByRole("dialog", {name:"MAKE IT YOURS."});
+  await expect(dialog).toContainText("Draft saved in this tab");
+  await dialog.getByRole("button", {name:"Design my wall",exact:true}).click();
+  await expect(dialog.getByRole("alert")).toContainText("Draft could not be saved");
+  await expect(dialog.getByRole("alert")).toContainText("Keep this page open");
+  await expect(dialog.locator(".designer-stage")).toBeVisible();
+  await dialog.getByRole("button", {name:"Add heading",exact:true}).click();
+  await expect(dialog.getByRole("textbox",{name:"Block text",exact:true})).toBeVisible();
 });

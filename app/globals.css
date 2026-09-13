@@ -1323,3 +1323,5 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @media(max-width:640px){.designer-canvas-toolbar .designer-add-blocks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .designer-actions[aria-label="Design history"] button{border:1px solid var(--rule);padding:8px 16px;border-radius:4px}.designer-canvas-toolbar .designer-add-blocks button{border:1px solid var(--rule);border-radius:4px}.designer-canvas-toolbar .designer-add-blocks button span{display:grid;place-items:center}
+
+.draft-save-status{display:grid;gap:4px;padding:10px 12px;margin:12px 0;border:1px solid var(--rule);font:12px/1.5 var(--body)}.draft-save-status span{color:var(--muted)}.draft-save-status[data-state="failed"]{border-color:#bd4900;background:#fff3d6;color:#623800}.draft-save-status[data-state="failed"] span{color:inherit}.preview-review-note{font:13px/1.5 var(--body)}.preview-device.mobile .wall-canvas-surface{height:560px}
