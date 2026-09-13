@@ -48,6 +48,8 @@ import type * as paymentIssues from "../paymentIssues.js";
 import type * as performanceRewards from "../performanceRewards.js";
 import type * as purchases from "../purchases.js";
 import type * as recovery from "../recovery.js";
+import type * as referralLeaderboard from "../referralLeaderboard.js";
+import type * as referralLeaderboardModel from "../referralLeaderboardModel.js";
 import type * as rehearsal from "../rehearsal.js";
 import type * as rewardModel from "../rewardModel.js";
 import type * as rewardSchedule from "../rewardSchedule.js";
@@ -108,6 +110,8 @@ declare const fullApi: ApiFromModules<{
   performanceRewards: typeof performanceRewards;
   purchases: typeof purchases;
   recovery: typeof recovery;
+  referralLeaderboard: typeof referralLeaderboard;
+  referralLeaderboardModel: typeof referralLeaderboardModel;
   rehearsal: typeof rehearsal;
   rewardModel: typeof rewardModel;
   rewardSchedule: typeof rewardSchedule;

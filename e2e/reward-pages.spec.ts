@@ -1,7 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 async function fixture(
   page: Page,
-  reward: { status: string; outboundLinkEnabled: boolean },
+  reward: {
+    status: string;
+    outboundLinkEnabled: boolean;
+    leader?: { name: string; number: number; referrals: number };
+  },
 ) {
   const owner = 1;
   let update = () => {};
@@ -20,6 +24,13 @@ async function fixture(
       };
     const queries = new Map<number, string>();
     const value = (path: string): unknown => {
+      if (path === "referralLeaderboard:board")
+        return {
+          state: reward.status === "future" ? "live" : "closed",
+          entries: reward.leader
+            ? [{ ...reward.leader, publicId: "ttw_leader", uniqueVisitors: 20 }]
+            : [],
+        };
       if (path === "rewards:overview")
         return {
           currentNumber: 90,
@@ -234,6 +245,44 @@ test("Referral wall separates future, candidate, unawarded and paid content", as
   await expect(
     page.getByRole("link", { name: "Visit winner" }),
   ).toHaveAttribute("href", "https://example.com");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("Provisional referral leader updates on cards and the permanent page", async ({
+  page,
+}) => {
+  const reward: {
+    status: string;
+    outboundLinkEnabled: boolean;
+    leader?: { name: string; number: number; referrals: number };
+  } = { status: "future", outboundLinkEnabled: false };
+  const state = await fixture(page, reward);
+  await page.goto("/");
+  const card = page
+    .getByRole("navigation", { name: "Prize milestones" })
+    .locator('a[href="/100/referral"]');
+  await expect(card).toContainText("No verified referrals yet");
+  reward.leader = { name: "First leader", number: 16, referrals: 3 };
+  state.refresh();
+  await expect(card).toContainText("Currently leading");
+  await expect(card).toContainText("First leader · #16");
+  await expect(card).toContainText("3 verified referrals");
+  reward.leader = { name: "New leader", number: 22, referrals: 5 };
+  state.refresh();
+  await expect(card).toContainText("New leader · #22");
+  await expect(card).not.toContainText("First leader");
+  await card.click();
+  const board = page.getByRole("region", { name: "Referral leaderboard" });
+  await expect(board).toContainText("New leader");
+  await expect(board).toContainText("5 verified referrals");
+  reward.status = "under_review";
+  state.refresh();
+  await expect(board).toContainText("COHORT CLOSED");
+  await expect(board).not.toContainText("Currently leading");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

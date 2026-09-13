@@ -1,3 +1,4 @@
+import { syncReferralRank } from "./referralLeaderboardModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 export async function hallEligible(ctx: QueryCtx, t: Doc<"takeovers">) {
@@ -22,6 +23,7 @@ export async function hallEligible(ctx: QueryCtx, t: Doc<"takeovers">) {
   );
 }
 export async function syncHall(ctx: MutationCtx, takeoverId: Id<"takeovers">) {
+  await syncReferralRank(ctx, takeoverId);
   const t = await ctx.db.get(takeoverId);
   const old = await ctx.db
     .query("hallEntries")

@@ -2,6 +2,12 @@ import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
 crons.interval(
+  "initialize referral leaderboard indexes",
+  { minutes: 5 },
+  internal.referralLeaderboard.rebuild,
+  {},
+);
+crons.interval(
   "email delivery recovery",
   { minutes: 15 },
   internal.delivery.recover,
@@ -98,6 +104,16 @@ crons.interval(
   internal.analytics.recover,
   {},
 );
-crons.daily("Gazette draft", { hourUTC: 0, minuteUTC: 5 }, internal.community.midnight, {});
-crons.interval("clear previous whisper rooms", { minutes: 1 }, internal.whispers.cleanup, {});
+crons.daily(
+  "Gazette draft",
+  { hourUTC: 0, minuteUTC: 5 },
+  internal.community.midnight,
+  {},
+);
+crons.interval(
+  "clear previous whisper rooms",
+  { minutes: 1 },
+  internal.whispers.cleanup,
+  {},
+);
 export default crons;

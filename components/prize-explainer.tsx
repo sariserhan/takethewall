@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReferralLeaderboard } from "./referral-leaderboard";
 import { rewardStatus } from "@/lib/reward-status";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
@@ -128,9 +129,10 @@ export function PrizeExplainer({
                 the cutoff starts a separate claim.
               </p>
               <p>
-                At least one verified referral is required. Ranking is
-                calculated when #{format(next.number)} goes live.
+                At least one verified referral is required. Standings stay
+                provisional until #{format(next.number)} goes live.
               </p>
+              <ReferralLeaderboard number={next.number} compact />
               <Link href={`/${next.number}/referral`}>
                 Referral prize & permanent winner page →
               </Link>
@@ -253,6 +255,7 @@ export function PrizeExplainer({
                 <span>#{format(m.number)}</span>
                 <span className="reward-card-label">Referral reward</span>
                 <strong>${format(m.performance.rewardUsd)}</strong>
+                <ReferralLeaderboard number={m.number} compact />
                 <small>
                   {m.performance.status === "future"
                     ? m.number === next?.number

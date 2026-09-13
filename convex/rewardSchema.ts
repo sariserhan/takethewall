@@ -98,6 +98,12 @@ export const rewardTables = {
   })
     .index("by_reward_takeover", ["rewardId", "takeoverId"])
     .index("by_reward_scored", ["rewardId", "scored"])
+    .index("by_public_rank", [
+      "rewardId",
+      "referrals",
+      "uniqueVisitors",
+      "reverseNumber",
+    ])
     .index("by_rank", [
       "rewardId",
       "attempted",
@@ -105,6 +111,28 @@ export const rewardTables = {
       "uniqueVisitors",
       "reverseNumber",
     ]),
+  liveReferralRanks: defineTable({
+    takeoverId: v.id("takeovers"),
+    generation: v.string(),
+    milestone: v.number(),
+    number: v.number(),
+    referrals: v.number(),
+    uniqueVisitors: v.number(),
+    reverseNumber: v.number(),
+  })
+    .index("by_takeover", ["takeoverId"])
+    .index("by_rank", [
+      "generation",
+      "milestone",
+      "referrals",
+      "uniqueVisitors",
+      "reverseNumber",
+    ]),
+  liveReferralBuilds: defineTable({
+    generation: v.string(),
+    ready: v.boolean(),
+    cursor: v.union(v.string(), v.null()),
+  }).index("by_generation", ["generation"]),
   milestoneRewards: defineTable({
     kind: v.optional(
       v.union(v.literal("milestone_number"), v.literal("performance_traffic")),

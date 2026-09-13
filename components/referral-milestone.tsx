@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { ReferralLeaderboard } from "./referral-leaderboard";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -140,7 +141,7 @@ export function ReferralContent({
               )}
             <p>
               {reward.status === "future"
-                ? `Referral ranking is calculated when takeover #${format(number)} closes this cohort. There is no confirmed winner before that.`
+                ? `Follow the provisional leader below. Rankings stay open until takeover #${format(number)} closes this cohort; there is no confirmed winner before verification and payout.`
                 : reward.status === "unawarded"
                   ? "No eligible ranked entrant qualified. This reward remains unawarded."
                   : "This page will display the winner’s image, name, message and original statistics after payout is confirmed."}
@@ -188,6 +189,7 @@ export function ReferralContent({
           </section>
         </div>
       )}
+      <ReferralLeaderboard number={number} />
       <nav className="reward-page-links" aria-label="Reward pages">
         <Link href={`/${number}`}>Reward A · Milestone winner →</Link>
         <Link href="/?info=how-prizes-work">How both prizes work →</Link>
