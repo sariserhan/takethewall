@@ -570,6 +570,7 @@ function WallView({
         <MilestoneAlerts />
       </section>
       <div className="wall-tools">
+        <div className="wall-tools-primary">
         <HackerTerminal
           connected={connected}
           paused={checkoutPaused}
@@ -596,6 +597,7 @@ function WallView({
         <PulseTool ownerId={owner?.id} name={owner?.displayName} />
         <WallLab data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors + (sample?.uniqueVisitors ?? 0), number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: !!sample?.uniqueVisitors } : null} />
         <button className="experiments-menu" aria-expanded={playgroundOpen} aria-controls="playground-controls" onClick={() => setPlaygroundOpen(value => !value)}><WallToolIcon name="rave" /> Playground</button>
+        </div>
           <div id="playground-controls" className="experiment-menu-controls" hidden={!playgroundOpen}>
             <WallExperiments />
             <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>

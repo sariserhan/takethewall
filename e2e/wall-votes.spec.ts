@@ -518,3 +518,22 @@ test("Neon future and Retro are distinct Playground modes", async ({ page }, inf
  await expect(page.locator("html")).toHaveAttribute("data-wall-retro","off");
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });
+
+
+test("Playground panel aligns with the primary toolbar edges", async ({ page }, info) => {
+  if (info.project.name === "desktop") await page.setViewportSize({width:1800,height:1000});
+  await fixture(page);await page.goto("/");
+  const toggle=page.locator(".experiments-menu");
+  await toggle.click();
+  const primary=await page.locator(".wall-tools-primary").boundingBox();
+  const panel=await page.locator("#playground-controls").boundingBox();
+  expect(panel!.x).toBeCloseTo(primary!.x,0);
+  expect(panel!.width).toBeCloseTo(primary!.width,0);
+  if (info.project.name === "desktop") {
+    const terminal=await page.locator(".terminal-trigger").boundingBox();
+    const playground=await toggle.boundingBox();
+    expect(panel!.x).toBeCloseTo(terminal!.x,0);
+    expect(panel!.x+panel!.width).toBeCloseTo(playground!.x+playground!.width,0);
+  }
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+});

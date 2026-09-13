@@ -1334,3 +1334,9 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .designer-actions[aria-label="Design history"] button{border:1px solid var(--rule);padding:8px 16px;border-radius:4px}.designer-canvas-toolbar .designer-add-blocks button{border:1px solid var(--rule);border-radius:4px}.designer-canvas-toolbar .designer-add-blocks button span{display:grid;place-items:center}
 
 .draft-save-status{display:grid;gap:4px;padding:10px 12px;margin:12px 0;border:1px solid var(--rule);font:12px/1.5 var(--body)}.draft-save-status span{color:var(--muted)}.draft-save-status[data-state="failed"]{border-color:#bd4900;background:#fff3d6;color:#623800}.draft-save-status[data-state="failed"] span{color:inherit}.preview-review-note{font:13px/1.5 var(--body)}.preview-device.mobile .wall-canvas-surface{height:560px}
+
+/* Size the expanded panel from the primary toolbar, not the page width. */
+.wall-tools{display:flex;flex-direction:column;align-items:stretch;width:fit-content;max-width:100%}
+.wall-tools-primary{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0;max-width:100%}
+.wall-tools>.experiment-menu-controls{flex-basis:auto;width:0;min-width:100%;max-width:100%}
+@media(max-width:600px){.wall-tools-primary{gap:8px}}
