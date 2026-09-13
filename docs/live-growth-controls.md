@@ -45,3 +45,9 @@ Owners enable **Accept questions during this reign** in their protected owner da
 Choose **Me / Message → Start with a celebration template** in checkout to personalize a birthday, proposal, new-arrival, or launch message. The ordinary preview/payment process still applies. The public share page, share kit, and owner dashboard link to the printable certificate; **Print / Save as PDF** uses the browser print dialog. Certificates reflect current published content and recorded statistics at export.
 
 **Pop out wall** sits beside Terminal and Sound. Supporting browsers open a native Document Picture-in-Picture window with directly rendered content (no iframe or relaxed frame policy). Other browsers use `/companion` in a regular popup; a blocked popup offers an explicit companion link. The companion is read-only, has no separate impression tracking, and currently has no audio. Native PiP requires the parent page to remain open. No production emails, social posts, payments, or external publishing are triggered by these features.
+
+## Keep or Yeet
+
+The homepage shows audience feedback for the active, unblocked owner. A server-issued HTTP-only `ttw-voter` cookie (up to one year) identifies a browser; only its keyed hash is stored with each vote. Repeating a choice is idempotent, and changing it transfers that browser's vote between totals. Clearing cookies or changing browsers can create another identity, so these are anonymous browser votes, not verified people. The server limits changes to 20 per minute per network hash and 10 per minute per browser hash. Eight counter shards keep vote writes separate from the takeover record.
+
+Replacement starts fresh totals for the next placement; stale or blocked targets cannot receive votes. Votes have no connection to checkout pricing, ownership, prizes, impressions, clicks, or visitor totals. Public APIs expose aggregate counts only; a private route returns the requesting browser's saved choice.

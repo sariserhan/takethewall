@@ -239,6 +239,8 @@ export default defineSchema({
     snapshot: v.optional(visitorPingSnapshot),
   }).index("by_key", ["key"]),
   amaQuestions: defineTable({ takeoverId:v.id("takeovers"), question:v.string(), answer:v.optional(v.string()), state:v.union(v.literal("pending"),v.literal("answered"),v.literal("dismissed")), createdAt:v.number() }).index("by_owner_state",["takeoverId","state","createdAt"]),
+  wallVotes: defineTable({takeoverId:v.id("takeovers"),voterHash:v.string(),choice:v.union(v.literal("keep"),v.literal("yeet"))}).index("by_owner_voter",["takeoverId","voterHash"]),
+  wallVoteTotals: defineTable({takeoverId:v.id("takeovers"),shard:v.number(),keep:v.number(),yeet:v.number()}).index("by_owner_shard",["takeoverId","shard"]),
   takeovers: defineTable({
     amaEnabled: v.optional(v.boolean()),
     originalContent: v.optional(editableContent),

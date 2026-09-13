@@ -1,5 +1,6 @@
 "use client";
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
+import { KeepOrYeet } from "./keep-or-yeet";
 import { MicroAma } from "./micro-ama";
 import { PopOutWall } from "./wall-companion";
 import { HackerTerminal } from "./hacker-terminal";
@@ -526,6 +527,7 @@ function WallView({
           </button>
         </section>
       </div>
+      {owner && <KeepOrYeet key={"vote:"+owner.id} takeoverId={owner.id} />}
       {owner && <MicroAma key={owner.id} takeoverId={owner.id} name={owner.displayName} />}
       <CommunityEvent />
       <HomepageMilestones />
