@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { query, internalQuery, internalMutation } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
+import { mail } from "./rewardModel";
 import { ownerAccess } from "./ownerModel";
 import { getSite, limit } from "./model";
 const row = v.object({
@@ -94,6 +96,48 @@ export const ask = internalMutation({
       question,
       state: "pending",
       createdAt: Date.now(),
+    });
+    if (t.amaBatchSince === undefined) {
+      const since = Date.now();
+      await ctx.db.patch(t._id, { amaBatchSince: since });
+      await ctx.scheduler.runAfter(5 * 60_000, internal.ama.notify, {
+        takeoverId: t._id,
+        since,
+      });
+    }
+    return null;
+  },
+});
+export const notify = internalMutation({
+  args: { takeoverId: v.id("takeovers"), since: v.number() },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    const t = await ctx.db.get(a.takeoverId);
+    if (!t || t.amaBatchSince !== a.since) return null;
+    await ctx.db.patch(t._id, { amaBatchSince: undefined });
+    if (!t.amaEnabled || !(await live(ctx, t._id))) return null;
+    const questions = await ctx.db
+      .query("amaQuestions")
+      .withIndex("by_owner_state", (q) =>
+        q
+          .eq("takeoverId", t._id)
+          .eq("state", "pending")
+          .gte("createdAt", a.since),
+      )
+      .take(100);
+    if (!questions.length) return null;
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
+      .unique();
+    if (!purchase?.buyerEmail) return null;
+    await mail(ctx, {
+      key: `ama:${t._id}:${a.since}`,
+      kind: "ama_questions",
+      to: purchase.buyerEmail,
+      subject: "New questions for your wall",
+      body: `${questions.length} new ${questions.length === 1 ? "question is" : "questions are"} waiting for you about “${t.displayName}”.\n\nOpen your private owner dashboard to review and answer. Questions stay private until you publish an answer.\n\nWe group questions over five minutes. Turn off “Accept questions during this reign” in your dashboard to stop questions and these notifications.`,
+      wallTakeoverId: t._id,
     });
     return null;
   },

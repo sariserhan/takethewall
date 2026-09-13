@@ -2,6 +2,7 @@
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
 import { KeepOrYeet } from "./keep-or-yeet";
 import { MicroAma } from "./micro-ama";
+import { WallActions } from "./wall-actions";
 import { PopOutWall } from "./wall-companion";
 import { HackerTerminal } from "./hacker-terminal";
 import { HallOfFame } from "./hall-of-fame";
@@ -570,6 +571,7 @@ function WallView({
         />
         <TakeoverSound changed={changed} />
         <PopOutWall />
+        <WallActions name={owner?.displayName} />
       </div>
       <PublicFooter home />
       <ResumeCheckout />

@@ -1,6 +1,7 @@
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { sha } from "../lib/audit";
 export const optionalEmailKinds = new Set([
+  "ama_questions",
   "wall_confirm",
   "wall_change",
   "wall_daily",

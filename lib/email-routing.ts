@@ -36,7 +36,7 @@ export function senderForMail(mail: {
     )
   )
     return emailSender("notifications");
-  if (["wall_confirm", "wall_change", "wall_daily"].includes(mail.kind))
+  if (["wall_confirm", "wall_change", "wall_daily", "ama_questions"].includes(mail.kind))
     return emailSender("notifications");
   if (mail.kind === "weekly_digest_email") return emailSender("digest");
   if (["milestone_confirm", "milestone_alert"].includes(mail.kind))

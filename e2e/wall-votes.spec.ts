@@ -148,7 +148,22 @@ test("Keep or Yeet updates one vote, survives refresh, and resets for the next o
     purchases++;
     return r.fulfill({ status: 500, json: {} });
   });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", { configurable: true, value: async (data: ShareData) => { document.documentElement.dataset.sharedUrl = data.url; } });
+  });
   await page.goto("/");
+  await page.getByRole("button", { name: "Share wall", exact: true }).click();
+  expect(await page.locator("html").getAttribute("data-shared-url")).toBe(new URL("/", page.url()).href);
+  const tools = page.locator(".wall-tools");
+  const heights = await tools.locator("button:visible").evaluateAll(buttons => buttons.map(b => b.getBoundingClientRect().height));
+  expect(heights).toEqual(heights.map(() => 44));
+  expect(heights[0]).toBeGreaterThanOrEqual(44);
+  if (await page.evaluate(() => document.fullscreenEnabled)) {
+    await tools.getByRole("button", { name: "Fullscreen", exact: true }).click();
+    await expect(tools.getByRole("button", { name: "Exit fullscreen", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await tools.getByRole("button", { name: "Exit fullscreen", exact: true }).click();
+    await expect(tools.getByRole("button", { name: "Fullscreen", exact: true })).toHaveAttribute("aria-pressed", "false");
+  }
   const section = page.locator(".keep-or-yeet");
   await expect(
     section.getByRole("heading", { name: "KEEP OR YEET?" }),

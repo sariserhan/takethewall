@@ -148,6 +148,7 @@ export function OwnerAma() {
         />
         Accept questions during this reign
       </label>
+      <p className="field-note">New unanswered questions are grouped into an email every five minutes. Disable questions to stop these notifications.</p>
       {data && !data.live && (
         <p>Your reign ended. New questions and replies are closed.</p>
       )}

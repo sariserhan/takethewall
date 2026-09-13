@@ -243,6 +243,7 @@ export default defineSchema({
   wallVoteTotals: defineTable({takeoverId:v.id("takeovers"),shard:v.number(),keep:v.number(),yeet:v.number()}).index("by_owner_shard",["takeoverId","shard"]),
   takeovers: defineTable({
     amaEnabled: v.optional(v.boolean()),
+    amaBatchSince: v.optional(v.number()),
     originalContent: v.optional(editableContent),
     contentRevision: v.optional(v.number()),
     websiteUrl: v.string(),

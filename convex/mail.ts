@@ -10,6 +10,7 @@ import {
 import { senderForMail, legacyEmailSender } from "../lib/email-routing";
 import { emailSenderFields } from "./rewardSchema";
 import { alertConfirmation, alertUnsubscribe } from "../lib/alert-secrets";
+import { ownerToken } from "../lib/owner-secrets";
 import { ownerBaseUrl } from "../lib/owner-secrets";
 import { getSite } from "./model";
 import { settings } from "./rewardModel";
@@ -114,6 +115,32 @@ export const prepare = internalMutation({
         }
       | undefined;
     let oneClickUnsubscribeUrl: string | undefined;
+    if (j.kind === "ama_questions") {
+      const t = j.wallTakeoverId ? await ctx.db.get(j.wallTakeoverId) : null;
+      const access = t
+        ? await ctx.db
+            .query("ownerAccess")
+            .withIndex("by_takeover", (q) => q.eq("takeoverId", t._id))
+            .unique()
+        : null;
+      if (
+        !t?.amaEnabled ||
+        t.blocked ||
+        t.status !== "active" ||
+        (await getSite(ctx)).currentTakeoverId !== t._id ||
+        !access
+      ) {
+        await skip();
+        return null;
+      }
+      presentation = {
+        eyebrow: "YOUR LIVE MICRO-AMA",
+        cta: {
+          label: "Review and answer questions",
+          url: ownerBaseUrl() + "/owner#token=" + ownerToken(access.seed),
+        },
+      };
+    }
     if (j.wallSubscriberId) {
       const subscriber = await ctx.db.get(j.wallSubscriberId);
       const takeover = j.wallTakeoverId
