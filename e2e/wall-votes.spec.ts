@@ -244,6 +244,10 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
  await tools.getByRole("button",{name:"Decade Warp",exact:true}).click();
  await page.getByRole("button",{name:"2077 · Neon future",exact:true}).click();
  await page.keyboard.press("Escape");
+ await expect(page.locator("html")).toHaveAttribute("data-wall-retro","off");
+ expect(await page.evaluate(()=>getComputedStyle(document.body,"::before").content)).not.toContain("RETRO MODE");
+ await tools.getByRole("button",{name:"Retro",exact:true}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-era","present");
  await expect(page.locator("html")).toHaveAttribute("data-wall-retro","on");
  expect(await page.evaluate(()=>getComputedStyle(document.body,"::before").content)).toContain("RETRO MODE");
  expect(await page.evaluate(()=>getComputedStyle(document.body,"::after").position)).toBe("fixed");
@@ -491,4 +495,26 @@ test("current wall referral counter follows the owner and explains accepted visi
   wall.changeOwner();
   await expect(counter.locator(":scope > strong")).toHaveText("0");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+});
+
+
+test("Neon future and Retro are distinct Playground modes", async ({ page }, info) => {
+ await fixture(page);await page.goto("/");await page.locator(".experiments-menu").click();
+ const tools=page.locator(".experiment-menu-controls");
+ await tools.getByRole("button",{name:"Retro",exact:true}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-retro","on");
+ await tools.getByRole("button",{name:"Decade Warp",exact:true}).click();
+ await page.getByRole("button",{name:"2077 · Neon future",exact:true}).click();await page.keyboard.press("Escape");
+ await expect(page.locator("html")).toHaveAttribute("data-wall-retro","off");
+ await expect(page.locator("html")).toHaveAttribute("data-wall-era","2077");
+ expect(await page.evaluate(()=>getComputedStyle(document.body,"::before").content)).not.toContain("RETRO MODE");
+ await expect(page.locator(".wall-page")).toHaveCSS("filter","none");
+ await page.locator(".masthead").scrollIntoViewIfNeeded();
+ await page.screenshot({path:`/tmp/ttw-neon-future-${info.project.name}.png`});
+ await tools.getByRole("button",{name:"Retro",exact:true}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-era","present");
+ await expect(page.locator("html")).toHaveAttribute("data-wall-retro","on");
+ await tools.getByRole("button",{name:"Retro",exact:true}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-retro","off");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });

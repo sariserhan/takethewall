@@ -22,21 +22,26 @@ export type CreativePanel =
   | "Theremin"
   | "Origami"
   | "Shatter";
-export type CreativeData = WallSnapshot & { id: string; message: string; morseMessage?: string };
+export type CreativeData = WallSnapshot & {
+  id: string;
+  message: string;
+  morseMessage?: string;
+};
 export function WallCreativeTools({ data }: { data: CreativeData | null }) {
   const blacklight = useBlacklight();
   const interaction = useInteractionMode();
   const [panel, setPanel] = useState<CreativePanel | null>(null),
     [sky, setSky] = useState("clear"),
-    [era, setEra] = useState("present");
+    [era, setEra] = useState("present"),
+    [retro, setRetro] = useState(false);
   useEffect(() => {
     document.documentElement.dataset.wallEra = era;
-    document.documentElement.dataset.wallRetro = era === "2077" ? "on" : "off";
+    document.documentElement.dataset.wallRetro = retro ? "on" : "off";
     return () => {
       delete document.documentElement.dataset.wallEra;
       delete document.documentElement.dataset.wallRetro;
     };
-  }, [era]);
+  }, [era, retro]);
   return (
     <>
       {(
@@ -75,6 +80,25 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
           {name}
         </button>
       ))}
+      <button
+        className="wall-action"
+        aria-pressed={retro}
+        onClick={() => {
+          setRetro(!retro);
+          setEra("present");
+        }}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden="true"
+        >
+          <path d="M3 5h18v14H3Z M6 8h12v8H6Z M8 2l4 3 4-3" />
+        </svg>
+        Retro
+      </button>
       <WallFreeze name={data?.name} />
       {sky !== "clear" && (
         <div className={`wall-atmosphere atmosphere-${sky}`} aria-hidden="true">
@@ -132,12 +156,19 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
                 <button
                   key={value}
                   aria-pressed={era === value}
-                  onClick={() => setEra(value)}
+                  onClick={() => {
+                    setEra(value);
+                    setRetro(false);
+                  }}
                 >
                   {label}
                 </button>
               ))}
             </div>
+            <p>
+              For CRT scanlines and the recording badge, use the separate Retro
+              button in Playground. Selecting an era turns Retro off.
+            </p>
             <p>Motion effects respect your reduced-motion preference.</p>
           </section>
         ) : (

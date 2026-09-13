@@ -1200,7 +1200,16 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 :root[data-wall-era="1996"] .wall-page :is(.masthead,.owner-section) {font-family:"Comic Sans MS",cursive;background:linear-gradient(135deg,#fff6ce,#d3eaff);color:#111;--muted:#333;}
 :root[data-wall-era="1996"] .owner-section {border:4px ridge #b4bac4;}
 :root[data-wall-era="1996"] .owner-section::before {content:"WELCOME TO MY CORNER OF THE WEB";display:block;color:#123585;font:bold 12px monospace;padding:8px;}
-:root[data-wall-era="2077"] .wall-page :is(.masthead,.owner-section) {background:#091520;color:#b8fff0;border-color:#7cdbc6;text-shadow:0 0 10px #47cfba44;}
+:root[data-wall-era="2077"] .wall-page{--paper:#08121f;--ink:#e5faff;--muted:#a2c4d4;--rule:#396074;--accent:#73edff;background:#08121f;color:#e5faff}
+:root[data-wall-era="2077"] .wall-page .masthead{background:linear-gradient(120deg,#102539,#11152b);border-color:#73edff}
+:root[data-wall-era="2077"] .wall-page .masthead h1{color:#aaf4ff;text-shadow:0 0 24px #2dd4ff33;letter-spacing:-.025em}
+:root[data-wall-era="2077"] .wall-page .owner-section{background-color:#0a1728;background-image:linear-gradient(135deg,#18daff12,transparent 50%,#dc6bff12),linear-gradient(#76cfff0d 1px,transparent 1px),linear-gradient(90deg,#76cfff0d 1px,transparent 1px);background-size:auto,48px 48px,48px 48px;color:#e5faff;border:1px solid #4b8ca4;box-shadow:inset 0 0 45px #20caff09,0 0 20px #a15bff0a}
+:root[data-wall-era="2077"] .wall-page .owner-section>.eyebrow{color:#94eaff;letter-spacing:.18em}
+:root[data-wall-era="2077"] .wall-page .wall-action{border-color:#477d96;border-radius:3px}
+:root[data-wall-era="2077"] .wall-page .wall-action:hover{background:#73edff;color:#08121f}
+:root[data-wall-era="2077"] .wall-page :is(.purchase-band,.prize-next,.community-event,.takeover-arrived){color:#11110f}
+:root[data-wall-era="2077"] .wall-page :is(.owner-ad .visit,.button,.wall-action[aria-pressed=true]){background:#73edff;color:#08121f}
+:root[data-wall-era="2077"] .wall-page .reign-metrics{border-top-color:#78ddf0;border-bottom-color:#b38be6}
 .radio-lamp {width:36px;height:36px;margin:20px auto;border-radius:50%;background:#4a2911;border:3px solid #a96c2b;}
 .radio-lamp.lit {background:#ffcf75;box-shadow:0 0 24px #ffaf42;}
 .morse-code {white-space:pre-wrap;overflow-wrap:anywhere;line-height:2;max-height:200px;overflow:auto;font-size:18px;}
