@@ -125,6 +125,7 @@ export async function POST(req: Request) {
         websiteUrl,
         displayName: String(a.displayName ?? ""),
         description: String(a.description ?? ""),
+        morseMessage: a.morseMessage ?? "",
         uploadKey: String(a.uploadKey ?? ""),
         ownerHash: clientHash(req),
         removeImage: a.removeImage,

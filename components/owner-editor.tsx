@@ -1,4 +1,5 @@
 "use client";
+import { MorseMessageField } from "./morse-message-field";
 import { useState } from "react";
 import type { OwnerDashboard } from "@/lib/owner-types";
 import { validateWallContent } from "@/lib/content";
@@ -24,6 +25,7 @@ export function OwnerEditor({
     displayName: "",
     websiteUrl: "",
     description: "",
+    morseMessage: "",
     logoUrl: "",
     uploadKey: "",
     removeImage: false,
@@ -34,6 +36,7 @@ export function OwnerEditor({
       displayName: data.owner.displayName,
       websiteUrl: data.owner.websiteUrl,
       description: data.owner.description,
+      morseMessage: data.owner.morseMessage ?? "",
       logoUrl: data.owner.logoUrl ?? "",
       uploadKey: "",
       removeImage: false,
@@ -69,6 +72,7 @@ export function OwnerEditor({
           displayName: draft.displayName,
           websiteUrl: draft.websiteUrl,
           description: draft.description,
+          morseMessage: draft.morseMessage,
           uploadKey: draft.uploadKey,
           removeImage: draft.removeImage,
         }),
@@ -158,6 +162,7 @@ export function OwnerEditor({
                   onChange={(e) => field("description", e.target.value)}
                 />
               </label>
+              <MorseMessageField value={draft.morseMessage} fallback={draft.description || draft.displayName} onChange={(value) => field("morseMessage", value)} />
               <ImageUpload
                 key={String(open)}
                 label="Replace image"

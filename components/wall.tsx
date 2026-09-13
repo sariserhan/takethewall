@@ -590,7 +590,7 @@ function WallView({
         <button className="experiments-menu" aria-expanded={playgroundOpen} aria-controls="playground-controls" onClick={() => setPlaygroundOpen(value => !value)}><WallToolIcon name="rave" /> Playground</button>
           <div id="playground-controls" className="experiment-menu-controls" hidden={!playgroundOpen}>
             <WallExperiments />
-            <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
+            <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>
       </div>
       <PublicFooter home />

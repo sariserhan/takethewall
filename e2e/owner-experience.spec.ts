@@ -557,6 +557,16 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
   await expect(dialog.getByLabel("Optional message")).toHaveValue(
     "A little corner of the internet.",
   );
+  await dialog.getByRole("button", { name: "Preview Morse", exact: true }).click();
+  await expect(dialog.locator(".radio-panel blockquote")).toHaveText("A little corner of the internet.");
+  await dialog.getByLabel("Optional Morse code message").fill("SOS @ WALL");
+  await expect(dialog.locator(".radio-panel blockquote")).toHaveText("SOS @ WALL");
+  await expect(dialog.locator(".radio-panel")).toContainText("Radio silent.");
+  await dialog.getByRole("button", { name: "Play Morse", exact: true }).click();
+  await expect(dialog.locator(".radio-panel")).toContainText("Transmitting");
+  await expect(dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Stop", exact: true }).click();
+  expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("ttw-draft")!).morseMessage)).toBe("SOS @ WALL");
   expect(repeats).toBe(1);
   expect(payments).toBe(0);
   await dialog.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();

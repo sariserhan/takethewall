@@ -40,6 +40,7 @@ export const pending = internalMutation({
     linkType: v.optional(v.string()),
     websiteUrl: v.string(),
     description: v.string(),
+    morseMessage: v.optional(v.string()),
     buyerEmail: v.string(),
     environment: v.union(v.literal("test"), v.literal("production")),
   },
@@ -286,6 +287,7 @@ export const activate = internalMutation({
       destinationUrl: t.websiteUrl,
       displayName: t.displayName ?? t.domain,
       description: t.description,
+      ...(t.morseMessage ? { morseMessage: t.morseMessage } : {}),
       imageStorageId: t.logoStorageId ?? null,
     });
     const audit = {

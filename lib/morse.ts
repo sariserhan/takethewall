@@ -78,3 +78,16 @@ export function encodeMorse(text: string) {
     units: time,
   };
 }
+
+export function validateMorseMessage(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  if (
+    typeof value !== "string" ||
+    value.length > 120 ||
+    [...value].some((c) => c !== " " && !alphabet[c.toUpperCase()])
+  )
+    throw new Error(
+      "Morse message: use up to 120 characters, with A–Z, numbers, spaces, or . , ? ! ' / - ( ) : = + @",
+    );
+  return value.trim();
+}

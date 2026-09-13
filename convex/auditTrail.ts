@@ -47,6 +47,7 @@ export const migrate = internalMutation({
           destinationUrl: content.websiteUrl,
           displayName: content.displayName ?? content.domain,
           description: content.description,
+          ...(content?.morseMessage ? { morseMessage: content.morseMessage } : {}),
           imageStorageId: content.logoStorageId ?? null,
         }),
         previousAuditHash: previous,
@@ -173,6 +174,7 @@ export const verify = query({
           destinationUrl: content?.websiteUrl,
           displayName: content?.displayName ?? content?.domain,
           description: content?.description,
+          ...(content?.morseMessage ? { morseMessage: content.morseMessage } : {}),
           imageStorageId: content?.logoStorageId ?? null,
         }) !== r.contentHash
       )

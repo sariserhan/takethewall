@@ -1,3 +1,4 @@
+import { validateMorseMessage } from "./morse";
 import { validateUrl, validateContent } from "./validation";
 export const linkTypes = [
   "website",
@@ -63,6 +64,7 @@ export function validateWallContent(a: {
   websiteUrl: string;
   displayName?: string;
   description: string;
+  morseMessage?: string;
   linkType?: string;
 }) {
   if (a.contentType && !["personal", "link"].includes(a.contentType))
@@ -75,11 +77,12 @@ export function validateWallContent(a: {
     a.displayName || (personal ? "" : url.domain),
     60,
   );
+  const morseMessage = validateMorseMessage(a.morseMessage);
   const description = plainText(a.description, 120, false);
   const linkType = personal ? "other" : detectLinkType(url.websiteUrl);
   validateContent(
     url.domain,
-    displayName + " " + description,
+    displayName + " " + description + " " + morseMessage,
     process.env.BLOCKED_DOMAINS,
   );
   return {
@@ -91,5 +94,6 @@ export function validateWallContent(a: {
         : linkType,
     displayName,
     description,
+    ...(morseMessage ? { morseMessage } : {}),
   };
 }

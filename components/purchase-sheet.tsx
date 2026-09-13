@@ -1,4 +1,5 @@
 "use client";
+import { MorseMessageField } from "./morse-message-field";
 import { celebrations } from "@/lib/celebrations";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -23,6 +24,7 @@ interface Draft {
   displayName: string;
   websiteUrl: string;
   description: string;
+  morseMessage: string;
   buyerEmail: string;
   uploadKey: string;
   logoUrl: string;
@@ -35,6 +37,7 @@ const empty: Draft = {
   displayName: "",
   websiteUrl: "",
   description: "",
+  morseMessage: "",
   buyerEmail: "",
   uploadKey: "",
   logoUrl: "",
@@ -322,6 +325,7 @@ export function PurchaseSheet({
                     onChange={(e) => change({ description: e.target.value })}
                   />
                 </label>
+              <MorseMessageField value={draft.morseMessage} fallback={draft.description || draft.displayName} onChange={(morseMessage) => change({ morseMessage })} />
               </fieldset>
               {error && (
                 <p className="form-error" role="alert">

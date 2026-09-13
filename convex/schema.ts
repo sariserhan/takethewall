@@ -60,6 +60,7 @@ export const editableContent = v.object({
   domain: v.string(),
   displayName: v.string(),
   description: v.string(),
+  morseMessage: v.optional(v.string()),
   logoStorageId: v.optional(v.id("_storage")),
 });
 export const finalReportSnapshot = v.object({
@@ -250,6 +251,7 @@ export default defineSchema({
     websiteUrl: v.string(),
     domain: v.string(),
     description: v.string(),
+  morseMessage: v.optional(v.string()),
     logoStorageId: v.optional(v.id("_storage")),
     contentType: v.optional(v.union(v.literal("link"), v.literal("personal"))),
     linkType: v.optional(v.string()),

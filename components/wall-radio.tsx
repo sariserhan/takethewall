@@ -78,12 +78,13 @@ export function MorseRadio({ message }: { message: string }) {
       </pre>
       <div className="creative-actions">
         <button
+          type="button"
           onClick={() => void play()}
           disabled={playing || !encoded.tones.length}
         >
           Play Morse
         </button>
-        <button onClick={stop} disabled={!playing}>
+        <button type="button" onClick={stop} disabled={!playing}>
           Stop
         </button>
       </div>

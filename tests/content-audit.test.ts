@@ -41,3 +41,29 @@ it("allows multiline private correspondence but rejects active HTML", async () =
   );
   expect(() => plainText("<script>bad</script>", 5000, true, true)).toThrow();
 });
+
+it("validates optional Morse transmissions without silently dropping characters", () => {
+  const content = {
+    contentType: "personal",
+    websiteUrl: "",
+    displayName: "Radio",
+    description: "Hello",
+  };
+  expect(
+    validateWallContent({ ...content, morseMessage: " SOS @ WALL! " })
+      .morseMessage,
+  ).toBe("SOS @ WALL!");
+  expect(validateWallContent(content).morseMessage).toBeUndefined();
+  expect(
+    validateWallContent({ ...content, morseMessage: "   " }).morseMessage,
+  ).toBeUndefined();
+  for (const morseMessage of [
+    "a".repeat(121),
+    "Hello 👑",
+    "<script>",
+    "line\nbreak",
+  ])
+    expect(() => validateWallContent({ ...content, morseMessage })).toThrow(
+      "Morse message",
+    );
+});

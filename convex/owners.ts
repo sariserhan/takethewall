@@ -320,6 +320,7 @@ export const edit = internalMutation({
     websiteUrl: v.string(),
     displayName: v.string(),
     description: v.string(),
+    morseMessage: v.optional(v.string()),
     uploadKey: v.string(),
     ownerHash: v.string(),
     removeImage: v.boolean(),
@@ -370,12 +371,14 @@ export const edit = internalMutation({
       domain: t.domain,
       displayName: t.displayName ?? t.domain,
       description: t.description,
+      ...(t.morseMessage ? { morseMessage: t.morseMessage } : {}),
       ...(t.logoStorageId ? { logoStorageId: t.logoStorageId } : {}),
     };
     const after = { ...content, ...(logoStorageId ? { logoStorageId } : {}) };
     await ctx.db.patch(t._id, {
       ...content,
       logoStorageId,
+      morseMessage: content.morseMessage,
       originalContent: t.originalContent ?? before,
       contentRevision: (t.contentRevision ?? 0) + 1,
     });
@@ -394,6 +397,7 @@ export const repeat = internalMutation({
     contentType: v.string(),
     displayName: v.string(),
     description: v.string(),
+    morseMessage: v.optional(v.string()),
     websiteUrl: v.string(),
     logoUrl: v.string(),
     uploadKey: v.string(),
@@ -436,6 +440,7 @@ export const repeat = internalMutation({
       contentType: content.contentType,
       displayName: content.displayName,
       description: content.description,
+      ...(content.morseMessage ? { morseMessage: content.morseMessage } : {}),
       websiteUrl: content.websiteUrl,
       logoUrl,
       uploadKey,

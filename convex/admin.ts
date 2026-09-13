@@ -991,6 +991,7 @@ export const publish = mutation({
           destinationUrl: content.websiteUrl,
           displayName: content.displayName,
           description: content.description,
+          ...(content?.morseMessage ? { morseMessage: content.morseMessage } : {}),
           imageStorageId: null,
         }),
         previousAuditHash: site?.auditHash ?? "",

@@ -10,6 +10,7 @@ export interface SharedTakeover {
     websiteUrl: string;
     domain: string;
     description: string;
+    morseMessage?: string;
     logoUrl: string | null;
     activatedAt: number;
     activationSequence: number;

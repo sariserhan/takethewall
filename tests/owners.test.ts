@@ -834,3 +834,16 @@ it("share stories use the recorded predecessor and redact moderated content", as
     (await t.query(internal.owners.dashboard, { token })).previousOwnerName,
   ).toBe("visitorping.com");
 });
+
+it("saves, exposes, repeats and clears a Morse message while preserving the sealed original", async () => {
+  const { t, id, token } = await setup();
+  await t.mutation(internal.owners.edit, { ...edits, token, morseMessage: "SOS @ WALL" });
+  expect((await t.query(api.wall.current, {}))?.owner.morseMessage).toBe("SOS @ WALL");
+  expect((await t.query(internal.owners.dashboard, { token }))?.owner.morseMessage).toBe("SOS @ WALL");
+  expect((await t.mutation(internal.owners.repeat, { token, ownerHash: "repeat-morse" })).morseMessage).toBe("SOS @ WALL");
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({ valid: true });
+  await expect(t.mutation(internal.owners.edit, { ...edits, token, expectedRevision: 1, morseMessage: "👑" })).rejects.toThrow("Morse message");
+  await t.mutation(internal.owners.edit, { ...edits, token, expectedRevision: 1, morseMessage: "" });
+  expect((await t.run(ctx => ctx.db.get(id)))?.morseMessage).toBeUndefined();
+  expect(await t.query(api.auditTrail.verify, {})).toMatchObject({ valid: true });
+});

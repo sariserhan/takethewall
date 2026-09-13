@@ -22,7 +22,7 @@ export type CreativePanel =
   | "Theremin"
   | "Origami"
   | "Shatter";
-export type CreativeData = WallSnapshot & { id: string; message: string };
+export type CreativeData = WallSnapshot & { id: string; message: string; morseMessage?: string };
 export function WallCreativeTools({ data }: { data: CreativeData | null }) {
   const blacklight = useBlacklight();
   const interaction = useInteractionMode();

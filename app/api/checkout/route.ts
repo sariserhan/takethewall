@@ -81,6 +81,7 @@ export async function POST(req: Request) {
       uploadKey: a.uploadKey ?? "",
       websiteUrl: content.websiteUrl,
       description: content.description,
+      ...(content.morseMessage ? { morseMessage: content.morseMessage } : {}),
       displayName: content.displayName,
       contentType: content.contentType,
       linkType: content.linkType,

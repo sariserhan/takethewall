@@ -11,7 +11,7 @@ export default function CreativePanelContent({
   data: CreativeData | null;
 }) {
   if (panel === "Morse")
-    return <MorseRadio message={data?.message || data?.name || ""} />;
+    return <MorseRadio key={`${data?.id}:${data?.morseMessage ?? data?.message}`} message={data?.morseMessage || data?.message || data?.name || ""} />;
   if (panel === "Origami") return <PaperBrick data={data} />;
   if (panel === "Shatter")
     return <WallShatter name={data?.name ?? "THE WALL"} />;
