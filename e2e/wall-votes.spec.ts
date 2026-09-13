@@ -239,7 +239,7 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
  expect(contrast.violations.flatMap(v=>v.nodes.map(n=>({html:n.html,summary:n.failureSummary})))).toEqual([]);
  await page.reload();
  await expect(page.locator("html")).toHaveAttribute("data-wall-theme","obsidian");
- await page.locator(".experiments-menu > summary").click();
+ await page.locator(".experiments-menu").click();
  await tools.getByRole("button",{name:"Decade Warp",exact:true}).click();
  await page.getByRole("button",{name:"2077 · Neon future",exact:true}).click();
  await page.keyboard.press("Escape");
@@ -278,7 +278,7 @@ test("Freeze holds the displayed wall and Thaw catches up to the latest owner", 
  const state=await fixture(page);
  const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
  await page.goto("/");
- await page.locator(".experiments-menu > summary").click();
+ await page.locator(".experiments-menu").click();
  await page.locator(".wall-tools").getByRole("button",{name:"Freeze",exact:true}).click();
  const snapshot=page.locator(".cryo-snapshot");
  await expect(snapshot).toBeVisible();
@@ -323,9 +323,9 @@ test("Wall experiments work and the magnetic title is always enabled", async ({p
  await expect(page.getByRole("dialog").getByLabel(/Display name/)).toHaveValue("My launch");
  await expect(page.getByRole("dialog").getByLabel("Website URL",{exact:true})).toHaveValue("https://my-launch.com/");
  await page.keyboard.press("Escape");
- await page.locator(".experiments-menu > summary").click();
+ await page.locator(".experiments-menu").click();
  await expect(page.locator(".experiments-menu").getByRole("button",{name:"Pulse",exact:true})).toHaveCount(0);
- await expect(page.locator(".wall-tools > details:last-child > summary")).toHaveText("Playground");
+ await expect(page.locator(".wall-tools > .experiments-menu")).toHaveText("Playground");
  await page.getByRole("button",{name:"Hold",exact:true}).click();
  const pad=page.getByRole("button",{name:"PRESS & HOLD"});
  await pad.focus(); await page.keyboard.down("Space");
@@ -388,7 +388,7 @@ test("Whisper previews the latest three messages below voting and resets with th
 
 test("Creative experiments provide local visuals, opt-in audio and printable bricks", async ({page},info)=>{
  await fixture(page);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.locator('.experiments-menu > summary').click();
+ await page.goto('/');await page.locator('.experiments-menu').click();
  async function open(name:string){await page.locator('.experiment-menu-controls').getByRole('button',{name,exact:true}).click();return page.getByRole('dialog',{name,exact:true});}
  let dialog=await open('Atmosphere');await dialog.getByRole('button',{name:'Rain',exact:true}).click();await expect(page.locator('.atmosphere-rain')).toBeAttached();await expect(dialog).toContainText('not a live weather report');await page.keyboard.press('Escape');
  await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('.wall-atmosphere i').first().evaluate(el=>getComputedStyle(el).animationName)).toBe('none');await page.emulateMedia({reducedMotion:'no-preference'});
@@ -412,7 +412,7 @@ test("Creative experiments provide local visuals, opt-in audio and printable bri
 });
 
 test("Blacklight follows navigation and focus without blocking the page",async({page},info)=>{
- await fixture(page);await page.goto('/');await page.locator('.experiments-menu > summary').click();
+ await fixture(page);await page.goto('/');await page.locator('.experiments-menu').click();
  const toggle=page.getByRole('button',{name:'Blacklight',exact:true});await toggle.click();
  await expect(toggle).toHaveAttribute('aria-pressed','true');await expect(page.locator('dialog[open]')).toHaveCount(0);
  const shade=page.locator('.blacklight-shade');await expect(shade).toBeVisible();await expect(shade).toHaveCSS('pointer-events','none');
@@ -429,7 +429,7 @@ test("Blacklight follows navigation and focus without blocking the page",async({
 });
 
 test("Page-wide Thermal and Theremin preserve navigation and restore muted", async({page},info)=>{
- await fixture(page);await page.goto('/');await page.locator('.experiments-menu > summary').click();
+ await fixture(page);await page.goto('/');await page.locator('.experiments-menu').click();
  await page.getByRole('button',{name:'Thermal',exact:true}).click();await expect(page.locator('dialog[open]')).toHaveCount(0);
  const trail=page.locator('.page-thermal');await expect(trail).toHaveCSS('pointer-events','none');
  await page.evaluate(()=>window.scrollTo(0,0));await page.mouse.move(160,320,{steps:12});
@@ -437,7 +437,7 @@ test("Page-wide Thermal and Theremin preserve navigation and restore muted", asy
  const keep=page.locator('.keep-or-yeet').getByRole('button',{name:/^KEEP/});await keep.click();await expect(keep).toHaveAttribute('aria-pressed','true');
  const contrast=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();expect(contrast.violations).toEqual([]);
  await page.goto('/about');await expect(page.locator('html')).toHaveAttribute('data-wall-interaction','thermal');await page.getByRole('button',{name:/Exit Thermal/}).click();await expect(trail).toHaveCount(0);
- await page.goto('/');await page.locator('.experiments-menu > summary').click();await page.getByRole('button',{name:'Blacklight',exact:true}).click();
+ await page.goto('/');await page.locator('.experiments-menu').click();await page.getByRole('button',{name:'Blacklight',exact:true}).click();
  await page.getByRole('button',{name:'Theremin',exact:true}).click();await expect(page.locator('.blacklight-shade')).toHaveCount(0);await expect(page.locator('html')).toHaveAttribute('data-wall-interaction','theremin');
  await expect(page.locator('dialog[open]')).toHaveCount(0);await page.getByRole('button',{name:'Start instrument',exact:true}).click();await expect(page.getByRole('button',{name:'Mute instrument',exact:true})).toBeVisible();
  await page.mouse.move(180,400);await expect.poll(()=>page.locator('.page-theremin').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--theremin-x'))).toBe('180px');
@@ -462,4 +462,15 @@ test("Dark page modes keep neon buttons readable on hover and keyboard focus",as
    await expect(button).toBeFocused();await expect(button).toHaveCSS('color','rgb(17, 17, 15)');
    const contrast=await new AxeBuilder({page}).include('.purchase-band').withRules(['color-contrast']).analyze();expect(contrast.violations).toEqual([]);
  }
+});
+
+test("Playground stays in place and changes color when selected",async({page})=>{
+ await fixture(page);await page.goto("/");
+ const button=page.getByRole("button",{name:"Playground",exact:true});
+ await button.scrollIntoViewIfNeeded();
+ const position=()=>button.evaluate(el=>{const r=el.getBoundingClientRect();return {x:r.left+scrollX,y:r.top+scrollY,bg:getComputedStyle(el).backgroundColor};});
+ const before=await position();await expect(page.locator("#playground-controls")).toBeHidden();
+ await button.click();await expect(button).toHaveAttribute("aria-expanded","true");await expect(page.locator("#playground-controls")).toBeVisible();
+ const after=await position();expect(after.x).toBeCloseTo(before.x,0);expect(after.y).toBeCloseTo(before.y,0);expect(after.bg).not.toBe(before.bg);
+ await button.click();await expect(page.locator("#playground-controls")).toBeHidden();await expect(button).toHaveAttribute("aria-expanded","false");
 });

@@ -102,6 +102,7 @@ function WallView({
 }) {
   const [draftVersion, setDraftVersion] = useState(0);
   const [trying, setTrying] = useState(false);
+  const [playgroundOpen, setPlaygroundOpen] = useState(false);
   const [open, setOpen] = useState(false),
     [confirmation, setConfirmation] = useState<Confirmation | null>(null),
     [statusError, setStatusError] = useState(false),
@@ -586,13 +587,11 @@ function WallView({
         <button className="wall-action" onClick={() => { setTrying(true); requestAnimationFrame(()=>document.querySelector(".try-mine")?.scrollIntoView({block:"center"})); }}><WallToolIcon name="preview" /> Try Mine</button>
         <PulseTool ownerId={owner?.id} name={owner?.displayName} />
         <WallLab data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors + (sample?.uniqueVisitors ?? 0), number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: !!sample?.uniqueVisitors } : null} />
-        <details className="experiments-menu">
-          <summary><WallToolIcon name="rave" /> Playground</summary>
-          <div className="experiment-menu-controls">
+        <button className="experiments-menu" aria-expanded={playgroundOpen} aria-controls="playground-controls" onClick={() => setPlaygroundOpen(value => !value)}><WallToolIcon name="rave" /> Playground</button>
+          <div id="playground-controls" className="experiment-menu-controls" hidden={!playgroundOpen}>
             <WallExperiments />
             <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>
-        </details>
       </div>
       <PublicFooter home />
       <ResumeCheckout />
