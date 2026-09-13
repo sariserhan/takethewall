@@ -1303,3 +1303,9 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .wall-canvas .canvas-delete:focus-visible{outline:3px solid #fff;outline-offset:-4px}
 .wall-canvas .canvas-delete:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:640px){.wall-designer .designer-inspector,.designer-block-settings{grid-template-columns:minmax(0,1fr)}.designer-control-group{padding:12px}}
+
+.reign-metrics>.referral-prize-stat{background:#eee5ff;color:#51218c;border:1px solid #b391dc;border-left:4px solid #7c3aed;padding:10px 12px;border-radius:4px}
+.referral-prize-stat>.referral-prize-label{font:700 11px/1.4 var(--body);letter-spacing:0}
+.referral-prize-stat>.referral-prize-hint{font:400 11px/1.4 var(--body);letter-spacing:0}
+.referral-prize-stat .stat-help-trigger{color:inherit}
+:root:is([data-wall-theme="obsidian"],[data-wall-blacklight="on"],[data-wall-interaction="thermal"],[data-wall-interaction="theremin"]) .referral-prize-stat{background:#26143c;color:#e7d4ff;border-color:#a77be1}

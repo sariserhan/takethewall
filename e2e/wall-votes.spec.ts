@@ -482,6 +482,9 @@ test("current wall referral counter follows the owner and explains accepted visi
   const stats = page.getByRole("region", { name: "Current reign analytics" });
   const counter = stats.locator(".metric").filter({ has: page.getByRole("button", { name: "REFERRALS", exact: true }) });
   await expect(counter.locator(":scope > strong")).toHaveText("12");
+  await expect(counter).toContainText("Referral prize · Reward B");
+  await expect(counter).toContainText("Share your link to compete");
+  expect(await counter.evaluate(el => getComputedStyle(el).backgroundColor)).toBe("rgb(238, 229, 255)");
   await stats.getByRole("button", { name: "REFERRALS", exact: true }).click();
   await expect(page.getByText(/Accepted distinct browser visits/)).toBeVisible();
   await page.keyboard.press("Escape");

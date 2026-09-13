@@ -480,7 +480,12 @@ function WallView({
                 : "—"
             }
           />
-          <Metric label="REFERRALS" value={owner ? numbers(owner.shareVisitors ?? 0) : "—"} />
+          <div className="metric referral-prize-stat">
+            <span><StatHelp label="REFERRALS" /></span>
+            <strong>{owner ? numbers(owner.shareVisitors ?? 0) : "—"}</strong>
+            <small className="referral-prize-label">Referral prize · Reward B</small>
+            <small className="referral-prize-hint">Share your link to compete</small>
+          </div>
           <div className="regions">
             <span className="eyebrow">
               <StatHelp label="TOP REGIONS" />
