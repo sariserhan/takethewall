@@ -74,7 +74,15 @@ export const overview = query({
       if (!definitions.some((d) => d.takeoverNumber === m.takeoverNumber))
         definitions.push(m);
     for (const r of reached)
-      if (!definitions.some((m) => m.takeoverNumber === r.milestoneNumber))
+      // Archived rehearsal claims remain available to admins and explicit reads,
+      // but must not become public prize tiers after rehearsal is finished.
+      if (
+        r.rulesVersion === "development-rehearsal-v1" &&
+        config.rulesVersion !== r.rulesVersion &&
+        args.number !== r.milestoneNumber
+      )
+        continue;
+      else if (!definitions.some((m) => m.takeoverNumber === r.milestoneNumber))
         definitions.push({
           takeoverNumber: r.milestoneNumber,
           rewardUsd: r.rewardUsd,

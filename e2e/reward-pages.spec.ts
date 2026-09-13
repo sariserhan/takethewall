@@ -168,6 +168,15 @@ test("Both prize paths link to separate permanent pages", async ({ page }) => {
       name: "Referral prize & permanent winner page →",
     }),
   ).toHaveAttribute("href", "/100/referral");
+  const cards = page.getByRole("navigation", { name: "Prize milestones" });
+  await expect(
+    cards.getByText("Milestone reward", { exact: true }),
+  ).toHaveCount(5);
+  await expect(cards.getByText("Referral reward", { exact: true })).toHaveCount(
+    5,
+  );
+  await expect(cards.locator('a[href="/100/referral"]')).toContainText("$100");
+  await expect(cards).not.toContainText("· A");
   for (const n of [100, 1000, 10000, 100000, 1000000]) {
     await expect(
       page
@@ -184,9 +193,7 @@ test("Both prize paths link to separate permanent pages", async ({ page }) => {
     ).toBeVisible();
   }
   await page.goto("/99/referral");
-  await expect(
-    page.getByRole("heading", { name: /WRONG TURN/ }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /WRONG TURN/ })).toBeVisible();
 });
 test("Referral wall separates future, candidate, unawarded and paid content", async ({
   page,

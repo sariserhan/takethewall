@@ -1,7 +1,8 @@
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { DEFAULT_RULES } from "../lib/reward-rules";
-import { canonical } from "../lib/audit";
+import { MILESTONES } from "../lib/config";
+import { canonical, sha } from "../lib/audit";
 import { audit } from "./rewardModel";
 
 // Explicitly restricted to this project's personal development deployment.
@@ -72,5 +73,67 @@ export const prepare = internalMutation({
       noMoney: true,
     });
     return { ready: true, milestones: [1, 2, 3] };
+  },
+});
+
+// Leave historical test rewards and their immutable rules intact; only future
+// activations switch back to the standard tiers and dual reward rules.
+export const finish = internalMutation({
+  args: {},
+  returns: v.object({ changed: v.boolean() }),
+  handler: async (ctx) => {
+    if (
+      process.env.CONVEX_CLOUD_URL !==
+        "https://aromatic-falcon-454.convex.cloud" ||
+      process.env.WALL_ENVIRONMENT !== "test"
+    )
+      throw new Error(
+        "Only the personal test deployment can finish rehearsal.",
+      );
+    const row = await ctx.db
+      .query("rewardSettings")
+      .withIndex("by_key", (q) => q.eq("key", "current"))
+      .unique();
+    if (row?.value.rulesVersion !== "development-rehearsal-v1")
+      return { changed: false };
+    const site = await ctx.db
+      .query("siteStats")
+      .withIndex("by_key", (q) => q.eq("key", "wall"))
+      .unique();
+    if ((site?.totalTakeovers ?? 0) + (site?.numberingOffset ?? 0) >= 100)
+      throw new Error(
+        "Standard milestones have already been reached; review settings manually.",
+      );
+    const version = "development-standard-dual-v1";
+    const rulesJson = canonical({ ...DEFAULT_RULES, version });
+    const existing = await ctx.db
+      .query("rewardRules")
+      .withIndex("by_version", (q) => q.eq("version", version))
+      .unique();
+    if (existing && existing.json !== rulesJson)
+      throw new Error("Rules version already exists with different content.");
+    if (!existing)
+      await ctx.db.insert("rewardRules", {
+        version,
+        json: rulesJson,
+        hash: sha(rulesJson),
+        createdAt: Date.now(),
+      });
+    await ctx.db.patch(row._id, {
+      value: {
+        ...row.value,
+        milestones: MILESTONES,
+        dualRewardsEnabled: true,
+        initialDays: 7,
+        additionalDays: 7,
+        rulesVersion: version,
+        rulesJson,
+      },
+    });
+    await audit(ctx, "development-tooling", "REHEARSAL_FINISHED", "settings", {
+      rulesVersion: version,
+      historicalClaimsPreserved: true,
+    });
+    return { changed: true };
   },
 });

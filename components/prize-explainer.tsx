@@ -238,7 +238,8 @@ export function PrizeExplainer({
           <div className="reward-milestone-pair" key={m.number}>
             <Link href={`/${m.number}`}>
               <span>#{format(m.number)}</span>
-              <strong>${format(m.rewardUsd)} · A</strong>
+              <span className="reward-card-label">Milestone reward</span>
+              <strong>${format(m.rewardUsd)}</strong>
               <small>
                 {m.status === "future"
                   ? m.number === next?.number
@@ -249,12 +250,16 @@ export function PrizeExplainer({
             </Link>
             {m.performance && (
               <Link href={`/${m.number}/referral`}>
-                Reward B · Referral winner:{" "}
-                {m.performance.status === "future"
-                  ? m.number === next?.number
-                    ? "In progress"
-                    : "Upcoming"
-                  : (rewardLabels[m.performance.status] ?? "Under review")}
+                <span>#{format(m.number)}</span>
+                <span className="reward-card-label">Referral reward</span>
+                <strong>${format(m.performance.rewardUsd)}</strong>
+                <small>
+                  {m.performance.status === "future"
+                    ? m.number === next?.number
+                      ? "In progress"
+                      : "Upcoming"
+                    : (rewardLabels[m.performance.status] ?? "Under review")}
+                </small>
               </Link>
             )}
           </div>
