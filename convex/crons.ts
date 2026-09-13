@@ -99,4 +99,5 @@ crons.interval(
   {},
 );
 crons.daily("Gazette draft", { hourUTC: 0, minuteUTC: 5 }, internal.community.midnight, {});
+crons.interval("expire spectator whispers", { minutes: 1 }, internal.whispers.cleanup, {});
 export default crons;

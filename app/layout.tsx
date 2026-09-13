@@ -1,3 +1,4 @@
+import { WallPreferences } from "@/components/wall-preferences";
 import { siteUrl } from "@/lib/site-url";
 import type { Metadata, Viewport } from "next";
 import "@fontsource/anton/latin-400.css";
@@ -29,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><WallPreferences />{children}</body>
     </html>
   );
 }

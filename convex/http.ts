@@ -71,6 +71,7 @@ http.route({
         case "wallVoteMine": result = await ctx.runQuery(internal.wallVotes.mine, args); break;
         case "wallVoteCast": result = await ctx.runMutation(internal.wallVotes.cast, args); break;
         case "amaInbox": result = await ctx.runQuery(internal.ama.inbox, args); break;
+        case "whisperPost": result = await ctx.runMutation(internal.whispers.post, args); break;
         case "amaAsk": result = await ctx.runMutation(internal.ama.ask, args); break;
         case "amaManage": result = await ctx.runMutation(internal.ama.manage, args); break;
         case "ownerRepeat":

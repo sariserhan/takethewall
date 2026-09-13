@@ -25,6 +25,9 @@ async function fixture(page: Page) {
       };
     const queries = new Map<number, string>();
     const value = (path: string): unknown => {
+      if (path === "whispers:messages" || path === "auditTrail:checkpoints") return [];
+      if (path === "auditTrail:entries") return { entries: [], next: null };
+      if (path === "auditTrail:verify") return { valid: true, next: null, reason: null };
       if (path === "wallVotes:totals")
         return {
           keep: choices.get(owner) === "keep" ? 1 : 0,
@@ -203,4 +206,36 @@ test("Keep or Yeet updates one vote, survives refresh, and resets for the next o
     ),
   ).toBe(false);
   expect(errors).toEqual([]);
+});
+
+test("wall lab tools work without changing the owner", async ({page}, info) => {
+ await fixture(page);
+ const errors: string[]=[];page.on("pageerror",e=>errors.push(e.message));
+ await page.goto("/");
+ const tools=page.locator(".wall-tools");
+ await tools.getByRole("button",{name:/Theme/}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-theme","obsidian");
+ await page.screenshot({path:`/tmp/ttw-obsidian-${info.project.name}.png`});
+ await page.reload();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-theme","obsidian");
+ await tools.getByRole("button",{name:/Retro/}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-retro","on");
+ for(const name of ["Globe","Audit","Whisper","QR Code","X-Ray","Shatter","Snapshot"]){
+   await tools.getByRole("button",{name:new RegExp(name)}).click();
+   const dialog=page.getByRole("dialog",{name,exact:true});await expect(dialog).toBeVisible();
+   if(name==="Globe") await expect(dialog.locator(".globe-view")).toBeVisible();
+   if(name==="Whisper") await expect(dialog.getByText("No whispers yet. Start the conversation.")).toBeVisible();
+   if(name==="Audit") await expect(dialog.getByRole("heading",{name:"Chain records"})).toBeVisible();
+   if(name==="X-Ray") await expect(dialog.getByText("Image dimensions",{exact:true})).toBeVisible();
+   if(name==="QR Code")await expect(dialog.getByAltText("Scan to open takeover checkout")).toBeVisible();
+   if(name==="Shatter"){await dialog.getByRole("button",{name:"Shatter the wall",exact:true}).click();await dialog.getByRole("button",{name:"Rebuild",exact:true}).click();}
+   if(name==="Snapshot"){await expect(dialog.getByRole("link",{name:"Download PNG"})).toBeVisible();const download=page.waitForEvent("download");await dialog.getByRole("link",{name:"Download PNG"}).click();expect((await download).suggestedFilename()).toBe("take-the-wall-snapshot.png");}
+   if(name==="Globe" || name==="Snapshot") await dialog.screenshot({path:`/tmp/ttw-lab-${name}-${info.project.name}.png`});
+   await dialog.getByRole("button",{name:"Close dialog",exact:true}).click();
+ }
+ await tools.getByRole("button",{name:/Retro/}).click();
+ await tools.getByRole("button",{name:/Theme/}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-theme","paper");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+ expect(errors).toEqual([]);
 });

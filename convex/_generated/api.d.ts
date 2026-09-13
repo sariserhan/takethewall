@@ -59,6 +59,7 @@ import type * as visitorping from "../visitorping.js";
 import type * as wall from "../wall.js";
 import type * as wallSubscriptions from "../wallSubscriptions.js";
 import type * as wallVotes from "../wallVotes.js";
+import type * as whispers from "../whispers.js";
 
 import type {
   ApiFromModules,
@@ -118,6 +119,7 @@ declare const fullApi: ApiFromModules<{
   wall: typeof wall;
   wallSubscriptions: typeof wallSubscriptions;
   wallVotes: typeof wallVotes;
+  whispers: typeof whispers;
 }>;
 
 /**

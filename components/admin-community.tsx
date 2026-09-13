@@ -1,4 +1,5 @@
 "use client";
+import { AdminWhispers } from "./whisper-room";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -26,6 +27,7 @@ export function AdminCommunity() {
   return (
     <section className="admin-community">
       <h3>Community features</h3>
+      <AdminWhispers />
       {(
         [
           ["crumblingEnabled", "Show Crumbling Wall on homepage"],

@@ -254,3 +254,14 @@ export const checkpoints = query({
     );
   },
 });
+
+export const current = query({
+  args: {},
+  returns: v.union(v.null(), v.object({ publicId: v.union(v.string(), v.null()), hash: v.union(v.string(), v.null()), previousHash: v.union(v.string(), v.null()), activatedAt: v.union(v.number(), v.null()), sequence: v.union(v.number(), v.null()) })),
+  handler: async ctx => {
+    const site = await ctx.db.query("siteStats").withIndex("by_key", q => q.eq("key", "wall")).unique();
+    const t = site ? await ctx.db.get(site.currentTakeoverId) : null;
+    if (!t || t.blocked || t.status !== "active") return null;
+    return { publicId: t.publicTakeoverId ?? null, hash: t.auditHash ?? null, previousHash: t.previousAuditHash ?? null, activatedAt: t.activatedAt ?? null, sequence: t.activationSequence ?? null };
+  },
+});

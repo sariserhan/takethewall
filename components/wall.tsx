@@ -2,6 +2,7 @@
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
 import { KeepOrYeet } from "./keep-or-yeet";
 import { MicroAma } from "./micro-ama";
+import { WallLab } from "./wall-lab";
 import { WallActions } from "./wall-actions";
 import { PopOutWall } from "./wall-companion";
 import { HackerTerminal } from "./hacker-terminal";
@@ -572,6 +573,7 @@ function WallView({
         <TakeoverSound changed={changed} />
         <PopOutWall />
         <WallActions name={owner?.displayName} />
+        <WallLab data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors + (sample?.uniqueVisitors ?? 0), number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: !!sample?.uniqueVisitors } : null} />
       </div>
       <PublicFooter home />
       <ResumeCheckout />

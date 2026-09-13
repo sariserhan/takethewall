@@ -1103,3 +1103,20 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 
 .wall-action{background:transparent;border:1px solid var(--ink);font:inherit;cursor:pointer;color:var(--ink)}
 .wall-action-status{flex-basis:100%;margin:0;overflow-wrap:anywhere}
+
+:root[data-wall-theme="obsidian"]{--paper:#000;--ink:#d8ff36;--muted:#b9c495;--rule:#65732c;color-scheme:dark}
+:root[data-wall-theme="obsidian"] .masthead h1,:root[data-wall-theme="obsidian"] .site-metrics strong{text-shadow:0 0 14px #d8ff3626}
+:root[data-wall-theme="obsidian"] .purchase-band,:root[data-wall-theme="obsidian"] .prize-next,:root[data-wall-theme="obsidian"] .community-event{color:#11110f}
+:root[data-wall-theme="obsidian"] .vote-controls button[aria-pressed=true]{color:#11110f}
+:root[data-wall-theme="obsidian"] .old-poster{background:#000}
+:root[data-wall-retro="on"] .wall-viewport{position:relative;border-radius:22px;text-shadow:1px 0 #ff477033,-1px 0 #47cfff33}
+:root[data-wall-retro="on"] .wall-viewport::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:22px;background:repeating-linear-gradient(0deg,transparent 0 3px,#00000012 3px 4px);box-shadow:inset 0 0 45px #0003}
+:root[data-wall-retro="on"] .wall-viewport::before{content:"● REC";position:absolute;top:8px;right:8px;z-index:6;background:#080a06;color:#d8ff36;padding:5px 8px;font:12px monospace;pointer-events:none}
+.globe-view{background:#080d07;color:#e4efc0;padding:20px;border:1px solid #65732c}.globe-view svg{display:block;width:min(100%,440px);margin:auto}.globe-view label{display:grid;gap:8px}.globe-view ul{columns:2;padding-left:20px}.globe-view li{break-inside:avoid;margin:8px 0}.globe-view button{border:1px solid #d8ff36;padding:8px 12px}
+.snapshot-panel img,.shatter-canvas{display:block;width:100%;height:auto;margin:16px 0}.qr-panel{text-align:center}.qr-panel img{width:min(100%,360px);height:auto;margin:auto;background:white}.audit-panel dd,.inspect-panel dd{margin:8px 0 20px;overflow-wrap:anywhere;font-family:monospace}.audit-records{max-height:350px;overflow:auto}.audit-records pre{white-space:pre-wrap;overflow-wrap:anywhere}.audit-records details{border-top:1px solid var(--rule);padding:12px 0}.whisper-log{max-height:320px;overflow:auto;overscroll-behavior:contain}.whisper-log p{border-bottom:1px solid var(--rule);padding:12px 0;overflow-wrap:anywhere}.whisper-log small{color:var(--muted)}.whisper-room form{display:grid;gap:12px}.whisper-room input{width:100%;padding:10px;border:1px solid var(--rule);background:var(--paper)}.whisper-room button,.snapshot-panel button,.audit-panel button{padding:10px 14px;border:1px solid var(--rule)}
+@media(max-width:600px){.globe-view ul{columns:1}.wall-tools{gap:8px}}
+@media(prefers-reduced-motion:reduce){:root[data-wall-retro="on"] .wall-viewport{text-shadow:none}}
+:root[data-wall-theme="obsidian"] :is(.notice,.preview,.primary,.close:hover,.milestone-sequence li.candidate,.prize-milestones a:hover,.permanent-emblem,.permanent-cta,.permanent-verifying,.trophy-ad,.demo-badge,.system-actions .button,.segment-error-mark,.preview-bottom,.owner-page .button,.owner-state.live,.owner-share-card,.delivery-list button,.owner-feedback button[aria-pressed=true],.takeover-arrived,.ownership-badge button){color:#11110f}
+:root[data-wall-theme="obsidian"] :is(.document-page,.admin-shell) :is(input,textarea,select){background:var(--paper);color:var(--ink);border-color:var(--rule)}
+:root[data-wall-theme="obsidian"] .mobile-purchase-bar .button{color:#11110f}
+.wall-action svg{width:15px;height:15px;flex-shrink:0;margin-right:6px}
