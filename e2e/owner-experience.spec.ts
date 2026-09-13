@@ -505,6 +505,13 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
   expect(intent.searchParams.get("url")).toContain("via=share");
   expect(intent.href).not.toContain("token");
 
+  await expect(page.getByRole("region", { name: "Social media referral sharing" })).toBeVisible();
+  await page.getByRole("button", { name: "Copy social post", exact: true }).click();
+  await expect(page.getByText("Social post copied.", { exact: true })).toBeVisible();
+  const socialPost = await page.evaluate(() => (window as unknown as { copiedBadge: string }).copiedBadge);
+  expect(socialPost).toContain("Who’s next?");
+  expect(socialPost).toContain("via=share");
+  expect(socialPost).not.toContain("token=");
   await page
     .getByText("Share your referral link · Website banner & footer", {
       exact: true,

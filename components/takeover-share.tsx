@@ -152,6 +152,14 @@ export function PublishedShare({
         onClose={() => setOpen(false)}
         title="YOUR TAKEOVER IS PUBLISHED."
       >
+        <p>
+          You can close this window. Your referral links and share cards stay
+          available in your owner dashboard. Reopen it using the private link in
+          your email, or request a fresh link with your purchase email.
+        </p>
+        <a href="/owner" className="button">
+          Open owner dashboard <Arrow />
+        </a>
         <TakeoverShare
           publicId={publicId}
           previousOwnerName={previousOwnerName}
