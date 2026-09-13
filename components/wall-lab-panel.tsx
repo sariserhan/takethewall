@@ -7,9 +7,8 @@ import type { Id } from "@/convex/_generated/dataModel";
 import type { WallSnapshot } from "@/lib/wall-snapshot";
 import { createWallSnapshot } from "@/lib/wall-snapshot";
 import { WallGlobe } from "./wall-globe";
-import { WallShatter } from "./wall-shatter";
 export type LabPanel =
-  "Globe" | "Snapshot" | "Audit" | "QR Code" | "Shatter";
+  "Globe" | "Snapshot" | "Audit" | "QR Code";
 export type LabData = WallSnapshot & {
   id: Id<"takeovers">;
   contentType: string;
@@ -34,7 +33,6 @@ export default function WallLabPanel({
   if (!data) return <p>Waiting for the current wall…</p>;
   if (panel === "Globe") return <WallGlobe regions={data.regions} />;
   if (panel === "Snapshot") return <Snapshot data={data} />;
-  if (panel === "Shatter") return <WallShatter name={data.name} />;
   return null;
 }
 function Qr() {

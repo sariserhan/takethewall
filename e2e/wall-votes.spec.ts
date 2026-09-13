@@ -239,7 +239,10 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
  expect(contrast.violations.flatMap(v=>v.nodes.map(n=>({html:n.html,summary:n.failureSummary})))).toEqual([]);
  await page.reload();
  await expect(page.locator("html")).toHaveAttribute("data-wall-theme","obsidian");
- await tools.getByRole("button",{name:/Retro/}).click();
+ await page.locator(".experiments-menu > summary").click();
+ await tools.getByRole("button",{name:"Decade Warp",exact:true}).click();
+ await page.getByRole("button",{name:"2077 · Neon future",exact:true}).click();
+ await page.keyboard.press("Escape");
  await expect(page.locator("html")).toHaveAttribute("data-wall-retro","on");
  expect(await page.evaluate(()=>getComputedStyle(document.body,"::before").content)).toContain("RETRO MODE");
  expect(await page.evaluate(()=>getComputedStyle(document.body,"::after").position)).toBe("fixed");
@@ -262,7 +265,9 @@ test("wall lab tools work without changing the owner", async ({page}, info) => {
    if(name==="Globe" || name==="Snapshot") await dialog.screenshot({path:`/tmp/ttw-lab-${name}-${info.project.name}.png`});
    await dialog.getByRole("button",{name:"Close dialog",exact:true}).click();
  }
- await tools.getByRole("button",{name:/Retro/}).click();
+ await tools.getByRole("button",{name:"Decade Warp",exact:true}).click();
+ await page.getByRole("button",{name:"Present day",exact:true}).click();
+ await page.keyboard.press("Escape");
  await tools.getByRole("button",{name:/Theme/}).click();
  await expect(page.locator("html")).toHaveAttribute("data-wall-theme","paper");
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
@@ -273,6 +278,7 @@ test("Freeze holds the displayed wall and Thaw catches up to the latest owner", 
  const state=await fixture(page);
  const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
  await page.goto("/");
+ await page.locator(".experiments-menu > summary").click();
  await page.locator(".wall-tools").getByRole("button",{name:"Freeze",exact:true}).click();
  const snapshot=page.locator(".cryo-snapshot");
  await expect(snapshot).toBeVisible();
@@ -317,6 +323,7 @@ test("Wall experiments work and the magnetic title is always enabled", async ({p
  await expect(page.getByRole("dialog").getByLabel(/Display name/)).toHaveValue("My launch");
  await expect(page.getByRole("dialog").getByLabel("Website URL",{exact:true})).toHaveValue("https://my-launch.com/");
  await page.keyboard.press("Escape");
+ await page.locator(".experiments-menu > summary").click();
  await page.getByRole("button",{name:"Hold",exact:true}).click();
  const pad=page.getByRole("button",{name:"PRESS & HOLD"});
  await pad.focus(); await page.keyboard.down("Space");
@@ -375,4 +382,29 @@ test("Whisper previews the latest three messages below voting and resets with th
  await expect(preview.getByRole("heading",{name:"Whispers about Owner 2"})).toBeVisible();
  await expect(preview).toContainText("No whispers yet. Start the conversation.");
  await expect(preview.getByLabel("Your whisper",{exact:true})).toHaveValue("");
+});
+
+test("Creative experiments provide local visuals, opt-in audio and printable bricks", async ({page},info)=>{
+ await fixture(page);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.locator('.experiments-menu > summary').click();
+ async function open(name:string){await page.locator('.experiment-menu-controls').getByRole('button',{name,exact:true}).click();return page.getByRole('dialog',{name,exact:true});}
+ let dialog=await open('Atmosphere');await dialog.getByRole('button',{name:'Rain',exact:true}).click();await expect(page.locator('.atmosphere-rain')).toBeAttached();await expect(dialog).toContainText('not a live weather report');await page.keyboard.press('Escape');
+ await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('.wall-atmosphere i').first().evaluate(el=>getComputedStyle(el).animationName)).toBe('none');await page.emulateMedia({reducedMotion:'no-preference'});
+ dialog=await open('Atmosphere');await dialog.getByRole('button',{name:'Clear / off',exact:true}).click();await page.keyboard.press('Escape');await expect(page.locator('.wall-atmosphere')).toHaveCount(0);
+ dialog=await open('Decade Warp');for(const [label,era] of [['1984 · Monochrome','1984'],['1996 · Early web','1996'],['2077 · Neon future','2077'],['Present day','present']]){await dialog.getByRole('button',{name:label,exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-wall-era',era);}await page.keyboard.press('Escape');
+ dialog=await open('Thermal');const thermal=dialog.locator('canvas');const blank=await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL());await thermal.focus();await page.keyboard.press('ArrowRight');expect(await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).not.toBe(blank);await dialog.getByRole('button',{name:'Clear trail'}).click();expect(await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).toBe(blank);await page.keyboard.press('Escape');
+ dialog=await open('Blacklight');await dialog.getByRole('button',{name:'Reveal all secrets'}).click();await expect(dialog).toContainText('One wall. Many stories.');await dialog.screenshot({path:`/tmp/ttw-blacklight-${info.project.name}.png`});await page.keyboard.press('Escape');
+ dialog=await open('Morse');await expect(dialog).toContainText('Radio silent.');await dialog.getByRole('button',{name:'Play Morse'}).click();await expect(dialog).toContainText('Transmitting…');await dialog.getByRole('button',{name:'Stop',exact:true}).click();await expect(dialog).toContainText('Radio silent.');await page.keyboard.press('Escape');
+ dialog=await open('Theremin');await dialog.getByRole('button',{name:'Start instrument'}).click();await expect(dialog).toContainText('Instrument ready');await dialog.getByRole('application').focus();await page.keyboard.press('ArrowRight');await dialog.getByRole('button',{name:'Stop instrument'}).click();await expect(dialog).toContainText('Sound off.');await page.keyboard.press('Escape');
+ dialog=await open('Origami');
+ for(const paper of ['A4','Letter']){
+ await dialog.getByLabel('Paper size').selectOption(paper);await dialog.getByRole('button',{name:'Generate paper brick'}).click();
+ await expect(dialog.getByAltText('Printable paper brick: six faces with fold lines and glue tabs')).toBeVisible();
+ const popupPromise=page.waitForEvent('popup');await dialog.getByRole('link',{name:`Print / Save as PDF · ${paper}`,exact:true}).click();const popup=await popupPromise;await popup.waitForLoadState();
+ await expect(popup.locator('svg')).toBeVisible();await expect(popup.locator('parsererror')).toHaveCount(0);
+ const pdf=await popup.pdf({path:`/tmp/ttw-paper-brick-${paper}-${info.project.name}.pdf`,preferCSSPageSize:true,printBackground:true});
+ expect((pdf.toString('latin1').match(/\/Type \/Page\b/g)||[]).length).toBe(1);
+ await popup.screenshot({path:`/tmp/ttw-paper-brick-${paper}-${info.project.name}.png`,fullPage:true});await popup.close();
+ }
+ await page.keyboard.press('Escape');expect(errors).toEqual([]);
 });

@@ -70,11 +70,9 @@ export function MagneticTitle() {
 export function WallExperiments({
   ownerId,
   name,
-  onTry,
 }: {
   ownerId?: string;
   name?: string;
-  onTry: () => void;
 }) {
   const [panel, setPanel] = useState<"Hold" | "Pulse" | null>(null),
     [rave, setRave] = useState(false),
@@ -128,9 +126,6 @@ export function WallExperiments({
   }, [rave, beat]);
   return (
     <>
-      <button className="wall-action" onClick={onTry}>
-        <WallToolIcon name="preview" /> Try Mine
-      </button>
       <button className="wall-action" onClick={() => setPanel("Hold")}>
         <WallToolIcon name="hold" /> Hold
       </button>

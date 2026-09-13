@@ -3,6 +3,8 @@ import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
 import { WhisperPreview } from "./whisper-room";
 import { KeepOrYeet } from "./keep-or-yeet";
 import { MicroAma } from "./micro-ama";
+import { WallCreativeTools } from "./wall-creative-tools";
+import { WallToolIcon } from "./wall-tool-icon";
 import { TryMine } from "./try-mine";
 import { MagneticTitle, WallExperiments } from "./wall-experiments";
 import { WallLab } from "./wall-lab";
@@ -581,7 +583,14 @@ function WallView({
         <TakeoverSound changed={changed} />
         <PopOutWall />
         <WallActions name={owner?.displayName} />
-        <WallExperiments ownerId={owner?.id} name={owner?.displayName} onTry={() => { setTrying(true); requestAnimationFrame(()=>document.querySelector(".try-mine")?.scrollIntoView({block:"center"})); }} />
+        <button className="wall-action" onClick={() => { setTrying(true); requestAnimationFrame(()=>document.querySelector(".try-mine")?.scrollIntoView({block:"center"})); }}><WallToolIcon name="preview" /> Try Mine</button>
+        <details className="experiments-menu">
+          <summary><WallToolIcon name="rave" /> Experiments</summary>
+          <div className="experiment-menu-controls">
+            <WallExperiments ownerId={owner?.id} name={owner?.displayName} />
+            <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
+          </div>
+        </details>
         <WallLab data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors + (sample?.uniqueVisitors ?? 0), number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: !!sample?.uniqueVisitors } : null} />
       </div>
       <PublicFooter home />

@@ -1177,3 +1177,38 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .whisper-room button:hover { background:var(--accent); color:#11110f; }
 .whisper-room p[role="status"]:empty { display:none; }
 @media(max-width:600px) { .whisper-preview {padding:18px;} .whisper-preview > .whisper-room .whisper-log {grid-template-columns:1fr;gap:0;} .whisper-preview > .whisper-room form {grid-template-columns:1fr;} }
+
+.experiments-menu > summary { display:flex; align-items:center; cursor:pointer; border:1px solid var(--ink); min-height:44px; padding:10px 16px; box-sizing:border-box; font-size:12px; }
+.experiments-menu[open] { flex-basis:100%; }
+.experiments-menu[open] > summary { width:max-content; margin-bottom:12px; }
+.experiment-menu-controls { display:flex; flex-wrap:wrap; gap:8px; padding:16px; border:1px solid var(--rule); }
+.creative-actions { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
+.creative-actions button,.creative-actions a { display:inline-flex; align-items:center; min-height:44px; padding:10px 16px; box-sizing:border-box; font:inherit; background:var(--paper);color:var(--ink);border:1px solid var(--rule);cursor:pointer; }
+.creative-actions button[aria-pressed=true] {background:var(--accent);color:#11110f;border-color:var(--ink);}
+.creative-actions button:disabled {opacity:.55;cursor:default;}
+.wall-atmosphere {position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden;opacity:.25;}
+.wall-atmosphere i {position:absolute;top:-12%;display:block;animation:sky-fall linear infinite;}
+.atmosphere-rain i {width:1px;height:8vh;background:#638fbe;transform:rotate(12deg);}
+.atmosphere-snow i {width:6px;height:6px;border-radius:50%;background:#b3cbd3;box-shadow:0 0 3px white;}
+.atmosphere-fog i {width:130vw;height:70vh;background:radial-gradient(ellipse,#97a7b1,transparent 65%);animation-name:sky-fog;}
+@keyframes sky-fall {to{top:110%;transform:translateX(-30px);}}
+@keyframes sky-fog {50%{transform:translate(-35vw,35vh);}to{transform:translate(-10vw,70vh);}}
+:root[data-wall-era="1984"] .wall-page {background:#fff;color:#111;--paper:#fff;--ink:#111;--muted:#444;--rule:#777;--accent:#ddd;}
+:root[data-wall-era="1984"] .wall-page :is(.masthead,.owner-section) {font-family:monospace;background-image:radial-gradient(#aaa .5px,transparent .5px);background-size:4px 4px;}
+:root[data-wall-era="1984"] .wall-page :is(.masthead h1,.owner-ad h2) {font-family:monospace;letter-spacing:-.075em;font-weight:900;}
+:root[data-wall-era="1984"] .wall-page .masthead h1 {font-size:10.5cqw;}
+:root[data-wall-era="1996"] .wall-page :is(.masthead,.owner-section) {font-family:"Comic Sans MS",cursive;background:linear-gradient(135deg,#fff6ce,#d3eaff);color:#111;--muted:#333;}
+:root[data-wall-era="1996"] .owner-section {border:4px ridge #b4bac4;}
+:root[data-wall-era="1996"] .owner-section::before {content:"WELCOME TO MY CORNER OF THE WEB";display:block;color:#123585;font:bold 12px monospace;padding:8px;}
+:root[data-wall-era="2077"] .wall-page :is(.masthead,.owner-section) {background:#091520;color:#b8fff0;border-color:#7cdbc6;text-shadow:0 0 10px #47cfba44;}
+.radio-lamp {width:36px;height:36px;margin:20px auto;border-radius:50%;background:#4a2911;border:3px solid #a96c2b;}
+.radio-lamp.lit {background:#ffcf75;box-shadow:0 0 24px #ffaf42;}
+.morse-code {white-space:pre-wrap;overflow-wrap:anywhere;line-height:2;max-height:200px;overflow:auto;font-size:18px;}
+.theremin-pad,.thermal-stage,.blacklight-stage {display:block;box-sizing:border-box;width:100%;height:auto;aspect-ratio:2/1;margin:20px 0;touch-action:none;border:1px solid var(--rule);background:#04050f;}
+.theremin-pad {position:relative;min-height:220px;overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0 49px,#91c4ff22 50px),linear-gradient(135deg,#14274b,#24153c);color:#def5ff;}
+.theremin-pad strong {position:absolute;left:20px;bottom:20px;pointer-events:none;font:14px monospace;}
+.theremin-pad span {position:absolute;transform:translate(-50%,-50%);width:35px;height:35px;border-radius:50%;border:1px solid #fff;box-shadow:0 0 30px #90f4ff;pointer-events:none;}
+.paper-brick label {display:grid;gap:8px;margin:16px 0;}
+.paper-brick select {padding:12px;background:var(--paper);color:var(--ink);border:1px solid var(--rule);font:inherit;}
+.paper-brick img {display:block;width:min(100%,570px);height:auto;margin:auto;background:white;}
+@media(prefers-reduced-motion:reduce) {.wall-atmosphere i {animation:none;top:40%;} .atmosphere-rain i{height:5vh;} .radio-lamp.lit{background:#4a2911;box-shadow:none;} }

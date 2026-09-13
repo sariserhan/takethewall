@@ -76,3 +76,18 @@
 - [x] **Rave:** optional smooth neon background and live-indicator pulse, separately enabled synthesized beat, reduced-motion support, and no audio while the tab is hidden or the wall is frozen.
 - [ ] **Radar / Sonar:** investigate VisitorPing support for genuine realtime arrival events and appropriately coarse locations before building live pings. Current 30-minute aggregate polling cannot supply city-level arrivals or visitor latency. Define retention, event limits, accessibility, and opt-in sound; never generate pretend live visitors or latency figures.
 - [ ] **Hold leaderboard:** only consider shared records after implementing server-verified timing, identity and anti-abuse rules. The browser-local badge is cosmetic.
+
+## Creative experiments
+
+- [x] **Atmosphere:** manual clear/rain/snow/fog, explicitly not real weather. Optional local visuals with reduced-motion support.
+- [x] **Decade Warp:** Present / 1984 / 1996 / 2077 selector replaces Retro. Checkout stays readable; no flashing text.
+- [x] **Thermal:** clearly labeled personal cursor/touch/keyboard trail; no shared tracking or network collection.
+- [x] **Morse:** public owner message translated to visible Morse and explicit Play/Stop audio; unsupported characters omitted, bounded length, stops when hidden or closed.
+- [x] **Blacklight:** local UV exploration of curated site Easter eggs, keyboard/touch support and reveal-all alternative.
+- [x] **Theremin:** separate play surface, explicit sound start/stop, pointer/touch/keyboard control, no ad-link clicks.
+- [x] **Origami Brick:** six-face printable SVG net with seven glue tabs, takeover artwork/number, live-homepage QR, A4/Letter print document and browser Save as PDF. Geometry and digital print output verified; physical assembly still needs a real paper trial.
+- [x] Group visual/audio toys under **Experiments**; keep core utility buttons and Try Mine directly accessible.
+- [ ] **Live Weather Sync:** optional owner-selected city, owner consent, weather provider, cached observations and source/update time. Do not infer owner location from audience countries. Manual Atmosphere is available now.
+- [ ] **Shared Thermal:** only after opt-in coarse cursor collection, throttled/batched updates, short retention, abuse/cost limits, and exclusion of forms/checkout/private pages. Never fabricate live spectators.
+- [ ] **Owner Blacklight messages:** opt-in moderated public messages and removal handling; never reveal hidden records or private credentials.
+- [ ] **Paper brick production polish:** physically test cut/fold fit with A4 and Letter printers before promoting it as an assembly-tested product; consider direct downloadable PDF generation later.

@@ -1,7 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { WallFreeze } from "./wall-freeze";
 import { Dialog } from "./dialog";
 import type { LabData, LabPanel } from "./wall-lab-panel";
 const Panel = dynamic(() => import("./wall-lab-panel"), {
@@ -10,14 +9,10 @@ const Panel = dynamic(() => import("./wall-lab-panel"), {
 });
 export function WallLab({ data }: { data: LabData | null }) {
   const [panel, setPanel] = useState<LabPanel | null>(null),
-    [dark, setDark] = useState(false),
-    [retro, setRetro] = useState(false);
+    [dark, setDark] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Read the stored browser preference after hydration.
     setDark(document.documentElement.dataset.wallTheme === "obsidian");
-    return () => {
-      delete document.documentElement.dataset.wallRetro;
-    };
   }, []);
   return (
     <>
@@ -37,23 +32,12 @@ export function WallLab({ data }: { data: LabData | null }) {
       >
         <ToolIcon name="Theme" /> Theme
       </button>
-      <button
-        className="wall-action"
-        aria-pressed={retro}
-        onClick={() => {
-          setRetro(!retro);
-          document.documentElement.dataset.wallRetro = retro ? "off" : "on";
-        }}
-      >
-        <ToolIcon name="Retro" /> Retro
-      </button>
       {(
         [
           "Globe",
           "Snapshot",
           "Audit",
           "QR Code",
-          "Shatter",
         ] as LabPanel[]
       ).map((name) => (
         <button
@@ -65,7 +49,6 @@ export function WallLab({ data }: { data: LabData | null }) {
           {name}
         </button>
       ))}
-      <WallFreeze name={data?.name} />
       <Dialog
         open={panel !== null}
         onClose={() => setPanel(null)}
