@@ -292,3 +292,50 @@ test("Freeze holds the displayed wall and Thaw catches up to the latest owner", 
  await page.keyboard.press("Escape");
  expect(errors).toEqual([]);
 });
+
+test("Try Mine, Hold, Pulse, Magnet and Rave are optional working tools", async ({page}, info) => {
+ await fixture(page);
+ await page.route("**/api/pulse",r=>r.fulfill({json:{status:200,elapsedMs:42,checkedAt:Date.now(),tlsVerified:true,outcome:"responded"}}));
+ await page.goto("/");
+ await page.getByRole("button",{name:"Try Mine",exact:true}).click();
+ await page.getByLabel("Your title",{exact:true}).fill("My launch");
+ await page.getByLabel("Your website",{exact:true}).fill("https://my-launch.com");
+ await expect(page.locator(".try-mine h2")).toHaveText("My launch");
+ await expect(page.locator(".try-mine")).toContainText("ONLY YOU SEE THIS");
+ await page.screenshot({path:`/tmp/ttw-try-mine-${info.project.name}.png`,fullPage:true});
+ await page.getByRole("button",{name:/Continue to checkout/}).click();
+ await expect(page.getByRole("dialog")).toBeVisible();
+ expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem("ttw-draft")!).displayName)).toBe("My launch");
+ await expect(page.getByRole("dialog").getByLabel(/Display name/)).toHaveValue("My launch");
+ await expect(page.getByRole("dialog").getByLabel("Website URL",{exact:true})).toHaveValue("https://my-launch.com/");
+ await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Hold",exact:true}).click();
+ const pad=page.getByRole("button",{name:"PRESS & HOLD"});
+ await pad.focus(); await page.keyboard.down("Space");
+ await expect(page.locator(".hold-pad")).toHaveAttribute("aria-pressed","true");
+ await page.waitForTimeout(250); await page.keyboard.up("Space");
+ await expect(page.locator(".hold-pad")).toHaveAttribute("aria-pressed","false");
+ expect(Number(await page.evaluate(()=>localStorage.getItem("ttw-hold-best")))).toBeGreaterThan(100);
+ await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Pulse",exact:true}).click();
+ await page.getByRole("button",{name:"Check website",exact:true}).click();
+ await expect(page.getByRole("dialog")).toContainText("HTTP 200");
+ await expect(page.getByRole("dialog")).toContainText("42 ms");
+ await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Magnet",exact:true}).click();
+ if(info.project.name==="desktop") {
+   const letter=page.locator(".magnetic-title span").nth(2);
+   await letter.hover();
+   await expect.poll(()=>letter.evaluate(el=>el.style.transform)).not.toBe("");
+ }
+ await page.getByRole("button",{name:"Rave",exact:true}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-rave","on");
+ await expect(page.getByRole("button",{name:"Rave beat off",exact:true})).toHaveAttribute("aria-pressed","false");
+ await page.getByRole("button",{name:"Rave beat off",exact:true}).click();
+ await expect(page.getByRole("button",{name:"Rave beat on",exact:true})).toHaveAttribute("aria-pressed","true");
+ await page.emulateMedia({reducedMotion:"reduce"});
+ expect(await page.locator(".wall-page").evaluate(el=>getComputedStyle(el,"::before").animationName)).toBe("none");
+ await page.getByRole("button",{name:"Rave",exact:true}).click();
+ await expect(page.locator("html")).toHaveAttribute("data-wall-rave","off");
+ await expect(page.getByRole("button",{name:/Rave beat/})).toHaveCount(0);
+});

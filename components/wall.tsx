@@ -2,6 +2,8 @@
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
 import { KeepOrYeet } from "./keep-or-yeet";
 import { MicroAma } from "./micro-ama";
+import { TryMine } from "./try-mine";
+import { MagneticTitle, WallExperiments } from "./wall-experiments";
 import { WallLab } from "./wall-lab";
 import { WallActions } from "./wall-actions";
 import { PopOutWall } from "./wall-companion";
@@ -96,6 +98,7 @@ function WallView({
   connected: boolean;
 }) {
   const [draftVersion, setDraftVersion] = useState(0);
+  const [trying, setTrying] = useState(false), [magnet, setMagnet] = useState(false);
   const [open, setOpen] = useState(false),
     [confirmation, setConfirmation] = useState<Confirmation | null>(null),
     [statusError, setStatusError] = useState(false),
@@ -165,7 +168,7 @@ function WallView({
     };
   }, [returnToken, owner?.id]);
   useEffect(() => {
-    if (!owner?.id || presentation) return;
+    if (!owner?.id || presentation || trying) return;
     const id = owner.id;
     let visible = false;
     const attempt = () => {
@@ -186,10 +189,11 @@ function WallView({
     if (adRef.current) observer.observe(adRef.current);
     document.addEventListener("visibilitychange", attempt);
     return () => {
+      visible = false;
       observer.disconnect();
       document.removeEventListener("visibilitychange", attempt);
     };
-  }, [owner?.id, presentation]);
+  }, [owner?.id, presentation, trying]);
   useEffect(() => {
     if (!owner?.id) return;
     if (previous.current && previous.current !== owner.id) {
@@ -236,7 +240,7 @@ function WallView({
     <main className="wall-page">
       <div className="wall-viewport">
         <header className="masthead">
-          <h1>TAKE THE WALL</h1>
+          <MagneticTitle enabled={magnet} />
           <div className="strap">
             <p>Your content takes over this page for $4.99.</p>
             <span className="connection">
@@ -324,13 +328,15 @@ function WallView({
             className={`eyebrow ownership-label${changed ? " takeover-arrived" : ""}`}
             aria-live="polite"
           >
-            {presentation
+            {trying
+              ? "TRY YOUR CONTENT ON THE WALL"
+              : presentation
               ? "SAMPLE CONTENT — NOT THE CURRENT OWNER"
               : changed
                 ? "THE WALL WAS JUST TAKEN"
                 : "THIS WALL CURRENTLY BELONGS TO"}
           </p>
-          {presentation ? (
+          {trying ? <TryMine onClose={() => setTrying(false)} onPrepare={() => { setTrying(false); setDraftVersion(v=>v+1); setOpen(true); }} /> : presentation ? (
             <div className="owner-ad demo-owner">
               <span className="demo-badge">Demo content</span>
               <h2>{presentation.displayName}</h2>
@@ -573,6 +579,7 @@ function WallView({
         <TakeoverSound changed={changed} />
         <PopOutWall />
         <WallActions name={owner?.displayName} />
+        <WallExperiments ownerId={owner?.id} name={owner?.displayName} magnet={magnet} onMagnet={() => { setMagnet(v=>!v); document.querySelector(".masthead")?.scrollIntoView({block:"start"}); }} onTry={() => { setTrying(true); requestAnimationFrame(()=>document.querySelector(".try-mine")?.scrollIntoView({block:"center"})); }} />
         <WallLab data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors + (sample?.uniqueVisitors ?? 0), number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: !!sample?.uniqueVisitors } : null} />
       </div>
       <PublicFooter home />
