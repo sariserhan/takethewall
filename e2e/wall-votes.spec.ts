@@ -293,7 +293,7 @@ test("Freeze holds the displayed wall and Thaw catches up to the latest owner", 
  expect(errors).toEqual([]);
 });
 
-test("Try Mine, Hold, Pulse, Magnet and Rave are optional working tools", async ({page}, info) => {
+test("Wall experiments work and the magnetic title is always enabled", async ({page}, info) => {
  await fixture(page);
  await page.route("**/api/pulse",r=>r.fulfill({json:{status:200,elapsedMs:42,checkedAt:Date.now(),tlsVerified:true,outcome:"responded"}}));
  await page.goto("/");
@@ -322,7 +322,7 @@ test("Try Mine, Hold, Pulse, Magnet and Rave are optional working tools", async 
  await expect(page.getByRole("dialog")).toContainText("HTTP 200");
  await expect(page.getByRole("dialog")).toContainText("42 ms");
  await page.keyboard.press("Escape");
- await page.getByRole("button",{name:"Magnet",exact:true}).click();
+ await expect(page.getByRole("button",{name:"Magnet",exact:true})).toHaveCount(0);
  if(info.project.name==="desktop") {
    const letter=page.locator(".magnetic-title span").nth(2);
    await letter.hover();

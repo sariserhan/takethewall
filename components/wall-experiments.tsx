@@ -7,10 +7,10 @@ import type { PulseResult } from "@/lib/site-pulse";
 const Hold = dynamic(() => import("./wall-hold").then((m) => m.WallHold), {
   ssr: false,
 });
-export function MagneticTitle({ enabled }: { enabled: boolean }) {
+export function MagneticTitle() {
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    if (!enabled || !title.current) return;
+    if (!title.current) return;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     const node = title.current;
     const letters = Array.from(node.querySelectorAll("span"));
@@ -56,7 +56,7 @@ export function MagneticTitle({ enabled }: { enabled: boolean }) {
       reduced.removeEventListener("change", leave);
       letters.forEach((el) => el.style.removeProperty("transform"));
     };
-  }, [enabled]);
+  }, []);
   return (
     <h1 ref={title} aria-label="TAKE THE WALL" className="magnetic-title">
       {Array.from("TAKE THE WALL").map((letter, i) => (
@@ -70,14 +70,10 @@ export function MagneticTitle({ enabled }: { enabled: boolean }) {
 export function WallExperiments({
   ownerId,
   name,
-  magnet,
-  onMagnet,
   onTry,
 }: {
   ownerId?: string;
   name?: string;
-  magnet: boolean;
-  onMagnet: () => void;
   onTry: () => void;
 }) {
   const [panel, setPanel] = useState<"Hold" | "Pulse" | null>(null),
@@ -140,14 +136,6 @@ export function WallExperiments({
       </button>
       <button className="wall-action" onClick={() => setPanel("Pulse")}>
         <WallToolIcon name="pulse" /> Pulse
-      </button>
-      <button
-        className="wall-action"
-        aria-pressed={magnet}
-        onClick={onMagnet}
-        title="Move your mouse over the title. Respects reduced motion."
-      >
-        <WallToolIcon name="magnet" /> Magnet
       </button>
       <button
         className="wall-action"

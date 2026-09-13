@@ -98,7 +98,7 @@ function WallView({
   connected: boolean;
 }) {
   const [draftVersion, setDraftVersion] = useState(0);
-  const [trying, setTrying] = useState(false), [magnet, setMagnet] = useState(false);
+  const [trying, setTrying] = useState(false);
   const [open, setOpen] = useState(false),
     [confirmation, setConfirmation] = useState<Confirmation | null>(null),
     [statusError, setStatusError] = useState(false),
@@ -240,7 +240,7 @@ function WallView({
     <main className="wall-page">
       <div className="wall-viewport">
         <header className="masthead">
-          <MagneticTitle enabled={magnet} />
+          <MagneticTitle />
           <div className="strap">
             <p>Your content takes over this page for $4.99.</p>
             <span className="connection">
@@ -579,7 +579,7 @@ function WallView({
         <TakeoverSound changed={changed} />
         <PopOutWall />
         <WallActions name={owner?.displayName} />
-        <WallExperiments ownerId={owner?.id} name={owner?.displayName} magnet={magnet} onMagnet={() => { setMagnet(v=>!v); document.querySelector(".masthead")?.scrollIntoView({block:"start"}); }} onTry={() => { setTrying(true); requestAnimationFrame(()=>document.querySelector(".try-mine")?.scrollIntoView({block:"center"})); }} />
+        <WallExperiments ownerId={owner?.id} name={owner?.displayName} onTry={() => { setTrying(true); requestAnimationFrame(()=>document.querySelector(".try-mine")?.scrollIntoView({block:"center"})); }} />
         <WallLab data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors + (sample?.uniqueVisitors ?? 0), number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: !!sample?.uniqueVisitors } : null} />
       </div>
       <PublicFooter home />

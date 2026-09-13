@@ -72,7 +72,7 @@
 - [x] **Try Mine:** private inline title/website preview, handed into the normal reviewed paid checkout; no invented spectator counts or reservation.
 - [x] **Hold:** mouse, touch, and keyboard challenge with a browser-local personal best and cosmetic 30-second Steady Hand badge. No global leaderboard or prize.
 - [x] **Pulse:** on-demand server HEAD check of the current published website, public-IP pinning, verified HTTPS connection, bounded requests, one-minute result reuse, and explicit inconclusive outcomes. No invented hosting-provider or edge-location claims.
-- [x] **Magnet:** optional mouse-driven spring motion on the masthead letters with reduced-motion support.
+- [x] **Magnet:** always-enabled mouse-driven spring motion on the masthead letters with reduced-motion support.
 - [x] **Rave:** optional smooth neon background and live-indicator pulse, separately enabled synthesized beat, reduced-motion support, and no audio while the tab is hidden or the wall is frozen.
 - [ ] **Radar / Sonar:** investigate VisitorPing support for genuine realtime arrival events and appropriately coarse locations before building live pings. Current 30-minute aggregate polling cannot supply city-level arrivals or visitor latency. Define retention, event limits, accessibility, and opt-in sound; never generate pretend live visitors or latency figures.
 - [ ] **Hold leaderboard:** only consider shared records after implementing server-verified timing, identity and anti-abuse rules. The browser-local badge is cosmetic.
