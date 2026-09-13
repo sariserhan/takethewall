@@ -1,3 +1,4 @@
+import { ownerAccess } from "./ownerModel";
 import { syncHall } from "./hallModel";
 import {
   internalQuery,
@@ -112,7 +113,11 @@ export const adminHistory = query({
   },
 });
 export const visit = internalMutation({
-  args: { publicId: v.string(), visitorHash: v.string() },
+  args: {
+    publicId: v.string(),
+    visitorHash: v.string(),
+    ownerToken: v.optional(v.string()),
+  },
   returns: v.boolean(),
   handler: async (ctx, a) => {
     if (
@@ -126,6 +131,29 @@ export const visit = internalMutation({
       .withIndex("by_publicId", (q) => q.eq("publicTakeoverId", a.publicId))
       .unique();
     if (!t || !visible(t)) return false;
+    if (a.ownerToken) {
+      const access = await ownerAccess(ctx, a.ownerToken).catch(() => null);
+      if (access) {
+        if (access.takeoverId === t._id) return false;
+        const source = await ctx.db
+          .query("purchases")
+          .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
+          .unique();
+        const own = await ctx.db
+          .query("purchases")
+          .withIndex("by_takeoverId", (q) =>
+            q.eq("takeoverId", access.takeoverId),
+          )
+          .unique();
+        if (
+          source?.buyerEmail &&
+          own?.buyerEmail &&
+          source.buyerEmail.toLowerCase() === own.buyerEmail.toLowerCase()
+        )
+          return false;
+      }
+    }
+
     const old = await ctx.db
       .query("referralVisits")
       .withIndex("by_source_visitor", (q) =>

@@ -230,3 +230,33 @@ it("admin can hide the public archive while preserving private tools and individ
   await admin.mutation(api.growth.setHistoryVisibility, { enabled: true });
   expect((await t.query(internal.growth.history, {}))?.entries).toHaveLength(1);
 });
+
+it("excludes authenticated owner visits, including another placement by the same email", async () => {
+  const { t, source, publicId, create, pay } = await setup();
+  const token = "a".repeat(64);
+  const { sha } = await import("../lib/audit");
+  await t.run((ctx) =>
+    ctx.db.insert("ownerAccess", {
+      takeoverId: source.takeoverId,
+      seed: "test",
+      tokenHash: sha(token),
+      unsubscribeHash: "test",
+      weeklyDigestEnabled: false,
+      createdAt: Date.now(),
+    }),
+  );
+  const visit = { publicId, visitorHash: "a".repeat(64), ownerToken: token };
+  expect(await t.mutation(internal.growth.visit, visit)).toBe(false);
+  const other = await create();
+  await pay(other.takeoverId);
+  const second = (await t.run((ctx) => ctx.db.get(other.takeoverId)))!;
+  expect(
+    await t.mutation(internal.growth.visit, {
+      ...visit,
+      publicId: second.publicTakeoverId!,
+    }),
+  ).toBe(false);
+  expect(
+    (await t.run((ctx) => ctx.db.get(source.takeoverId)))!.shareVisitors ?? 0,
+  ).toBe(0);
+});

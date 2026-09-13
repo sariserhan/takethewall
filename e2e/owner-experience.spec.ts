@@ -36,32 +36,62 @@ async function wallFixture(page: Page, impressions = 120) {
     r.fulfill({ status: 503, body: "" }),
   );
   await page.routeWebSocket(/convex.*\/sync/, (socket) => {
-    const ids = new Set<number>();
-    const server = socket.connectToServer();
+    let tick = 0,
+      version = {
+        querySet: 0,
+        identity: 0,
+        ts: Buffer.alloc(8).toString("base64"),
+      };
+    const value = (path: string) => {
+      if (path === "wall:current")
+        return {
+          owner: { ...owner, impressions },
+          totalVisitors: 42,
+          totalTakeovers: 16,
+          numberingOffset: 15,
+          visitorsToday: 10,
+          utcDate: "2026-09-14",
+          regions: [],
+          previousOwnerName: "House placement",
+          demoStats: null,
+          demoPresentation: null,
+        };
+      if (path === "checkoutControls:state") return { paused: false };
+      if (path === "wallVotes:totals") return { keep: 0, yeet: 0 };
+      if (path === "whispers:history")
+        return { page: [], isDone: true, continueCursor: "" };
+      return null;
+    };
     socket.onMessage((raw) => {
       const msg = JSON.parse(String(raw));
-      for (const c of msg.modifications ?? [])
-        if (c.type === "Add" && c.udfPath === "wall:current")
-          ids.add(c.queryId);
-      server.send(raw);
-    });
-    server.onMessage((raw) => {
-      const msg = JSON.parse(String(raw));
-      for (const c of msg.modifications ?? [])
-        if (c.type === "QueryUpdated" && ids.has(c.queryId))
-          c.value = {
-            owner: { ...owner, impressions },
-            totalVisitors: 42,
-            totalTakeovers: 16,
-            numberingOffset: 15,
-            visitorsToday: 10,
-            utcDate: "2026-09-14",
-            regions: [],
-            previousOwnerName: "House placement",
-            demoStats: null,
-            demoPresentation: null,
-          };
-      socket.send(JSON.stringify(msg));
+      if (msg.type !== "ModifyQuerySet") return;
+      const bytes = Buffer.alloc(8);
+      bytes.writeBigUInt64LE(BigInt(++tick));
+      const end = {
+        ...version,
+        querySet: msg.newVersion,
+        ts: bytes.toString("base64"),
+      };
+      socket.send(
+        JSON.stringify({
+          type: "Transition",
+          startVersion: version,
+          endVersion: end,
+          modifications: msg.modifications.map(
+            (q: { type: string; queryId: number; udfPath: string }) =>
+              q.type === "Remove"
+                ? { type: "QueryRemoved", queryId: q.queryId }
+                : {
+                    type: "QueryUpdated",
+                    queryId: q.queryId,
+                    value: value(q.udfPath),
+                    logLines: [],
+                    journal: null,
+                  },
+          ),
+        }),
+      );
+      version = end;
     });
   });
 }
@@ -449,20 +479,61 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
   await page.route("**/takeover/**/card*", (r) =>
     r.fulfill({ status: 404, body: "" }),
   );
-  await page.route("**/takeover/**/badge", r => r.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="64"><rect width="400" height="64" fill="#d8ff36"/><text x="20" y="38">TAKE THE WALL · PAST OWNER</text></svg>' }));
-  await page.addInitScript(() => Object.defineProperty(navigator, "clipboard", { value: { writeText: async (value: string) => { (window as unknown as { copiedBadge: string }).copiedBadge = value; } } }));
+  await page.route("**/takeover/**/badge", (r) =>
+    r.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="64"><rect width="400" height="64" fill="#d8ff36"/><text x="20" y="38">TAKE THE WALL · PAST OWNER</text></svg>',
+    }),
+  );
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: async (value: string) => {
+          (window as unknown as { copiedBadge: string }).copiedBadge = value;
+        },
+      },
+    }),
+  );
   await page.goto("/owner");
-  await page.getByText("Embed my ownership badge", { exact: true }).click();
+  await page
+    .getByText("Share your referral link · Website banner & footer", {
+      exact: true,
+    })
+    .click();
   const embed = page.getByLabel("Embed code", { exact: true });
-  await expect(embed).toHaveValue(/\[!\[My Take The Wall placement\]/);
+  await expect(embed).toHaveValue(/display:flex/);
   await expect(embed).not.toHaveValue(/token=|owner#/);
-  await page.getByRole("button", { name: "Copy badge code" }).click();
-  await expect(page.getByText("Badge code copied.")).toBeVisible();
-  expect(await page.evaluate(() => (window as unknown as { copiedBadge: string }).copiedBadge)).toBe(await embed.inputValue());
-  await page.getByLabel("Badge format").selectOption("html");
-  await expect(embed).toHaveValue(/<a href="https?:\/\/.*via=share"><img/);
-  await page.locator(".ownership-badge").screenshot({ path: `/tmp/ttw-badge-${test.info().project.name}.png` });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.getByRole("button", { name: "Copy embed code" }).click();
+  await expect(page.getByText("Embed code copied.")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { copiedBadge: string }).copiedBadge,
+    ),
+  ).toBe(await embed.inputValue());
+  await page.getByLabel("Embed style").selectOption("html");
+  await expect(embed).toHaveValue(/<a href="https?:\/\/.*via=share"/);
+  await page.getByLabel("Embed style").selectOption("footer");
+  await expect(embed).toHaveValue(/See my takeover on TakeTheWall/);
+  await expect(embed).not.toHaveValue(/<img/);
+  await page
+    .getByRole("button", { name: "Copy referral link", exact: true })
+    .click();
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { copiedBadge: string }).copiedBadge,
+    ),
+  ).toBe(await page.getByLabel("Your shareable referral link").inputValue());
+  await page.getByLabel("Embed style").selectOption("markdown");
+  await expect(embed).toHaveValue(/\[!\[My TakeTheWall placement\]/);
+  await page.getByLabel("Embed style").selectOption("banner");
+  await page
+    .locator(".ownership-badge")
+    .screenshot({ path: `/tmp/ttw-badge-${test.info().project.name}.png` });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+  ).toBe(false);
   await page.getByLabel("Share card format").selectOption("portrait");
   await expect(
     page.getByRole("link", { name: "Download card" }),
