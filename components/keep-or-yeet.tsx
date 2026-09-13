@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-export function KeepOrYeet({ takeoverId }: { takeoverId: Id<"takeovers"> }) {
+export function KeepOrYeet({ takeoverId, name }: { takeoverId: Id<"takeovers">; name: string }) {
   const totals = useQuery(api.wallVotes.totals, { takeoverId });
   const [choice, setChoice] = useState<"keep" | "yeet" | null>(null),
     [busy, setBusy] = useState(true),
@@ -60,6 +60,7 @@ export function KeepOrYeet({ takeoverId }: { takeoverId: Id<"takeovers"> }) {
       <div>
         <p className="eyebrow">AUDIENCE REACTION</p>
         <h2 id="keep-yeet-title">KEEP OR YEET?</h2>
+        <p className="vote-content-name">{name}</p>
         <p>Just for fun. Votes never change the price or remove the owner.</p>
       </div>
       <div className="vote-controls">

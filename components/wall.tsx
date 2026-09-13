@@ -527,7 +527,7 @@ function WallView({
           </button>
         </section>
       </div>
-      {owner && <KeepOrYeet key={"vote:"+owner.id} takeoverId={owner.id} />}
+      {owner && <KeepOrYeet key={"vote:"+owner.id} takeoverId={owner.id} name={owner.displayName} />}
       {owner && <MicroAma key={owner.id} takeoverId={owner.id} name={owner.displayName} />}
       <CommunityEvent />
       <HomepageMilestones />
