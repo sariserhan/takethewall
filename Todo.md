@@ -23,6 +23,11 @@
 - [ ] Add a country count to reign cards only after exposing a reliable distinct-country aggregate (exclude unknown regions). Do not infer country count from the top-regions list.
 - [ ] Add a cryptographic-proof badge only once the exact placement proof is independently verified; distinguish pending anchoring from confirmed Bitcoin anchoring and link to verification.
 
+## Publishing and physical archive ideas
+
+- [ ] **Annual Wall Almanac:** explore a limited-edition hardcover at year-end or every 10,000 takeovers, provisionally titled "Take The Wall: Year One — The Complete Historical Archive." Include eligible public placements, reign duration, dates, public IDs, and verified timestamp proofs only where available. Define reproduction permission, moderation/removal handling, archive cutoff, print layout, and proof verification before publishing. Validate demand with a sample/PDF and preorders; estimate printing, shipping, tax, and fulfillment before setting a $50–$100 price. Do not promise every placement or a Bitcoin proof for every entry until supported.
+- [ ] **Wall Gazette:** prototype a retro one-page recap of the previous UTC day's actual takeovers and recorded stats, generated after 00:00 UTC. Start as an admin-reviewed draft with an enable/disable control; publish less frequently when activity is low. Keep playful headlines grounded in facts, label AI-assisted satire, exclude private data and removed content, and never invent battles, visitors, nations, or verified proofs. Add issue deduplication, bounded generation cost, retries, and correction controls. Social distribution depends on the controlled publishing integration; email only to subscribers who opted into this content, with unsubscribe support.
+
 ## Deferred product changes — decide before building
 
 - [ ] Fifteen-minute shield: validate demand first. Define immediate vs queued takeover behavior, server-enforced expiry, concurrent checkout handling, pricing/tax, and clear purchase terms. Confirm the effect on milestone ordering and replaceability before implementation.
