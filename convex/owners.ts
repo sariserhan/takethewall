@@ -412,6 +412,7 @@ export const repeat = internalMutation({
     uploadKey: v.string(),
     buyerEmail: v.string(),
     weeklyDigestEnabled: v.boolean(),
+    amaEnabled: v.boolean(),
     canvasImages: v.optional(v.array(v.object({key:v.string(),url:v.string(),uploadKey:v.string()}))),
   }),
   handler: async (ctx, a) => {
@@ -465,6 +466,7 @@ export const repeat = internalMutation({
       uploadKey,
       buyerEmail: p?.buyerEmail ?? "",
       weeklyDigestEnabled: access.weeklyDigestEnabled,
+      amaEnabled: t.amaEnabled ?? false,
     };
   },
 });

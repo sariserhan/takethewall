@@ -192,3 +192,17 @@ it("skips notifications for handled questions and replaced owners", async () => 
   await t.mutation(internal.ama.notify, { takeoverId: id, since: next });
   expect(await t.run(ctx => ctx.db.query("transactionalMail").withIndex("by_key", q => q.eq("key", `ama:${id}:${next}`)).unique())).toBeNull();
 });
+
+it.each([undefined, false, true])("preserves checkout AMA opt-in %s and opens it only after paid activation", async (enabled) => {
+  const { t } = await setup();
+  const pending = await t.mutation(internal.purchases.pending, {
+    requestKey: "ama-checkout", fingerprint: "ama-checkout", tokenHash: "confirmation",
+    ownerHash: "buyer", uploadKey: "", contentType: "personal", displayName: "New owner",
+    websiteUrl: "", description: "Ask me about my project", buyerEmail: "buyer@example.com", environment: "test",
+    ...(enabled === undefined ? {} : { amaEnabled: enabled }),
+  });
+  expect((await t.run(ctx => ctx.db.get(pending.takeoverId)))?.amaEnabled).toBe(enabled ?? false);
+  expect(await t.query(api.ama.current, {takeoverId:pending.takeoverId})).toBeNull();
+  await t.mutation(internal.purchases.activate, {takeoverId:pending.takeoverId,eventId:"evt_ama",sessionId:"cs_ama",paymentIntentId:"pi_ama",amountCents:499,currency:"usd",paid:true,livemode:false});
+  expect(await t.query(api.ama.current, {takeoverId:pending.takeoverId})).toEqual(enabled ? {answers:[]} : null);
+});

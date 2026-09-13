@@ -97,6 +97,7 @@ export async function POST(req: Request) {
           a.uploadKey,
           designUploadReferences(a.canvasImages),
           a.weeklyDigestEnabled !== false,
+          a.amaEnabled === true,
         ]),
       ),
       tokenHash: hash(token),
@@ -112,6 +113,7 @@ export async function POST(req: Request) {
       linkType: content.linkType,
       buyerEmail,
       weeklyDigestEnabled: a.weeklyDigestEnabled !== false,
+      amaEnabled: a.amaEnabled === true,
       environment,
     });
     const session = await paymentProvider.createCheckout(

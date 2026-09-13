@@ -956,7 +956,12 @@ test("designer uploads appear immediately and independent button links survive p
  expect(d.blocks.filter((b:{type:string})=>b.type==="image")).toHaveLength(3);
  expect(d.blocks.map((b:{href?:string})=>b.href)).toContain("https://example.com/shop");
  expect(d.blocks.map((b:{href?:string})=>b.href)).toContain("https://example.org/contact");
+ const ama = dialog.getByRole("checkbox",{name:"Accept questions while I own the wall",exact:true});
+ await expect(ama).not.toBeChecked();
+ await ama.check();
+ expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem("ttw-draft")!).amaEnabled)).toBe(true);
  await dialog.getByRole("button",{name:"PREVIEW YOUR TAKEOVER"}).click();
+ await expect(dialog).toContainText("Live micro-AMA: On");
  await expect(dialog.locator(".takeover-preview .canvas-image img")).toHaveCount(3);
  await expect(dialog.locator(".takeover-preview .canvas-block a")).toHaveCount(0);
  await expect(dialog).toContainText("Draft saved in this tab");

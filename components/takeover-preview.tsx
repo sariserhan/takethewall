@@ -18,6 +18,7 @@ export function TakeoverPreview({
     logoUrl: string;
     contentType: string;
     canvasDesign?: string;
+    amaEnabled?: boolean;
     canvasImages?: import("@/lib/wall-design").DesignImage[];
   };
 }) {
@@ -47,6 +48,14 @@ export function TakeoverPreview({
           ))}
         </div>
       </div>
+      {finalReview && (
+        <p className="preview-review-note">
+          <strong>Live micro-AMA: {draft.amaEnabled ? "On" : "Off"}</strong>
+          {draft.amaEnabled
+            ? " — Visitors can ask questions during your reign. Answer from your owner dashboard."
+            : " — You can enable it later in your owner dashboard."}
+        </p>
+      )}
       {finalReview && (
         <p className="preview-review-note">
           Switch between Desktop and Mobile to review your layout. Use Edit

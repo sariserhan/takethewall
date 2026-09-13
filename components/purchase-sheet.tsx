@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
 import { validateEmail } from "@/lib/validation";
 interface Draft {
+  amaEnabled: boolean;
   weeklyDigestEnabled: boolean;
   contentType: "link" | "personal";
   category: "website" | "app" | "social" | "personal";
@@ -36,6 +37,7 @@ interface Draft {
   requestKey: string;
 }
 const empty: Draft = {
+  amaEnabled: false,
   weeklyDigestEnabled: true,
   contentType: "link",
   category: "website",
@@ -445,6 +447,30 @@ export function PurchaseSheet({
                     change({ canvasDesign, canvasImages })
                   }
                 />
+                <section
+                  className="purchase-ama"
+                  aria-labelledby="purchase-ama-title"
+                >
+                  <h3 id="purchase-ama-title">Live micro-AMA</h3>
+                  <label className="check-label">
+                    <input
+                      type="checkbox"
+                      checked={draft.amaEnabled}
+                      onChange={(e) => change({ amaEnabled: e.target.checked })}
+                    />
+                    Accept questions while I own the wall
+                  </label>
+                  <p className="field-note">
+                    Visitors can ask about your content once your takeover goes
+                    live. Answer from your private owner dashboard; only
+                    questions you answer appear publicly below the wall.
+                  </p>
+                  <p className="field-note">
+                    New questions are grouped into email notifications every
+                    five minutes. You can turn this off in your dashboard
+                    anytime.
+                  </p>
+                </section>
                 <MorseMessageField
                   value={draft.morseMessage}
                   fallback={draft.description || draft.displayName}

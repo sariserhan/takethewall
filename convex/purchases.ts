@@ -29,6 +29,7 @@ import { validateEmail } from "../lib/validation";
 export const pending = internalMutation({
   args: {
     referralPublicId: v.optional(v.string()),
+    amaEnabled: v.optional(v.boolean()),
     weeklyDigestEnabled: v.optional(v.boolean()),
     expectedCurrentId: v.optional(v.id("takeovers")),
     requestKey: v.string(),
@@ -107,6 +108,7 @@ export const pending = internalMutation({
       ...content,
       ...(upload?.storageId ? { logoStorageId: upload.storageId } : {}),
       kind: "paid",
+      amaEnabled: a.amaEnabled ?? false,
       status: "pending",
       blocked: false,
       createdAt: Date.now(),
