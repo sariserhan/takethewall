@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
 import { WallCanvas } from "./wall-canvas";
 import {
@@ -11,6 +11,11 @@ import {
   type DesignBlock,
   type DesignBox,
 } from "@/lib/wall-design";
+type DesignSnapshot = {
+  value: string;
+  images: DesignImage[];
+  selected: string;
+};
 export default function WallDesigner({
   value,
   images,
@@ -35,7 +40,12 @@ export default function WallDesigner({
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop"),
     [selected, setSelected] = useState(""),
     [pending, setPending] = useState(false);
+  const [past, setPast] = useState<DesignSnapshot[]>([]);
+  const [future, setFuture] = useState<DesignSnapshot[]>([]);
+  const [overflow, setOverflow] = useState<string[]>([]);
+  const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<{
+    recorded: boolean;
     id: string;
     x: number;
     y: number;
@@ -52,8 +62,71 @@ export default function WallDesigner({
   }
   const d = design;
   const block = d?.blocks.find((b) => b.id === selected);
-  const save = (next: NonNullable<typeof d>) =>
-    onChange(JSON.stringify(next), images);
+  const commit = (nextValue: string, nextImages = images) => {
+    if (nextValue === value && nextImages === images) return;
+    if (!drag.current?.recorded) {
+      setPast((items) => [...items.slice(-59), { value, images, selected }]);
+      if (drag.current) drag.current.recorded = true;
+    }
+    setFuture([]);
+    onChange(nextValue, nextImages);
+  };
+  const restore = (redo = false) => {
+    if (pending) return;
+    const source = redo ? future : past;
+    const snapshot = source.at(-1);
+    if (!snapshot) return;
+    const current = { value, images, selected };
+    if (redo) {
+      setFuture(source.slice(0, -1));
+      setPast((items) => [...items.slice(-59), current]);
+    } else {
+      setPast(source.slice(0, -1));
+      setFuture((items) => [...items.slice(-59), current]);
+    }
+    drag.current = null;
+    setSelected(snapshot.selected);
+    onChange(snapshot.value, snapshot.images);
+  };
+  const save = (next: NonNullable<typeof d>) => commit(JSON.stringify(next));
+  useEffect(() => {
+    const canvas = stage.current;
+    if (!canvas) return;
+    let disposed = false;
+    const measure = () => {
+      if (disposed) return;
+      const ids = Array.from(
+        canvas.querySelectorAll<HTMLElement>(".canvas-block"),
+      )
+        .filter((element) => {
+          const text = element.querySelector<HTMLElement>(
+            "h2,p,.canvas-link-preview",
+          );
+          if (!text) return false;
+          const box = element.getBoundingClientRect();
+          const content = text.getBoundingClientRect();
+          return (
+            content.height > box.height - 8 + 1 ||
+            text.scrollWidth > text.clientWidth + 1 ||
+            content.top + Math.max(content.height, text.scrollHeight) >
+              box.bottom + 1
+          );
+        })
+        .map((element) => element.dataset.blockId!);
+      setOverflow((current) => (current.join() === ids.join() ? current : ids));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    canvas
+      .querySelectorAll(".canvas-block")
+      .forEach((element) => observer.observe(element));
+    void document.fonts.ready.then(measure);
+    measure();
+    return () => {
+      disposed = true;
+      observer.disconnect();
+    };
+  }, [value, device]);
   const update = (patch: Partial<DesignBlock>) => {
     if (d && block)
       save({
@@ -83,6 +156,19 @@ export default function WallDesigner({
       className="wall-designer"
       aria-label="Wall Designer"
       data-active={!!d}
+      onKeyDown={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest("input,textarea,select,[contenteditable=true]"))
+          return;
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          !e.altKey &&
+          ["z", "y"].includes(e.key.toLowerCase())
+        ) {
+          e.preventDefault();
+          restore(e.key.toLowerCase() === "y" || e.shiftKey);
+        }
+      }}
     >
       <div className="designer-heading">
         <div>
@@ -97,7 +183,7 @@ export default function WallDesigner({
             type="button"
             aria-pressed={!d}
             disabled={pending}
-            onClick={() => onChange("", images)}
+            onClick={() => commit("", images)}
           >
             Quick setup
           </button>
@@ -123,6 +209,24 @@ export default function WallDesigner({
             Design my wall
           </button>
         </div>
+      </div>
+      <div className="designer-actions" aria-label="Design history">
+        <button
+          type="button"
+          disabled={!past.length || pending}
+          onClick={() => restore()}
+          title="Undo (Ctrl/Cmd+Z)"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          disabled={!future.length || pending}
+          onClick={() => restore(true)}
+          title="Redo (Ctrl/Cmd+Shift+Z)"
+        >
+          Redo
+        </button>
       </div>
       {d && (
         <>
@@ -179,9 +283,76 @@ export default function WallDesigner({
               Stack mobile blocks
             </button>
           </div>
+          <div
+            className="designer-canvas-toolbar"
+            aria-label="Add wall content"
+          >
+            <strong>Add to your wall</strong>
+            <div className="designer-add-blocks">
+              {(["heading", "text", "image", "button"] as const).map((type) => (
+                <button
+                  type="button"
+                  key={type}
+                  disabled={d.blocks.length >= 24}
+                  onClick={() => {
+                    const b = newDesignBlock(type, d.blocks.length);
+                    if (type === "text" || type === "heading")
+                      b.color =
+                        d.blocks.find(
+                          (existing) =>
+                            existing.type === "heading" ||
+                            existing.type === "text",
+                        )?.color ?? "#11110f";
+                    if (type === "image")
+                      b.image = availableImages[0]?.key ?? "";
+                    save({ ...d, blocks: [...d.blocks, b] });
+                    setSelected(b.id);
+                  }}
+                >
+                  <span aria-hidden="true">
+                    {type === "heading" ? (
+                      "H"
+                    ) : type === "text" ? (
+                      "T"
+                    ) : (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        aria-hidden="true"
+                      >
+                        {type === "image" ? (
+                          <>
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8" cy="8" r="1.5" />
+                            <path d="m3 17 6-6 4 4 3-3 5 5" />
+                          </>
+                        ) : (
+                          <>
+                            <rect x="3" y="7" width="18" height="10" rx="2" />
+                            <path d="M7 12h10m-3-3 3 3-3 3" />
+                          </>
+                        )}
+                      </svg>
+                    )}
+                  </span>
+                  Add {type}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="designer-device-note">
+            Editing {device === "desktop" ? "desktop" : "mobile"} layout ·
+            Switch above to check both screen sizes. Positions and sizes are
+            independent.
+          </p>
           <div className="designer-workspace">
             <div>
               <div
+                ref={stage}
                 className={`designer-stage ${device}`}
                 tabIndex={0}
                 aria-label="Design canvas. Select a block to drag; arrow keys move the selected block; Delete removes it."
@@ -237,6 +408,7 @@ export default function WallDesigner({
                     e.currentTarget
                   ).getBoundingClientRect();
                   drag.current = {
+                    recorded: false,
                     id: b.id,
                     x: e.clientX,
                     y: e.clientY,
@@ -297,8 +469,32 @@ export default function WallDesigner({
                   selected={selected}
                   onDelete={removeBlock}
                   deleteDisabled={d.blocks.length <= 1 || pending}
+                  overflowing={overflow}
                 />
               </div>
+              {overflow.length > 0 && (
+                <div className="designer-overflow-warning" role="status">
+                  <strong>
+                    Text doesn’t fit in {overflow.length}{" "}
+                    {overflow.length === 1 ? "block" : "blocks"} on {device}.
+                  </strong>
+                  <p>
+                    Enlarge the block, reduce its font size, or shorten the
+                    text. Check the other layout too.
+                  </p>
+                  {d.blocks
+                    .filter((b) => overflow.includes(b.id))
+                    .map((b) => (
+                      <button
+                        type="button"
+                        key={b.id}
+                        onClick={() => setSelected(b.id)}
+                      >
+                        Edit {b.type}: {b.text.slice(0, 25) || "Untitled"}
+                      </button>
+                    ))}
+                </div>
+              )}
               <p className="field-note">
                 Drag to move, use the corner to resize, or press Delete to
                 remove a selected block. Mobile positions are independent. Give
@@ -386,7 +582,7 @@ export default function WallDesigner({
                             )
                           : [...d.blocks, nextBlock],
                     };
-                    onChange(JSON.stringify(next), [...images, asset]);
+                    commit(JSON.stringify(next), [...images, asset]);
                     setSelected(nextBlock.id);
                   }}
                 />
@@ -394,7 +590,7 @@ export default function WallDesigner({
                   type="button"
                   disabled={pending}
                   onClick={() =>
-                    onChange(
+                    commit(
                       value,
                       images.filter((image) =>
                         designImageKeys(d).includes(image.key),
@@ -406,44 +602,7 @@ export default function WallDesigner({
                 </button>
               </div>
               <div className="designer-control-group">
-                <h4>Add & select · {d.blocks.length}/24</h4>
-                <div className="designer-add-blocks">
-                  {(["heading", "text", "image", "button"] as const).map(
-                    (type) => (
-                      <button
-                        type="button"
-                        key={type}
-                        disabled={d.blocks.length >= 24}
-                        onClick={() => {
-                          const b = newDesignBlock(type, d.blocks.length);
-                          if (type === "text" || type === "heading")
-                            b.color =
-                              d.blocks.find(
-                                (existing) =>
-                                  existing.type === "heading" ||
-                                  existing.type === "text",
-                              )?.color ?? "#11110f";
-                          if (type === "image")
-                            b.image = availableImages[0]?.key ?? "";
-                          save({ ...d, blocks: [...d.blocks, b] });
-                          setSelected(b.id);
-                        }}
-                      >
-                        <span aria-hidden="true">
-                          {
-                            {
-                              heading: "H",
-                              text: "¶",
-                              image: "▧",
-                              button: "↗",
-                            }[type]
-                          }
-                        </span>
-                        Add {type}
-                      </button>
-                    ),
-                  )}
-                </div>
+                <h4>Select a block · {d.blocks.length}/24</h4>
                 <label>
                   Selected block
                   <select
@@ -463,199 +622,197 @@ export default function WallDesigner({
                   it. Keep at least one block in your design.
                 </p>
               </div>
-              <div className="designer-control-group designer-block-settings">
-                <h4>Selected block settings</h4>
-                {!block && (
-                  <p className="field-note">
-                    Choose a block to edit its text, appearance, size, and
-                    position.
-                  </p>
-                )}
-                {block && (
-                  <>
-                    <label>
-                      {block.type === "image"
-                        ? "Image description"
-                        : "Block text"}
-                      <textarea
-                        maxLength={1000}
-                        value={block.text}
-                        onChange={(e) => update({ text: e.target.value })}
-                      />
-                    </label>
-                    {block.type === "button" && (
+              {block && (
+                <div className="designer-control-group designer-block-settings">
+                  <h4>Selected {block.type} settings</h4>
+                  {block && (
+                    <>
                       <label>
-                        Button destination URL
-                        <input
-                          type="url"
-                          value={block.href ?? ""}
-                          placeholder="https://your-website.com/page"
-                          onChange={(e) => update({ href: e.target.value })}
+                        {block.type === "image"
+                          ? "Image description"
+                          : "Block text"}
+                        <textarea
+                          maxLength={1000}
+                          value={block.text}
+                          onChange={(e) => update({ text: e.target.value })}
                         />
-                        <small>
-                          Leave blank to use your main website link.
-                        </small>
                       </label>
-                    )}
-                    {block.type === "image" ? (
-                      <>
+                      {block.type === "button" && (
                         <label>
-                          Block image
-                          <select
-                            value={block.image}
-                            onChange={(e) => update({ image: e.target.value })}
-                          >
-                            <option value="">Choose image</option>
-                            {availableImages.map((a, i) => (
-                              <option key={a.key} value={a.key}>
-                                Image {i + 1}
-                              </option>
-                            ))}
-                          </select>
+                          Button destination URL
+                          <input
+                            type="url"
+                            value={block.href ?? ""}
+                            placeholder="https://your-website.com/page"
+                            onChange={(e) => update({ href: e.target.value })}
+                          />
+                          <small>
+                            Leave blank to use your main website link.
+                          </small>
                         </label>
-                        <label>
-                          Image crop
-                          <select
-                            value={block.fit}
-                            onChange={(e) =>
-                              update({
-                                fit: e.target.value as "cover" | "contain",
-                              })
-                            }
-                          >
-                            <option value="contain">Fit entire image</option>
-                            <option value="cover">Fill and crop</option>
-                          </select>
-                        </label>
-                      </>
-                    ) : (
-                      <>
-                        <div className="designer-actions">
+                      )}
+                      {block.type === "image" ? (
+                        <>
                           <label>
-                            Text color
-                            <input
-                              type="color"
-                              value={block.color}
+                            Block image
+                            <select
+                              value={block.image}
                               onChange={(e) =>
-                                update({ color: e.target.value })
+                                update({ image: e.target.value })
                               }
-                            />
+                            >
+                              <option value="">Choose image</option>
+                              {availableImages.map((a, i) => (
+                                <option key={a.key} value={a.key}>
+                                  Image {i + 1}
+                                </option>
+                              ))}
+                            </select>
                           </label>
-                          {block.type === "button" && (
+                          <label>
+                            Image crop
+                            <select
+                              value={block.fit}
+                              onChange={(e) =>
+                                update({
+                                  fit: e.target.value as "cover" | "contain",
+                                })
+                              }
+                            >
+                              <option value="contain">Fit entire image</option>
+                              <option value="cover">Fill and crop</option>
+                            </select>
+                          </label>
+                        </>
+                      ) : (
+                        <>
+                          <div className="designer-actions">
                             <label>
-                              Button color
+                              Text color
                               <input
                                 type="color"
-                                value={block.fill}
+                                value={block.color}
                                 onChange={(e) =>
-                                  update({ fill: e.target.value })
+                                  update({ color: e.target.value })
                                 }
                               />
                             </label>
-                          )}
-                        </div>
-                        <label>
-                          Font
-                          <select
-                            value={block.font}
-                            onChange={(e) =>
-                              update({
-                                font: e.target.value as DesignBlock["font"],
-                              })
-                            }
-                          >
-                            <option value="display">Bold display</option>
-                            <option value="sans">Sans serif</option>
-                            <option value="serif">Classic serif</option>
-                          </select>
-                        </label>
-                        <label>
-                          Text size
-                          <input
-                            type="range"
-                            min={12}
-                            max={96}
-                            value={block.size}
-                            onChange={(e) =>
-                              update({ size: Number(e.target.value) })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Text alignment
-                          <select
-                            value={block.align}
-                            onChange={(e) =>
-                              update({
-                                align: e.target.value as DesignBlock["align"],
-                              })
-                            }
-                          >
-                            <option value="left">Left</option>
-                            <option value="center">Center</option>
-                            <option value="right">Right</option>
-                          </select>
-                        </label>
-                      </>
-                    )}
-                    <div className="designer-coordinates">
-                      {(["x", "y", "w", "h"] as const).map((k, i) => (
-                        <label key={k}>
-                          {["Left %", "Top %", "Width %", "Height %"][i]}
-                          <input
-                            type="number"
-                            min={k === "w" || k === "h" ? 5 : 0}
-                            max={100}
-                            value={Math.round(block[device][k] * 10) / 10}
-                            onChange={(e) =>
-                              boxUpdate({ [k]: Number(e.target.value) })
-                            }
-                          />
-                        </label>
-                      ))}
-                    </div>
-                    <div className="designer-actions">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          save({
-                            ...d,
-                            blocks: [
-                              ...d.blocks.filter((b) => b.id !== block.id),
-                              block,
-                            ],
-                          })
-                        }
-                      >
-                        Bring to front
-                      </button>
-                      <button
-                        type="button"
-                        disabled={d.blocks.length >= 24}
-                        onClick={() => {
-                          const copy = {
-                            ...block,
-                            id: crypto.randomUUID(),
-                            desktop: { ...block.desktop },
-                            mobile: { ...block.mobile },
-                          };
-                          save({ ...d, blocks: [...d.blocks, copy] });
-                          setSelected(copy.id);
-                        }}
-                      >
-                        Duplicate block
-                      </button>
-                      <button
-                        type="button"
-                        disabled={d.blocks.length <= 1 || pending}
-                        onClick={() => removeBlock(block.id)}
-                      >
-                        Remove block
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+                            {block.type === "button" && (
+                              <label>
+                                Button color
+                                <input
+                                  type="color"
+                                  value={block.fill}
+                                  onChange={(e) =>
+                                    update({ fill: e.target.value })
+                                  }
+                                />
+                              </label>
+                            )}
+                          </div>
+                          <label>
+                            Font
+                            <select
+                              value={block.font}
+                              onChange={(e) =>
+                                update({
+                                  font: e.target.value as DesignBlock["font"],
+                                })
+                              }
+                            >
+                              <option value="display">Bold display</option>
+                              <option value="sans">Sans serif</option>
+                              <option value="serif">Classic serif</option>
+                            </select>
+                          </label>
+                          <label>
+                            Text size
+                            <input
+                              type="range"
+                              min={12}
+                              max={96}
+                              value={block.size}
+                              onChange={(e) =>
+                                update({ size: Number(e.target.value) })
+                              }
+                            />
+                          </label>
+                          <label>
+                            Text alignment
+                            <select
+                              value={block.align}
+                              onChange={(e) =>
+                                update({
+                                  align: e.target.value as DesignBlock["align"],
+                                })
+                              }
+                            >
+                              <option value="left">Left</option>
+                              <option value="center">Center</option>
+                              <option value="right">Right</option>
+                            </select>
+                          </label>
+                        </>
+                      )}
+                      <div className="designer-coordinates">
+                        {(["x", "y", "w", "h"] as const).map((k, i) => (
+                          <label key={k}>
+                            {["Left %", "Top %", "Width %", "Height %"][i]}
+                            <input
+                              type="number"
+                              min={k === "w" || k === "h" ? 5 : 0}
+                              max={100}
+                              value={Math.round(block[device][k] * 10) / 10}
+                              onChange={(e) =>
+                                boxUpdate({ [k]: Number(e.target.value) })
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <div className="designer-actions">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            save({
+                              ...d,
+                              blocks: [
+                                ...d.blocks.filter((b) => b.id !== block.id),
+                                block,
+                              ],
+                            })
+                          }
+                        >
+                          Bring to front
+                        </button>
+                        <button
+                          type="button"
+                          disabled={d.blocks.length >= 24}
+                          onClick={() => {
+                            const copy = {
+                              ...block,
+                              id: crypto.randomUUID(),
+                              desktop: { ...block.desktop },
+                              mobile: { ...block.mobile },
+                            };
+                            save({ ...d, blocks: [...d.blocks, copy] });
+                            setSelected(copy.id);
+                          }}
+                        >
+                          Duplicate block
+                        </button>
+                        <button
+                          type="button"
+                          disabled={d.blocks.length <= 1 || pending}
+                          onClick={() => removeBlock(block.id)}
+                        >
+                          Remove block
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </>

@@ -13,6 +13,7 @@ export function WallCanvas({
   selected,
   onDelete,
   deleteDisabled = false,
+  overflowing = [],
 }: {
   design: string;
   images?: DesignImage[];
@@ -24,6 +25,7 @@ export function WallCanvas({
   selected?: string;
   onDelete?: (id: string) => void;
   deleteDisabled?: boolean;
+  overflowing?: string[];
 }) {
   let d;
   try {
@@ -89,6 +91,9 @@ export function WallCanvas({
               <div
                 className={`canvas-block canvas-${b.type}${editing ? " editable" : ""}${selected === b.id ? " selected" : ""}`}
                 data-block-id={b.id}
+                data-overflow={
+                  (editing && overflowing.includes(b.id)) || undefined
+                }
                 key={b.id}
                 style={styles}
               >

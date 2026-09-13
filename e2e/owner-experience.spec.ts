@@ -937,6 +937,10 @@ test("designer uploads appear immediately and independent button links survive p
   await designer.locator('input[type="file"]').setInputFiles({name:"image.png",mimeType:"image/png",buffer:png});
   await designer.getByRole("button",{name:"Apply image",exact:true}).click();
   await expect(designer.locator(".canvas-image img")).toHaveCount(i);
+  await designer.getByRole("button",{name:"Undo",exact:true}).click();
+  await expect(designer.locator(".canvas-image img")).toHaveCount(i-1);
+  await designer.getByRole("button",{name:"Redo",exact:true}).click();
+  await expect(designer.locator(".canvas-image img")).toHaveCount(i);
  }
  await dialog.getByLabel(/Optional avatar\/image/).setInputFiles({name:"main.png",mimeType:"image/png",buffer:png});
  await dialog.getByRole("button",{name:"Apply image",exact:true}).click();
@@ -1000,4 +1004,42 @@ test("designer deletes selected blocks safely and keeps controls below canvas", 
   await stage.scrollIntoViewIfNeeded();
   await page.screenshot({ path: `/tmp/ttw-designer-controls-${testInfo.project.name}.png` });
   expect(errors).toEqual([]);
+});
+
+test("designer history restores deletions and warns about overflowing text", async ({ page }, testInfo) => {
+  await wallFixture(page);
+  await page.addInitScript(() => sessionStorage.setItem("ttw-draft", JSON.stringify({ contentType: "personal", category: "personal", displayName: "My homepage", description: "Welcome", websiteUrl: "", logoUrl: "", uploadKey: "", buyerEmail: "owner@example.com", requestKey: crypto.randomUUID() })));
+  await page.goto("/?take=1");
+  await page.getByRole("button", { name: "Design my wall", exact: true }).click();
+  const designer = page.getByRole("region", { name: "Wall Designer" });
+  const blocks = designer.locator(".canvas-block");
+  const stage = designer.locator(".designer-stage");
+  const initial = await blocks.count();
+  await expect(designer.locator(".designer-block-settings")).toHaveCount(0);
+  await designer.getByRole("button", { name: "Add heading", exact: true }).click();
+  await expect(designer.locator(".designer-block-settings")).toBeVisible();
+  await designer.getByRole("textbox", { name: "Block text", exact: true }).fill("Crowded text ".repeat(60));
+  await expect(designer.locator(".designer-overflow-warning")).toBeVisible();
+  await expect(designer.locator(".canvas-block.selected")).toHaveAttribute("data-overflow", "true");
+  await designer.getByRole("textbox", { name: "Block text", exact: true }).fill("Hi");
+  await expect(designer.locator(".canvas-block.selected")).not.toHaveAttribute("data-overflow", "true");
+  await stage.focus();
+  await page.keyboard.press("Delete");
+  await expect(blocks).toHaveCount(initial);
+  await page.keyboard.press("Control+z");
+  await expect(blocks).toHaveCount(initial + 1);
+  await expect(designer.getByRole("textbox", { name: "Block text", exact: true })).toHaveValue("Hi");
+  await designer.getByRole("button", { name: "Redo", exact: true }).click();
+  await expect(blocks).toHaveCount(initial);
+  await designer.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(blocks).toHaveCount(initial + 1);
+  await designer.getByRole("button", { name: "Mobile canvas", exact: true }).click();
+  await expect(stage).toHaveClass(/mobile/);
+  await expect(designer.locator(".designer-device-note")).toContainText("Editing mobile layout");
+  await designer.getByRole("button", { name: "Desktop canvas", exact: true }).click();
+  const toolbar = await designer.locator(".designer-canvas-toolbar").boundingBox();
+  const canvas = await stage.boundingBox();
+  expect(toolbar!.y + toolbar!.height).toBeLessThan(canvas!.y);
+  await designer.locator(".designer-canvas-toolbar").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `/tmp/ttw-designer-history-${testInfo.project.name}.png` });
 });
