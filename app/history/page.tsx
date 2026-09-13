@@ -66,9 +66,7 @@ export default async function History({
                 unoptimized
               />
             ) : (
-              <span className="history-mark" aria-hidden>
-                W.
-              </span>
+              <Image src="/brand/takethewall-icon.svg" alt="" width={100} height={100} unoptimized />
             )}
             <p className="eyebrow">{t.live ? "LIVE NOW" : "PAST OWNER"}</p>
             <h2>

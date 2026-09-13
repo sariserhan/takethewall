@@ -370,7 +370,9 @@ function WallView({
             </a>
           ) : (
             <div className="owner-ad loading-owner">
-              <div className="loading-mark">W.</div>
+              <div className="loading-mark">
+                <Image src="/brand/takethewall-icon.svg" alt="" width={80} height={80} unoptimized style={{ margin: "0 auto", width: "clamp(48px, 8dvh, 80px)", height: "auto" }} />
+              </div>
               <h2>
                 {data === undefined
                   ? "Meeting the current owner…"
