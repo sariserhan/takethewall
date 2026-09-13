@@ -77,7 +77,7 @@ export function emailTemplate(
 <!--[if mso]><table role="presentation" width="600"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;border:1px solid #11110f;background:#f4f3eb;table-layout:fixed;">
 <tr><td class="inner" style="padding:28px 32px;background:#d8ff36;border-bottom:1px solid #11110f;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="60" style="width:60px;"><img src="cid:takethewall-logo" width="44" height="44" alt="W" style="display:block;border:0;"></td><td class="brand" style="font-size:24px;font-weight:900;letter-spacing:-1px;">TAKE THE WALL</td></tr></table>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="60" style="width:60px;"><img src="cid:takethewall-logo" width="44" height="44" alt="Take The Wall" style="display:block;border:0;"></td><td class="brand" style="font-size:24px;font-weight:900;letter-spacing:-1px;">TAKE THE WALL</td></tr></table>
 </td></tr>
 <tr><td class="inner" height="300" valign="top" style="height:300px;padding:32px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;">
 <p style="margin:0 0 18px;font-size:11px;letter-spacing:2px;color:#68685f;">${escapeHtml(presentation.eyebrow ?? "ONE WALL. ONE OWNER.")}</p>
