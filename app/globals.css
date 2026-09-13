@@ -1284,3 +1284,22 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 }
 @media(max-width:760px){.canvas-content{inset:12px}}
 .wall-canvas .canvas-block :is(h2,p){white-space:pre-wrap}
+
+/* Full-width design canvas with roomy controls below. */
+.wall-designer[data-active="true"] .designer-workspace{grid-template-columns:minmax(0,1fr)}
+.wall-designer .designer-inspector{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none;overflow:visible;padding:0;align-items:start}
+.designer-control-group{display:grid;gap:12px;min-width:0;border:1px solid var(--rule);padding:18px}
+.designer-control-group h4{margin:0;font-size:14px}
+.designer-block-settings{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr))}
+.designer-block-settings>h4,.designer-block-settings>.designer-actions{grid-column:1/-1}
+.designer-control-group :is(input,select,textarea){min-width:0;max-width:100%;box-sizing:border-box}
+.designer-control-group textarea{min-height:110px}
+.designer-add-blocks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.designer-add-blocks button{display:flex;align-items:center;gap:12px;min-height:60px;text-align:left;padding:12px;font-weight:700}
+.designer-add-blocks button span{font-size:24px;width:28px;text-align:center}
+.wall-designer .designer-stage:not(.mobile){position:relative;top:auto}
+.wall-canvas .canvas-delete{position:absolute;top:3px;right:3px;z-index:3;display:grid;place-items:center;width:32px;height:32px;min-height:32px;padding:0;border:1px solid #fff;border-radius:4px;background:#b42318!important;color:#fff!important;cursor:pointer}
+.wall-canvas .canvas-delete:hover{background:#7a271a!important}
+.wall-canvas .canvas-delete:focus-visible{outline:3px solid #fff;outline-offset:-4px}
+.wall-canvas .canvas-delete:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:640px){.wall-designer .designer-inspector,.designer-block-settings{grid-template-columns:minmax(0,1fr)}.designer-control-group{padding:12px}}
