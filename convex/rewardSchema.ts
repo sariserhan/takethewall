@@ -22,6 +22,8 @@ export const claimStatus = v.union(
 export const rewardStatus = v.union(
   ...(
     [
+      "selecting",
+      "unawarded",
       "awaiting_successor",
       "pending_claim",
       "under_review",
@@ -49,6 +51,7 @@ export const milestoneConfig = v.object({
   rewardUsd: v.number(),
 });
 export const settingsValue = v.object({
+  dualRewardsEnabled: v.optional(v.boolean()),
   milestones: v.array(milestoneConfig),
   initialDays: v.number(),
   additionalDays: v.number(),
@@ -69,7 +72,48 @@ export const rewardTables = {
     json: v.string(),
     createdAt: v.number(),
   }).index("by_version", ["version"]),
+  performanceSelections: defineTable({
+    rewardId: v.id("milestoneRewards"),
+    fromNumber: v.number(),
+    toNumber: v.number(),
+    offset: v.number(),
+    cutoff: v.number(),
+    phase: v.union(
+      v.literal("referrals"),
+      v.literal("visitors"),
+      v.literal("done"),
+    ),
+    cursor: v.union(v.string(), v.null()),
+    rankId: v.optional(v.id("performanceRanks")),
+  }).index("by_reward", ["rewardId"]),
+  performanceRanks: defineTable({
+    rewardId: v.id("milestoneRewards"),
+    takeoverId: v.id("takeovers"),
+    number: v.number(),
+    referrals: v.number(),
+    uniqueVisitors: v.number(),
+    reverseNumber: v.number(),
+    attempted: v.boolean(),
+    scored: v.boolean(),
+  })
+    .index("by_reward_takeover", ["rewardId", "takeoverId"])
+    .index("by_reward_scored", ["rewardId", "scored"])
+    .index("by_rank", [
+      "rewardId",
+      "attempted",
+      "referrals",
+      "uniqueVisitors",
+      "reverseNumber",
+    ]),
   milestoneRewards: defineTable({
+    kind: v.optional(
+      v.union(v.literal("milestone_number"), v.literal("performance_traffic")),
+    ),
+    performanceRewardId: v.optional(v.id("milestoneRewards")),
+    cohortFrom: v.optional(v.number()),
+    cohortTo: v.optional(v.number()),
+    cutoffAt: v.optional(v.number()),
+    verifiedReferrals: v.optional(v.number()),
     milestoneNumber: v.number(),
     rewardUsd: v.number(),
     originalCandidateNumber: v.number(),

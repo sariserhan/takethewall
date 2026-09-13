@@ -59,6 +59,7 @@ export async function POST(req: Request) {
       checkoutUrl: string | null;
       sessionId?: string;
       checkoutExpiresAt: number;
+      basePriceCents: number;
     }>("pending", {
       expectedCurrentId: controls.ownerId,
       referralPublicId: readReferral(
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
     const session = await paymentProvider.createCheckout(
       {
         takeoverId: pending.takeoverId,
+        basePriceCents: pending.basePriceCents,
         existingSessionId: pending.sessionId,
         email: buyerEmail,
         token,

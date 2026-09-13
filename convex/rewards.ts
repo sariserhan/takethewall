@@ -26,6 +26,19 @@ const sequenceRow = v.object({
   status: v.union(v.string(), v.null()),
 });
 export const publicMilestone = v.object({
+  performance: v.optional(
+    v.object({
+      rewardUsd: v.number(),
+      status: v.string(),
+      candidateNumber: v.number(),
+      cohortFrom: v.number(),
+      cohortTo: v.number(),
+      verifiedReferrals: v.number(),
+      snapshot: v.union(snapshot, v.null()),
+      logoUrl: v.union(v.string(), v.null()),
+      outboundLinkEnabled: v.boolean(),
+    }),
+  ),
   number: v.number(),
   rewardUsd: v.number(),
   status: v.string(),
@@ -55,7 +68,7 @@ export const overview = query({
     const reached = await ctx.db
       .query("milestoneRewards")
       .withIndex("by_number")
-      .take(100);
+      .take(200);
     const definitions = [...config.milestones];
     for (const m of MILESTONES)
       if (!definitions.some((d) => d.takeoverNumber === m.takeoverNumber))
@@ -73,7 +86,14 @@ export const overview = query({
         )
         .sort((a, b) => a.takeoverNumber - b.takeoverNumber)
         .map(async (m) => {
-          const r = reached.find((x) => x.milestoneNumber === m.takeoverNumber);
+          const r = reached.find(
+            (x) =>
+              x.milestoneNumber === m.takeoverNumber &&
+              x.kind !== "performance_traffic",
+          );
+          const b = r?.performanceRewardId
+            ? reached.find((x) => x._id === r.performanceRewardId)
+            : undefined;
           const candidate = r?.candidateNumber ?? m.takeoverNumber;
           const sequence = [];
           if (r && !args.summary) {
@@ -122,6 +142,30 @@ export const overview = query({
               };
           }
           return {
+            ...(b || (!r && config.dualRewardsEnabled)
+              ? {
+                  performance: {
+                    rewardUsd: b?.rewardUsd ?? m.rewardUsd,
+                    status: b?.status ?? "future",
+                    candidateNumber: b?.candidateNumber ?? 0,
+                    cohortFrom:
+                      b?.cohortFrom ??
+                      Math.max(
+                        1,
+                        ...definitions
+                          .filter((d) => d.takeoverNumber < m.takeoverNumber)
+                          .map((d) => d.takeoverNumber),
+                      ),
+                    cohortTo: b?.cohortTo ?? m.takeoverNumber - 1,
+                    verifiedReferrals: b?.verifiedReferrals ?? 0,
+                    snapshot: b?.snapshot ?? null,
+                    logoUrl: b?.snapshot?.logoStorageId
+                      ? await ctx.storage.getUrl(b.snapshot.logoStorageId)
+                      : null,
+                    outboundLinkEnabled: b?.outboundLinkEnabled ?? false,
+                  },
+                }
+              : {}),
             number: m.takeoverNumber,
             rewardUsd: r?.rewardUsd ?? m.rewardUsd,
             status: r?.status ?? "future",
@@ -175,6 +219,7 @@ export const portal = query({
   returns: v.object({
     claimId: v.id("rewardClaims"),
     number: v.number(),
+    rewardKind: v.optional(v.string()),
     milestone: v.number(),
     amount: v.number(),
     status: v.string(),
@@ -219,6 +264,7 @@ export const portal = query({
     return {
       claimId: c._id,
       number: c.takeoverNumber,
+      rewardKind: r.kind ?? "milestone_number",
       milestone: r.milestoneNumber,
       amount: r.rewardUsd,
       status: c.status,
@@ -372,7 +418,12 @@ export async function cascade(
     actor,
     "REWARD_CASCADED",
     r._id,
-    { from: c.takeoverNumber, to: c.takeoverNumber + 1 },
+    {
+      from: c.takeoverNumber,
+      ...(r.kind === "performance_traffic"
+        ? { next: "next ranked eligible entrant" }
+        : { to: c.takeoverNumber + 1 }),
+    },
     `Takeover #${c.takeoverNumber} is ${status}.`,
   );
   await systemMessage(ctx, c._id, `Claim ${status}.`);
@@ -397,6 +448,14 @@ export const maintain = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now();
+    const selecting = await ctx.db
+      .query("milestoneRewards")
+      .withIndex("by_status_candidate", (q) => q.eq("status", "selecting"))
+      .take(100);
+    for (const reward of selecting)
+      await ctx.scheduler.runAfter(0, internal.performanceRewards.select, {
+        rewardId: reward._id,
+      });
     for (const status of [
       "pending_claim",
       "code_verified",
@@ -443,7 +502,7 @@ export const maintain = internalMutation({
     const paid = await ctx.db
       .query("milestoneRewards")
       .withIndex("by_status_candidate", (q) => q.eq("status", "paid"))
-      .take(100);
+      .take(200);
     let analyticsPending = false;
     for (const r of paid) {
       if (!r.snapshot?.statsFrozen && r.winnerTakeoverId) {

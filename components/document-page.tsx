@@ -42,7 +42,7 @@ export function DocumentPage({ info }: { info: string }) {
         <Link href="/contact">Contact TakeTheWall</Link>
       </p>
       <Link className="button" href="/?take=1">
-        TAKE THE WALL — $3.99
+        TAKE THE WALL — $4.99
       </Link>
       <PublicFooter />
     </main>

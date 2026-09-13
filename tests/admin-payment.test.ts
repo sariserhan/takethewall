@@ -10,7 +10,7 @@ vi.mock("../lib/server", async () => ({ ...(await vi.importActual("../lib/server
 vi.mock("../lib/stripe", async () => ({ ...(await vi.importActual("../lib/stripe")), getStripe: vi.fn() }));
 vi.mock("../lib/payment-recovery", () => ({ recoverPayment: vi.fn() }));
 const retrieve = vi.fn();
-const session = { id: "cs_test_admin", metadata: { takeoverId: "takeover", environment: "test" }, client_reference_id: "takeover", mode: "payment", amount_total: 399, currency: "usd", livemode: false, status: "open", payment_status: "unpaid", payment_intent: null };
+const session = { id: "cs_test_admin", metadata: { takeoverId: "takeover", environment: "test" }, client_reference_id: "takeover", mode: "payment", amount_total: 499, currency: "usd", livemode: false, status: "open", payment_status: "unpaid", payment_intent: null };
 const req = () => new Request("https://takethewall.com/api/admin/recover", { method: "POST", headers: { origin: "https://takethewall.com", "content-type": "application/json" }, body: JSON.stringify({ takeoverId: "takeover" }) });
 beforeEach(() => {
   vi.resetAllMocks(); vi.stubEnv("WALL_ENVIRONMENT", "test"); vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://takethewall.com");
@@ -56,7 +56,7 @@ it("does not republish a paid record that is ineligible for recovery", async () 
   expect((await POST(req())).status).toBe(200); expect(recoverPayment).not.toHaveBeenCalled();
 });
 it("admin recovery accepts verified tax on top",async()=>{
-  retrieve.mockResolvedValue({...session,status:"complete",payment_status:"paid",payment_intent:"pi_tax",amount_subtotal:399,amount_total:479,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}});
+  retrieve.mockResolvedValue({...session,status:"complete",payment_status:"paid",payment_intent:"pi_tax",amount_subtotal:499,amount_total:579,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}});
   expect((await POST(req())).status).toBe(200);
   expect(recoverPayment).toHaveBeenCalledWith(session.id,"takeover");
 });

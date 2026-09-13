@@ -47,7 +47,7 @@ async function setup() {
       eventId,
       sessionId: "cs_" + id,
       paymentIntentId: "pi_" + id,
-      amountCents: 399,
+      amountCents: 499,
       currency: "usd",
       paid: true,
       livemode: process.env.WALL_ENVIRONMENT === "production",

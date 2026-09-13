@@ -99,7 +99,7 @@ test("desktop/mobile preview is reviewed before creating checkout", async ({
   await expect(sheet.getByLabel("Display name")).toHaveValue("Raven Studio");
   await sheet.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
   await sheet
-    .getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" })
+    .getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" })
     .click();
   expect(calls).toBe(1);
   await expect(sheet.getByRole("alert")).toContainText(
@@ -455,7 +455,7 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
     page.getByRole("link", { name: "Download card" }),
   ).toHaveAttribute("href", /format=portrait/);
   await page
-    .getByRole("button", { name: "Take the wall again — $3.99" })
+    .getByRole("button", { name: "Take the wall again — $4.99" })
     .click();
   await expect(page).toHaveURL(/\/\?take=1$/);
   const dialog = page.getByRole("dialog", { name: "MAKE IT YOURS." });
@@ -471,7 +471,7 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
   );
 
   await expect(
-    dialog.getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" }),
+    dialog.getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" }),
   ).toBeVisible();
   expect(payments).toBe(0);
 });

@@ -20,7 +20,7 @@ export function TakeoverShare({
     [message, setMessage] = useState("");
   const path = `/takeover/${publicId}?via=share`;
   const caption = () =>
-    `${editorial ? name + " took the wall." : "I took the wall!"}${previousOwnerName ? " I replaced " + previousOwnerName + "." : ""} One wall. One owner. $3.99 to take over until the next owner replaces you. ${new URL(path, window.location.origin).href}`;
+    `${editorial ? name + " took the wall." : "I took the wall!"}${previousOwnerName ? " I replaced " + previousOwnerName + "." : ""} One wall. One owner. $4.99 to take over until the next owner replaces you. ${new URL(path, window.location.origin).href}`;
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -57,7 +57,7 @@ export function TakeoverShare({
       </label>
       {editorial && (
         <p className="social-caption">
-          {name} took the wall. One wall. One owner. $3.99 to take over until
+          {name} took the wall. One wall. One owner. $4.99 to take over until
           the next owner replaces you.{" "}
           <a href={path}>
             View this takeover <Arrow />

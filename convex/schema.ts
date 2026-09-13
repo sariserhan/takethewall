@@ -294,8 +294,13 @@ export default defineSchema({
     takeoverId: v.id("takeovers"),
     visitorHash: v.string(),
     createdAt: v.number(),
-  }).index("by_source_visitor", ["takeoverId", "visitorHash"]),
+  })
+    .index("by_source_visitor", ["takeoverId", "visitorHash"])
+    .index("by_created", ["createdAt"]),
   purchases: defineTable({
+    freeEntryReference: v.optional(v.string()),
+    freeEntryReceivedAt: v.optional(v.number()),
+    basePriceCents: v.optional(v.number()),
     sessionCreatedAt: v.optional(v.number()),
     stripeStatus: v.optional(
       v.union(
@@ -395,7 +400,9 @@ export default defineSchema({
     takeoverId: v.id("takeovers"),
     visitorHash: v.string(),
     firstSeenAt: v.number(),
-  }).index("by_takeoverId_visitorHash", ["takeoverId", "visitorHash"]),
+  })
+    .index("by_takeoverId_visitorHash", ["takeoverId", "visitorHash"])
+    .index("by_takeover_firstSeen", ["takeoverId", "firstSeenAt"]),
   takeoverRegions: defineTable({
     takeoverId: v.id("takeovers"),
     regionCode: v.string(),

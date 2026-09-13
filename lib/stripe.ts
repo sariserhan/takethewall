@@ -1,4 +1,4 @@
-import { TAKEOVER_PRICE_CENTS } from "./config";
+import { TAKEOVER_PRICE_CENTS, LEGACY_TAKEOVER_PRICE_CENTS } from "./config";
 import Stripe from "stripe";
 import { env, HttpError } from "./server";
 export const getStripe = () => {
@@ -18,6 +18,7 @@ export function checkoutParameters(a: {
   expiresAt: number;
   siteUrl: string;
   priceId?: string;
+  basePriceCents?: number;
   productId?: string;
   environment: string;
 }): Stripe.Checkout.SessionCreateParams {
@@ -33,7 +34,7 @@ export function checkoutParameters(a: {
       {
         price_data: {
           currency: "usd",
-          unit_amount: TAKEOVER_PRICE_CENTS,
+          unit_amount: a.basePriceCents ?? TAKEOVER_PRICE_CENTS,
           tax_behavior: "exclusive",
           ...(a.productId
             ? { product: a.productId }
@@ -65,22 +66,24 @@ export function checkoutParameters(a: {
 export function validCheckoutAmount(
   s: Stripe.Checkout.Session,
   requireFinalTax = false,
+  expectedBasePrice?: number,
 ) {
   const tax = s.total_details?.amount_tax ?? 0;
   const presentation = s.presentment_details;
+  const base = (s.amount_total ?? 0) - tax;
   return (
     s.currency === "usd" &&
     Number.isSafeInteger(tax) &&
     tax >= 0 &&
-    s.amount_total === TAKEOVER_PRICE_CENTS + tax &&
+    [TAKEOVER_PRICE_CENTS, LEGACY_TAKEOVER_PRICE_CENTS].includes(base) &&
+    (expectedBasePrice === undefined || base === expectedBasePrice) &&
     (s.total_details?.amount_discount ?? 0) === 0 &&
     (s.total_details?.amount_shipping ?? 0) === 0 &&
     (s.automatic_tax?.enabled
-      ? s.amount_subtotal === TAKEOVER_PRICE_CENTS &&
+      ? s.amount_subtotal === base &&
         (!requireFinalTax || s.automatic_tax.status === "complete")
       : tax === 0 &&
-        (s.amount_subtotal == null ||
-          s.amount_subtotal === TAKEOVER_PRICE_CENTS)) &&
+        (s.amount_subtotal == null || s.amount_subtotal === base)) &&
     (!presentation ||
       (Number.isSafeInteger(presentation.presentment_amount) &&
         presentation.presentment_amount > 0 &&

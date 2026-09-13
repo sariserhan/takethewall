@@ -41,6 +41,7 @@ import type * as operations from "../operations.js";
 import type * as ownerModel from "../ownerModel.js";
 import type * as owners from "../owners.js";
 import type * as paymentIssues from "../paymentIssues.js";
+import type * as performanceRewards from "../performanceRewards.js";
 import type * as purchases from "../purchases.js";
 import type * as recovery from "../recovery.js";
 import type * as rehearsal from "../rehearsal.js";
@@ -94,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   ownerModel: typeof ownerModel;
   owners: typeof owners;
   paymentIssues: typeof paymentIssues;
+  performanceRewards: typeof performanceRewards;
   purchases: typeof purchases;
   recovery: typeof recovery;
   rehearsal: typeof rehearsal;

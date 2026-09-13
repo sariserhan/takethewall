@@ -109,7 +109,12 @@ function Portal({ session }: { session: string }) {
   if (!data) return <p>Loading your reward…</p>;
   return (
     <>
-      <p className="eyebrow">MILESTONE #{data.milestone}</p>
+      <p className="eyebrow">
+        MILESTONE #{data.milestone} ·{" "}
+        {data.rewardKind === "performance_traffic"
+          ? "REFERRAL LEADER"
+          : "MILESTONE PLACEMENT"}
+      </p>
       <h1>${data.amount.toLocaleString("en-US")} REWARD</h1>
       <p>
         Takeover #{data.number} ·{" "}

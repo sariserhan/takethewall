@@ -24,7 +24,7 @@ it("reuses a configured product with tax-exclusive inline pricing without mutati
         .fn()
         .mockResolvedValue({
           active: true,
-          unit_amount: 399,
+          unit_amount: 499,
           currency: "usd",
           type: "one_time",
           livemode: false,
@@ -46,7 +46,7 @@ it("reuses a configured product with tax-exclusive inline pricing without mutati
         {
           quantity: 1,
           price_data: {
-            unit_amount: 399,
+            unit_amount: 499,
             currency: "usd",
             tax_behavior: "exclusive",
             product: "prod_original",
@@ -71,7 +71,7 @@ it("retrieves an existing legacy session instead of changing its idempotent crea
       mode: "payment",
       status: "open",
       currency: "usd",
-      amount_total: 399,
+      amount_total: 499,
     });
   vi.mocked(getStripe).mockReturnValue({
     checkout: { sessions: { create, retrieve } },

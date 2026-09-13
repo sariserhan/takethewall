@@ -8,7 +8,10 @@ import { onActivation } from "./rewardModel";
 import { auditHash } from "../lib/audit";
 import { validateWallContent } from "../lib/content";
 import { LEGAL_VERSION } from "../lib/config";
-import { TAKEOVER_PRICE_CENTS } from "../lib/config";
+import {
+  TAKEOVER_PRICE_CENTS,
+  LEGACY_TAKEOVER_PRICE_CENTS,
+} from "../lib/config";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import {
@@ -45,6 +48,7 @@ export const pending = internalMutation({
     checkoutUrl: v.union(v.string(), v.null()),
     sessionId: v.optional(v.string()),
     checkoutExpiresAt: v.number(),
+    basePriceCents: v.number(),
   }),
   handler: async (ctx, a) => {
     await limit(ctx, "submit:" + a.ownerHash, 10, 3600_000);
@@ -68,6 +72,7 @@ export const pending = internalMutation({
         checkoutUrl: old.checkoutUrl ?? null,
         ...(old.sessionId ? { sessionId: old.sessionId } : {}),
         checkoutExpiresAt: old.checkoutExpiresAt,
+        basePriceCents: old.basePriceCents ?? LEGACY_TAKEOVER_PRICE_CENTS,
       };
     }
     if (await isCheckoutPaused(ctx))
@@ -111,6 +116,7 @@ export const pending = internalMutation({
           .unique()
       : null;
     const purchaseId = await ctx.db.insert("purchases", {
+      basePriceCents: TAKEOVER_PRICE_CENTS,
       ...(referral &&
       !referral.blocked &&
       ["active", "replaced"].includes(referral.status)
@@ -132,7 +138,13 @@ export const pending = internalMutation({
       contactDeleteAt: Date.now() + 30 * 86400_000,
     });
     if (upload) await ctx.db.patch(upload._id, { claimed: true });
-    return { takeoverId: id, purchaseId, checkoutUrl: null, checkoutExpiresAt };
+    return {
+      takeoverId: id,
+      purchaseId,
+      checkoutUrl: null,
+      checkoutExpiresAt,
+      basePriceCents: TAKEOVER_PRICE_CENTS,
+    };
   },
 });
 export const attach = internalMutation({
@@ -180,7 +192,6 @@ export const activate = internalMutation({
       !a.paid ||
       !Number.isSafeInteger(a.taxCents ?? 0) ||
       (a.taxCents ?? 0) < 0 ||
-      a.amountCents !== TAKEOVER_PRICE_CENTS + (a.taxCents ?? 0) ||
       ((a.presentmentAmount !== undefined ||
         a.presentmentCurrency !== undefined) &&
         (!Number.isSafeInteger(a.presentmentAmount) ||
@@ -195,6 +206,9 @@ export const activate = internalMutation({
       .withIndex("by_takeoverId", (q) => q.eq("takeoverId", a.takeoverId))
       .unique();
     if (!p) throw new Error("Unknown purchase");
+    const basePrice = p.basePriceCents ?? LEGACY_TAKEOVER_PRICE_CENTS;
+    if (a.amountCents !== basePrice + (a.taxCents ?? 0))
+      throw new Error("Invalid payment");
     if (
       a.livemode !== (p.environment === "production") ||
       p.environment !== (process.env.WALL_ENVIRONMENT ?? "test")
@@ -339,7 +353,7 @@ export const activate = internalMutation({
     const d = await daily(ctx);
     await ctx.db.patch(d._id, {
       takeovers: d.takeovers + 1,
-      revenueCents: (d.revenueCents ?? 0) + TAKEOVER_PRICE_CENTS,
+      revenueCents: (d.revenueCents ?? 0) + basePrice,
     });
     await onActivation(ctx, takeoverNumber + (site.numberingOffset ?? 0));
     if (takeoverNumber % 100 === 0)

@@ -59,7 +59,7 @@ The VisitorPing read cron runs every 30 seconds, with one shared lease and two f
 ## 5. Launch verification
 
 - Run `npm run check`; complete the documented browser tests against the local build.
-- In isolated staging, exercise successful, cancelled, delayed, and duplicate Stripe deliveries. Verify the exact $3.99 USD price, receipts, activation/replacement email, and two-browser ownership updates.
+- In isolated staging, exercise successful, cancelled, delayed, and duplicate Stripe deliveries. Verify the exact $4.99 USD price, receipts, activation/replacement email, and two-browser ownership updates.
 - In production, verify HTTPS, canonical redirect, webhook configuration, initial house creative, and exclusion of preview/test traffic.
 - Observe a real visible impression and click: confirm sanitized ingestion, successful VisitorPing report refresh, and trusted request-country attribution. API ingestion is eventually consistent; compare matching time windows and event definitions.
 - Confirm failed delivery jobs and stale analytics reports are visible to operators. Provider failures must leave ownership and payment activation operational.

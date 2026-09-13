@@ -13,6 +13,9 @@ export function AdminPublish() {
   const [description, setDescription] = useState("");
   const [counted, setCounted] = useState(false);
   const [email, setEmail] = useState("");
+  const [freeEntry, setFreeEntry] = useState(false);
+  const [reference, setReference] = useState("");
+  const [receivedAt, setReceivedAt] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -51,7 +54,13 @@ export function AdminPublish() {
                 websiteUrl: content.websiteUrl,
                 displayName: content.displayName,
                 description: content.description,
-                countTowardMilestones: counted,
+                countTowardMilestones: freeEntry || counted,
+                ...(freeEntry
+                  ? {
+                      freeEntryReference: reference,
+                      freeEntryReceivedAt: Date.parse(receivedAt + "Z"),
+                    }
+                  : {}),
                 recipientEmail: email,
                 reason,
                 requestKey: crypto.randomUUID(),
@@ -74,6 +83,9 @@ export function AdminPublish() {
             setReason("");
             setEmail("");
             setCounted(false);
+            setFreeEntry(false);
+            setReference("");
+            setReceivedAt("");
             setMessage("Published successfully. The live wall is updated.");
           } catch (error) {
             setMessage(
@@ -88,6 +100,44 @@ export function AdminPublish() {
       >
         {!draft ? (
           <>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={freeEntry}
+                onChange={(e) => {
+                  setFreeEntry(e.target.checked);
+                  if (e.target.checked) setCounted(true);
+                }}
+              />
+              Process a free email entry
+            </label>
+            {freeEntry && (
+              <>
+                <p>
+                  Process valid emails in received order. Copy the original
+                  Message-ID for duplicate protection; confirm the content and
+                  sender before publishing.
+                </p>
+                <label>
+                  Email Message-ID
+                  <input
+                    required
+                    maxLength={500}
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Received at (UTC)
+                  <input
+                    required
+                    type="datetime-local"
+                    value={receivedAt}
+                    onChange={(e) => setReceivedAt(e.target.value)}
+                  />
+                </label>
+              </>
+            )}
             <label>
               Placement type
               <select
@@ -130,6 +180,7 @@ export function AdminPublish() {
             <label className="check-label">
               <input
                 type="checkbox"
+                disabled={freeEntry}
                 checked={counted}
                 onChange={(e) => setCounted(e.target.checked)}
               />

@@ -22,7 +22,7 @@ export function AdminGrowth() {
           Owner feedback · {feedback?.length ?? "…"} recent responses
         </summary>
         <p>
-          Latest 50 answers to “Was your takeover worth $3.99?” Test responses
+          Latest 50 answers to “Was your takeover worth $4.99?” Test responses
           are labeled separately.
         </p>
         {feedback?.length === 0 && <p>No owner feedback yet.</p>}

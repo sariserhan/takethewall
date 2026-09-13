@@ -1,4 +1,6 @@
 "use client";
+import { DEFAULT_RULES } from "@/lib/reward-rules";
+import { LEGAL_VERSION } from "@/lib/config";
 import { AdminCheckoutControls } from "./admin-checkout-controls";
 import { AdminPaymentDetails } from "./admin-payment-details";
 import { AdminGrowth } from "./admin-growth";
@@ -144,13 +146,15 @@ export function AdminDashboard() {
           </div>
           <p>Operational queue counts cover up to 100 records per queue.</p>
           <h2>Milestones</h2>
-          {stats.milestones.map(
-            (m: { number: number; status: string; candidate: number }) => (
-              <p key={m.number}>
-                #{m.number} · {m.status} · candidate #{m.candidate}
-              </p>
-            ),
-          )}
+          {stats.milestones.map((m) => (
+            <p key={`${m.number}:${m.kind ?? "milestone_number"}`}>
+              #{m.number} ·{" "}
+              {m.kind === "performance_traffic"
+                ? "B: Referral leader"
+                : "A: Milestone placement"}{" "}
+              · {m.status} · candidate #{m.candidate}
+            </p>
+          ))}
         </>
       )}
       {section === "emails" && <AdminEmails />}
@@ -269,7 +273,12 @@ export function AdminDashboard() {
                       )}
                       {row.unread ? <strong> · UNREAD</strong> : null}
                       {row.milestone ? (
-                        <small>Milestone #{String(row.milestone)}</small>
+                        <small>
+                          Milestone #{String(row.milestone)} ·{" "}
+                          {row.rewardKind === "performance_traffic"
+                            ? "B: Referral leader"
+                            : "A: Milestone placement"}
+                        </small>
                       ) : null}
                       {row.lastMessage ? (
                         <p>{String(row.lastMessage)}</p>
@@ -497,7 +506,10 @@ function ClaimDetail({
     <section className="admin-detail">
       <button onClick={close}>Close claim ×</button>
       <h2>
-        Takeover #{claim.takeoverNumber} · ${reward.rewardUsd}
+        Takeover #{claim.takeoverNumber} · ${reward.rewardUsd} ·{" "}
+        {reward.kind === "performance_traffic"
+          ? "Referral leader"
+          : "Milestone placement"}
       </h2>
       <p>
         {claim.status} · deadline {new Date(claim.deadlineAt).toUTCString()}
@@ -836,6 +848,36 @@ function Settings() {
   return (
     <section>
       <h2>Future configuration</h2>
+      <button
+        type="button"
+        disabled={!value}
+        onClick={() =>
+          setDraft(
+            JSON.stringify(
+              {
+                ...value,
+                dualRewardsEnabled: true,
+                rulesVersion: LEGAL_VERSION,
+                rulesJson: JSON.stringify({
+                  ...DEFAULT_RULES,
+                  milestones: value?.milestones,
+                  initialClaimDays: value?.initialDays,
+                  additionalInformationDays: value?.additionalDays,
+                  claims: `Submit an initial claim within ${value?.initialDays} calendar days. Internal review does not consume a claimant deadline. Additional information has a separate ${value?.additionalDays}-day deadline. Audited extensions are possible.`,
+                }),
+              },
+              null,
+              2,
+            ),
+          )
+        }
+      >
+        Prepare dual rewards and free email entry rules
+      </button>
+      <p>
+        Review the prepared rules, then save. This applies to future milestones;
+        existing claims retain their original rules.
+      </p>
       <p>
         Reached milestones and published rules cannot be overwritten. Provider
         secrets remain in deployment environment settings.

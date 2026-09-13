@@ -3,6 +3,8 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 type Overview = FunctionReturnType<typeof api.rewards.overview>;
 const rewardLabels: Record<string, string> = {
+  selecting: "Evaluating traffic",
+  unawarded: "Unawarded",
   pending_claim: "Awaiting claim",
   under_review: "Under review",
   approved: "Approved - Awaiting payout",
@@ -31,7 +33,7 @@ export function PrizeExplainer({
       )}
       <div className="prize-intro">
         <span className="eyebrow">YOUR PURCHASE & THE PRIZES</span>
-        <h2 id="prize-title">$3.99 BUYS YOUR TIME ON THE WALL.</h2>
+        <h2 id="prize-title">$4.99 BUYS YOUR TIME ON THE WALL.</h2>
         <p>Your content stays until the next takeover replaces it.</p>
         <p className="prize-claim-summary">
           {next ? (
@@ -46,6 +48,12 @@ export function PrizeExplainer({
             </>
           )}
         </p>
+        {next?.performance && (
+          <p>
+            No purchase necessary.{" "}
+            <Link href="/?info=rewards">Free email entry instructions →</Link>
+          </p>
+        )}
         <Link href="/?info=how-prizes-work">How prizes work →</Link>
       </div>
       {next ? (
@@ -53,7 +61,16 @@ export function PrizeExplainer({
           <span>
             {demo ? "DEMO · " : ""}NEXT PRIZE MILESTONE · #{format(next.number)}
           </span>
-          <strong>${format(next.rewardUsd)} REWARD</strong>
+          <strong>
+            {next.performance ? "2 × " : ""}${format(next.rewardUsd)}{" "}
+            {next.performance ? "REWARDS" : "REWARD"}
+          </strong>
+          {next.performance && (
+            <p>
+              One for the milestone placement. One for the preceding cohort’s
+              verified referral leader.
+            </p>
+          )}
           <progress
             aria-label={`Progress toward milestone ${next.number}`}
             value={data.currentNumber}
@@ -90,7 +107,7 @@ export function PrizeExplainer({
           <li>
             <span>01</span>
             <div>
-              <h3>Publish for $3.99</h3>
+              <h3>Publish for $4.99</h3>
               <p>Get your number when your takeover goes live.</p>
             </div>
           </li>
@@ -134,7 +151,9 @@ export function PrizeExplainer({
         {ordered.map((m) => (
           <Link href={`/${m.number}`} key={m.number}>
             <span>#{format(m.number)}</span>
-            <strong>${format(m.rewardUsd)}</strong>
+            <strong>
+              {m.performance ? "2 × " : ""}${format(m.rewardUsd)}
+            </strong>
             <small>
               {m.status === "future"
                 ? m.number === next?.number
@@ -142,6 +161,16 @@ export function PrizeExplainer({
                   : "Upcoming"
                 : (rewardLabels[m.status] ?? "Under review")}
             </small>
+            {m.performance && (
+              <small>
+                Referral reward:{" "}
+                {m.performance.status === "future"
+                  ? m.number === next?.number
+                    ? "In progress"
+                    : "Upcoming"
+                  : (rewardLabels[m.performance.status] ?? "Under review")}
+              </small>
+            )}
           </Link>
         ))}
       </nav>
@@ -152,9 +181,22 @@ export function PrizeGuide() {
   return (
     <>
       <p>
-        A $3.99 purchase puts your content on the live wall. When milestone
+        A $4.99 purchase puts your content on the live wall. When milestone
         rewards are available, a qualifying takeover number also starts a reward
         claim. A purchase does not guarantee a prize.
+      </p>
+      <p>
+        Where dual rewards are enabled in the current rules, the preceding
+        cohort’s verified referral leader can receive a separate reward of equal
+        value. It requires at least one verified referral. Ties use unique
+        visitors, then the earlier takeover number. Failed claims pass to the
+        next eligible ranked entrant; no qualifying entrant means no referral
+        reward.
+      </p>
+      <p>
+        See the current Reward Rules for the free email entry method. Free
+        placements receive the next available number when processed, under the
+        same reward criteria.
       </p>
       <ol className="how-it-works">
         <li>

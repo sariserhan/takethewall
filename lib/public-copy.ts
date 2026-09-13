@@ -7,7 +7,7 @@ export const publicCopy: Record<
   about: {
     title: "ONE WALL. YOUR MOMENT.",
     intro:
-      "Pay $3.99 and put your website, app, social profile, yourself, or a message on the wall. It stays until the next successful purchase takes over.",
+      "Pay $4.99 and put your website, app, social profile, yourself, or a message on the wall. It stays until the next successful purchase takes over.",
     sections: [
       {
         title: "No account. No reserved spot.",
@@ -28,7 +28,7 @@ export const publicCopy: Record<
     intro: "Answers for your live wall, payment, and milestone claim.",
     sections: [
       {
-        title: "What does $3.99 buy?",
+        title: "What does $4.99 buy?",
         body: "One successfully activated public placement. You can promote a website, app, social profile, yourself, or a short message. Personal placements do not need a URL. Purchases do not require accounts.",
       },
       {
@@ -45,7 +45,7 @@ export const publicCopy: Record<
       },
       {
         title: "How do milestone claims work?",
-        body: "A reached, enabled milestone creates a provisional recipient. Submit within seven calendar days by default. Internal review does not count against that deadline; requested additional information has a separate deadline. The rules version bound to your reward controls. Ineligible or expired claims move to the next paid takeover.",
+        body: "A reached, enabled milestone creates a provisional recipient. Submit within seven calendar days by default. Internal review does not count against that deadline; requested additional information has a separate deadline. The rules version bound to your reward controls. Ineligible or expired sequence claims move to the next eligible counted takeover. Where dual rewards are enabled, the referral reward passes to the next ranked eligible entrant in its cohort, or remains unawarded.",
       },
       {
         title: "What is a permanent wall?",
@@ -68,7 +68,7 @@ export const publicCopy: Record<
     sections: [
       {
         title: "The live wall purchase",
-        body: "A $3.99 USD payment buys one public placement after successful server-verified activation. Website, app, social, and personal/message placements are supported. The next successfully activated payment replaces the current placement. Checkout creation does not reserve a sequence number. No minimum duration, audience, impressions, clicks, revenue, or other result is promised.",
+        body: "A $4.99 USD payment buys one public placement after successful server-verified activation. Website, app, social, and personal/message placements are supported. The next successfully activated payment replaces the current placement. Checkout creation does not reserve a sequence number. No minimum duration, audience, impressions, clicks, revenue, or other result is promised.",
       },
       {
         title: "Payment and refunds",
@@ -107,7 +107,7 @@ export const publicCopy: Record<
       },
       {
         title: "Private purchase and support information",
-        body: "We store purchase email, payment references, status, and necessary support correspondence to fulfill purchases, provide notices, handle problems, and maintain operational records. An administrator-only contact directory records email addresses, their source, subscription preferences, and email delivery status and timestamps. It does not expose message bodies or sign-in links. Optional updates are paused after a recorded hard bounce or spam complaint. Contact-email deletion retains a hashed stop marker to prevent background indexing from restoring the deleted address. Purchase is not consent to marketing. Wall-change emails require separate signup and confirmation, with a choice of every takeover or a daily summary; each update includes preferences and unsubscribe links. Milestone alerts require a separate signup and email confirmation; every milestone alert includes an unsubscribe link. Owners can choose a weekly performance summary while their takeover remains live, and unsubscribe in the dashboard or email. Stripe handles payment details; TakeTheWall does not store complete card numbers.",
+        body: "We store purchase and free-entry email, free-entry message references and receipt times, payment references, status, and necessary support correspondence to fulfill purchases, provide notices, handle problems, and maintain operational records. An administrator-only contact directory records email addresses, their source, subscription preferences, and email delivery status and timestamps. It does not expose message bodies or sign-in links. Optional updates are paused after a recorded hard bounce or spam complaint. Contact-email deletion retains a hashed stop marker to prevent background indexing from restoring the deleted address. Purchase is not consent to marketing. Wall-change emails require separate signup and confirmation, with a choice of every takeover or a daily summary; each update includes preferences and unsubscribe links. Milestone alerts require a separate signup and email confirmation; every milestone alert includes an unsubscribe link. Owners can choose a weekly performance summary while their takeover remains live, and unsubscribe in the dashboard or email. Stripe handles payment details; TakeTheWall does not store complete card numbers.",
       },
       {
         title: "Reward claim information",
@@ -169,7 +169,7 @@ export const publicCopy: Record<
     sections: [
       {
         title: "Paid placement and house content",
-        body: "Each real paid takeover costs $3.99 USD. The seeded VisitorPing placement is a house placement and has no paid takeover number. Moderation restorations are recorded separately and do not increase paid takeover numbers. A paid placement is not an endorsement by TakeTheWall.",
+        body: "Each real paid takeover costs $4.99 USD. The seeded VisitorPing placement is a house placement and has no paid takeover number. Moderation restorations are recorded separately and do not increase paid takeover numbers. A paid placement is not an endorsement by TakeTheWall.",
       },
       {
         title: "No reservation at Checkout",

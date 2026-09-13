@@ -227,7 +227,7 @@ function WallView({
         <header className="masthead">
           <h1>TAKE THE WALL</h1>
           <div className="strap">
-            <p>Your content takes over this page for $3.99.</p>
+            <p>Your content takes over this page for $4.99.</p>
             <span className="connection">
               <i className={connected ? "online" : ""} />
               {connected ? "LIVE" : "CONNECTING"}
@@ -483,20 +483,20 @@ function WallView({
           Live analytics powered by <strong>VisitorPing</strong> ↗
         </a>
         <section className="purchase-band">
-          <strong className="price">$3.99</strong>
+          <strong className="price">$4.99</strong>
           <p>
             Your website, social profile, app, or message.
             <br />
             It stays until the next takeover replaces it.
             <br />
-            $3.99 USD plus applicable tax; final total shown at checkout.
+            $4.99 USD plus applicable tax; final total shown at checkout.
           </p>
           <button
             className="button primary"
             onClick={takeWall}
             disabled={checkoutPaused}
           >
-            {checkoutPaused ? "NEW CHECKOUTS PAUSED" : "TAKE THE WALL — $3.99"}{" "}
+            {checkoutPaused ? "NEW CHECKOUTS PAUSED" : "TAKE THE WALL — $4.99"}{" "}
             <Arrow />
           </button>
         </section>

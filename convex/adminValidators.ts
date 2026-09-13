@@ -38,6 +38,7 @@ export const takeoverResult = v.object({
   paymentReference: v.union(v.string(), v.null()),
 });
 export const claimRow = v.object({
+  rewardKind: v.optional(v.string()),
   _id: v.id("rewardClaims"),
   _creationTime: v.number(),
   takeoverNumber: v.number(),

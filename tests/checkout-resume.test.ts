@@ -25,7 +25,7 @@ const session = {
   livemode: false,
   metadata: { takeoverId: "owner", environment: "test" },
   client_reference_id: "owner",
-  amount_total: 399,
+  amount_total: 499,
   currency: "usd",
   mode: "payment",
   status: "open",
@@ -101,6 +101,6 @@ it("email request uses only the protected purchase token, never an arbitrary rec
   expect(retrieve).not.toHaveBeenCalled();
 });
 it("resumes a taxed checkout without replacing it",async()=>{
-  retrieve.mockResolvedValue({...session,amount_subtotal:399,amount_total:479,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}});
+  retrieve.mockResolvedValue({...session,amount_subtotal:499,amount_total:579,automatic_tax:{enabled:true,status:"complete"},total_details:{amount_tax:80}});
   expect((await (await POST(request())).json()).state).toBe("open");
 });

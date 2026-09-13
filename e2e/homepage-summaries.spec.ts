@@ -54,6 +54,17 @@ test("homepage requests summaries and milestone navigation requests only that wa
           milestones: [100, 1000, 10000, 100000, 1000000]
             .filter((n) => args.number === undefined || args.number === n)
             .map((n) => ({
+              performance: {
+                rewardUsd: n,
+                status: "future",
+                candidateNumber: 0,
+                cohortFrom: n === 100 ? 1 : n / 10,
+                cohortTo: n - 1,
+                verifiedReferrals: 0,
+                snapshot: null,
+                logoUrl: null,
+                outboundLinkEnabled: false,
+              },
               number: n,
               rewardUsd: n,
               status: "future",
@@ -119,6 +130,12 @@ test("homepage requests summaries and milestone navigation requests only that wa
     page.getByRole("heading", { name: "THE $100 WALL", exact: true }),
   ).toBeVisible();
   expect(calls.at(-1)).toEqual({ number: 100 });
+  await expect(
+    page.getByRole("heading", { name: "$100 REFERRAL REWARD", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Referral leader reward")).toContainText(
+    "At least one verified referral",
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth > innerWidth,

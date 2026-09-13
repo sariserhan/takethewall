@@ -63,7 +63,7 @@ async function activate(t: T, n: number) {
     eventId: "evt" + n,
     sessionId: "cs" + n,
     paymentIntentId: "pi" + n,
-    amountCents: 399,
+    amountCents: 499,
     currency: "usd",
     paid: true,
     livemode: false,
@@ -766,7 +766,7 @@ it("counted admin issuance opens a claim and joins paid hashes without inventing
   ).toHaveLength(0);
   await activate(t, 7);
   const history = await t.query(api.auditTrail.entries, {});
-  expect(history.entries.map((x) => x.amountCents)).toEqual([0, 399]);
+  expect(history.entries.map((x) => x.amountCents)).toEqual([0, 499]);
   expect(history.entries[1].previousAuditHash).toBe(
     history.entries[0].auditHash,
   );
@@ -774,7 +774,7 @@ it("counted admin issuance opens a claim and joins paid hashes without inventing
     valid: true,
   });
   const day = await t.run((ctx) => ctx.db.query("dailyStats").first());
-  expect(day).toMatchObject({ takeovers: 2, revenueCents: 399 });
+  expect(day).toMatchObject({ takeovers: 2, revenueCents: 499 });
   expect(
     await t.run((ctx) =>
       ctx.db

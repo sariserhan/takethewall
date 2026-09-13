@@ -1,5 +1,6 @@
-export const TAKEOVER_PRICE_CENTS = 399;
-export const LEGAL_VERSION = "2026-09-12.1";
+export const LEGACY_TAKEOVER_PRICE_CENTS = 399;
+export const TAKEOVER_PRICE_CENTS = 499;
+export const LEGAL_VERSION = "2026-09-13.1";
 export const MILESTONES = [100, 1000, 10000, 100000, 1000000].map(
   (takeoverNumber) => ({ takeoverNumber, rewardUsd: takeoverNumber }),
 );

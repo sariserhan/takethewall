@@ -60,6 +60,7 @@ export const overview = query({
     milestones: v.array(
       v.object({
         number: v.number(),
+        kind: v.optional(v.string()),
         status: v.string(),
         candidate: v.number(),
       }),
@@ -90,7 +91,7 @@ export const overview = query({
     const milestones = await ctx.db
       .query("milestoneRewards")
       .withIndex("by_number")
-      .take(100);
+      .take(200);
     return {
       adminId,
       site: site
@@ -111,6 +112,7 @@ export const overview = query({
       failedEmails: mailFailures.length,
       milestones: milestones.map((r) => ({
         number: r.milestoneNumber,
+        kind: r.kind ?? "milestone_number",
         status: r.status,
         candidate: r.candidateNumber,
       })),
@@ -216,6 +218,7 @@ export const list = query({
                 deadlineAt: c.deadlineAt,
                 rewardUsd: reward?.rewardUsd,
                 milestone: reward?.milestoneNumber,
+                rewardKind: reward?.kind ?? "milestone_number",
                 unread: c.lastWinnerMessageAt > c.lastAdminReadAt,
                 lastMessage: lastMessage?.body.slice(0, 240) ?? "",
                 updatedAt: Math.max(
@@ -782,6 +785,7 @@ export const saveSettings = mutation({
       ...rules,
       currency: "USD",
       version: value.rulesVersion,
+      dualRewardsEnabled: value.dualRewardsEnabled ?? false,
       milestones: value.milestones,
       initialClaimDays: value.initialDays,
       additionalInformationDays: value.additionalDays,
@@ -794,7 +798,9 @@ export const saveSettings = mutation({
     if (r && r.hash !== hash)
       throw new Error("Published rules versions are immutable");
     if (
-      (value.initialDays !== old.initialDays ||
+      ((value.dualRewardsEnabled ?? false) !==
+        (old.dualRewardsEnabled ?? false) ||
+        value.initialDays !== old.initialDays ||
         value.additionalDays !== old.additionalDays ||
         canonical(value.milestones) !== canonical(old.milestones)) &&
       value.rulesVersion === old.rulesVersion
@@ -824,6 +830,8 @@ export const saveSettings = mutation({
 // Admin issuance is a separate authorization path, never a Stripe bypass flag.
 export const publish = mutation({
   args: {
+    freeEntryReference: v.optional(v.string()),
+    freeEntryReceivedAt: v.optional(v.number()),
     contentType: v.union(v.literal("link"), v.literal("personal")),
     websiteUrl: v.string(),
     displayName: v.string(),
@@ -837,7 +845,34 @@ export const publish = mutation({
   returns: v.id("takeovers"),
   handler: async (ctx, a) => {
     const actor = await requireAdmin(ctx);
-    const requestKey = "admin:" + actor + ":" + plainText(a.requestKey, 100);
+    const freeReference = a.freeEntryReference?.trim();
+    if (a.freeEntryReference !== undefined && !freeReference)
+      throw new Error("Enter the original email Message-ID.");
+    if (
+      freeReference &&
+      (freeReference.length > 500 || /[\r\n\x00]/.test(freeReference))
+    )
+      throw new Error("Enter a valid email Message-ID.");
+    if (freeReference) {
+      const config = await settings(ctx);
+      const rules = JSON.parse(config.rulesJson);
+      if (rules.freeEntryMethod !== "email")
+        throw new Error(
+          "Publish the email-entry rules before processing free entries.",
+        );
+      if (
+        !a.countTowardMilestones ||
+        !Number.isSafeInteger(a.freeEntryReceivedAt) ||
+        a.freeEntryReceivedAt! > Date.now() ||
+        a.freeEntryReceivedAt! < 0
+      )
+        throw new Error(
+          "Free entries must count and include a valid received time.",
+        );
+    }
+    const requestKey = freeReference
+      ? "free-email:" + sha(freeReference.replace(/^<|>$/g, ""))
+      : "admin:" + actor + ":" + plainText(a.requestKey, 100);
     const content = validateWallContent(a);
     const reason = plainText(a.reason, 1000);
     const email = a.countTowardMilestones
@@ -892,6 +927,12 @@ export const publish = mutation({
     // No paidAt, Checkout session, payment intent or payment event is fabricated.
     await ctx.db.insert("purchases", {
       takeoverId: id,
+      ...(freeReference
+        ? {
+            freeEntryReference: freeReference,
+            freeEntryReceivedAt: a.freeEntryReceivedAt,
+          }
+        : {}),
       buyerEmail: email,
       requestKey,
       fingerprint,
@@ -979,7 +1020,17 @@ export const publish = mutation({
       actor,
       "ADMIN_PUBLISH",
       id,
-      { reason, counted: a.countTowardMilestones, amountCents: 0 },
+      {
+        reason,
+        counted: a.countTowardMilestones,
+        amountCents: 0,
+        ...(freeReference
+          ? {
+              freeEntryReference: freeReference,
+              receivedAt: a.freeEntryReceivedAt,
+            }
+          : {}),
+      },
       a.countTowardMilestones
         ? "Admin-issued counted takeover; $0 collected."
         : "Admin placement; excluded from milestone count.",

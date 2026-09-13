@@ -3,7 +3,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Take The Wall",
     short_name: "TakeTheWall",
-    description: "One wall. One owner. $3.99.",
+    description: "One wall. One owner. $4.99.",
     start_url: "/",
     display: "standalone",
     background_color: "#f3f0e7",

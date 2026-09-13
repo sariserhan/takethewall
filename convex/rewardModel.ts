@@ -8,7 +8,7 @@ import type { Id } from "./_generated/dataModel";
 import { MILESTONES, LEGAL_VERSION } from "../lib/config";
 import { DEFAULT_RULES } from "../lib/reward-rules";
 import { canonical, auditHash, sha } from "../lib/audit";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 export async function settings(ctx: QueryCtx) {
   const s = await ctx.db
     .query("rewardSettings")
@@ -16,6 +16,7 @@ export async function settings(ctx: QueryCtx) {
     .unique();
   return (
     s?.value ?? {
+      dualRewardsEnabled: true,
       milestones: MILESTONES,
       initialDays: 7,
       additionalDays: 7,
@@ -105,6 +106,30 @@ export async function createCandidate(
   number: number,
 ) {
   const reward = (await ctx.db.get(rewardId))!;
+  if (reward.kind === "performance_traffic") {
+    const rank = await ctx.db
+      .query("performanceRanks")
+      .withIndex("by_rank", (q) =>
+        q.eq("rewardId", rewardId).eq("attempted", false),
+      )
+      .order("desc")
+      .first();
+    if (!rank || rank.referrals < 1) {
+      await ctx.db.patch(rewardId, { status: "unawarded", claimId: undefined });
+      await audit(
+        ctx,
+        "system",
+        "PERFORMANCE_UNAWARDED",
+        rewardId,
+        {},
+        "No eligible referral entrant remains.",
+      );
+      return;
+    }
+    await ctx.db.patch(rank._id, { attempted: true });
+    number = rank.number;
+    await ctx.db.patch(rewardId, { verifiedReferrals: rank.referrals });
+  }
   const offset = await numberingOffset(ctx);
   const takeover = await ctx.db
     .query("takeovers")
@@ -158,7 +183,12 @@ export async function createCandidate(
     `Takeover #${number} is provisional.`,
   );
   await systemMessage(ctx, claimId, "Provisional reward claim opened.");
-  if (purchase?.paymentIssue || takeover.blocked || !purchase?.buyerEmail) {
+  if (
+    purchase?.paymentIssue ||
+    takeover.blocked ||
+    takeover.status === "rejected" ||
+    !purchase?.buyerEmail
+  ) {
     // Continue in bounded maintenance passes rather than recursive/unbounded cascade.
     await ctx.db.patch(claimId, {
       status: "ineligible",
@@ -167,15 +197,23 @@ export async function createCandidate(
     });
     await ctx.db.patch(rewardId, {
       status: "awaiting_successor",
-      candidateNumber: number + 1,
+      candidateNumber:
+        reward.kind === "performance_traffic" ? number : number + 1,
       claimId: undefined,
     });
+    if (reward.kind === "performance_traffic")
+      await ctx.scheduler.runAfter(0, internal.rewards.maintain, {});
     await audit(
       ctx,
       "system",
       "REWARD_CASCADED",
       rewardId,
-      { from: number, to: number + 1 },
+      {
+        from: number,
+        ...(reward.kind === "performance_traffic"
+          ? { next: "next ranked eligible entrant" }
+          : { to: number + 1 }),
+      },
       `Takeover #${number} is ineligible.`,
     );
   } else
@@ -184,8 +222,8 @@ export async function createCandidate(
       kind: "claim_link",
       claimId,
       to: purchase.buyerEmail,
-      subject: `Takeover #${number}: provisional milestone recipient`,
-      body: `You are the provisional recipient of the $${reward.rewardUsd.toLocaleString("en-US")} milestone reward. Eligibility verification is required. Submit your initial claim by ${new Date(Date.now() + reward.initialDays * 86400_000).toUTCString()}.`,
+      subject: `Takeover #${number}: provisional ${reward.kind === "performance_traffic" ? "referral leader" : "milestone"} recipient`,
+      body: `You are the provisional recipient of the $${reward.rewardUsd.toLocaleString("en-US")} ${reward.kind === "performance_traffic" ? "referral leader" : "milestone"} reward. Eligibility verification is required. Submit your initial claim by ${new Date(Date.now() + reward.initialDays * 86400_000).toUTCString()}.`,
     });
 }
 export async function onActivation(ctx: MutationCtx, number: number) {
@@ -197,7 +235,7 @@ export async function onActivation(ctx: MutationCtx, number: number) {
       !(await ctx.db
         .query("milestoneRewards")
         .withIndex("by_number", (q) => q.eq("milestoneNumber", number))
-        .unique())
+        .first())
     ) {
       const rulesHash = sha(s.rulesJson);
       const rules = await ctx.db
@@ -234,6 +272,47 @@ export async function onActivation(ctx: MutationCtx, number: number) {
         `Milestone #${number} reached.`,
       );
       await createCandidate(ctx, id, number);
+      if (s.dualRewardsEnabled) {
+        const from = Math.max(
+          1,
+          ...s.milestones
+            .filter((m) => m.takeoverNumber < number)
+            .map((m) => m.takeoverNumber),
+        );
+        const cutoff = Date.now();
+        const companion = await ctx.db.insert("milestoneRewards", {
+          kind: "performance_traffic",
+          milestoneNumber: number,
+          rewardUsd: config.rewardUsd,
+          originalCandidateNumber: from,
+          candidateNumber: from,
+          status: "selecting",
+          rulesVersion: s.rulesVersion,
+          rulesHash,
+          initialDays: s.initialDays,
+          additionalDays: s.additionalDays,
+          outboundLinkEnabled: true,
+          cohortFrom: from,
+          cohortTo: number - 1,
+          cutoffAt: cutoff,
+        });
+        await ctx.db.patch(id, {
+          kind: "milestone_number",
+          performanceRewardId: companion,
+        });
+        await ctx.db.insert("performanceSelections", {
+          rewardId: companion,
+          fromNumber: from,
+          toNumber: number - 1,
+          offset: await numberingOffset(ctx),
+          cutoff,
+          phase: "referrals",
+          cursor: null,
+        });
+        await ctx.scheduler.runAfter(0, internal.performanceRewards.select, {
+          rewardId: companion,
+        });
+      }
     }
   }
   // Existing reward obligations survive disabling creation of new rewards.

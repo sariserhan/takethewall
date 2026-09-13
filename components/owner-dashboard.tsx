@@ -204,7 +204,7 @@ export function OwnerDashboardView() {
       {error && <p role="alert">{error}</p>}
       {data.feedbackEligible && (
         <section className="owner-feedback" aria-label="Takeover feedback">
-          <h2>Was your takeover worth $3.99?</h2>
+          <h2>Was your takeover worth $4.99?</h2>
           <p>
             One optional question. Your answer is private and helps us improve
             the wall.
@@ -326,7 +326,7 @@ export function OwnerDashboardView() {
                 }
               }}
             >
-              Take the wall again — $3.99
+              Take the wall again — $4.99
             </button>
           )}
           <h3>{owner.displayName}</h3>
@@ -412,7 +412,7 @@ export function OwnerDashboardView() {
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(
-                    `I took the wall!${data.previousOwnerName ? " I replaced " + data.previousOwnerName + "." : ""} One wall. One owner. $3.99 to take over until the next owner replaces you. ${data.shareUrl}`,
+                    `I took the wall!${data.previousOwnerName ? " I replaced " + data.previousOwnerName + "." : ""} One wall. One owner. $4.99 to take over until the next owner replaces you. ${data.shareUrl}`,
                   );
                 } catch {
                   /* The public link remains selectable below. */

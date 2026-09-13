@@ -65,7 +65,7 @@ test("buyer must acknowledge a changed owner before opening payment", async ({
   await expect(sheet.getByText("First project", { exact: true })).toBeVisible();
   await sheet.getByLabel("Buyer email").fill("test@example.com");
   changeOwner();
-  const pay = sheet.getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" });
+  const pay = sheet.getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" });
   await expect(pay).toBeDisabled();
   await expect(
     sheet.getByText("Second project", { exact: true }),

@@ -173,7 +173,7 @@ test("website checkout needs no image and legal overlays preserve its draft", as
   );
   await sheet.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
   await sheet.getByLabel("Buyer email").fill("buyer@example.com");
-  await sheet.getByRole("button", { name: "PAY $3.99 & TAKE THE WALL" }).click();
+  await sheet.getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" }).click();
   await expect(sheet.getByRole("alert")).toContainText(
     "Checkout endpoint reached without image",
   );

@@ -88,7 +88,7 @@ export function InfoOverlay() {
         ) : page === "how-it-works" ? (
           <>
             <p>
-              One wall. One owner. Your moment starts with a $3.99 purchase.
+              One wall. One owner. Your moment starts with a $4.99 purchase.
             </p>
             <ol className="how-it-works">
               <li>
@@ -100,7 +100,7 @@ export function InfoOverlay() {
                 </p>
               </li>
               <li>
-                <h3>Preview it, then pay $3.99</h3>
+                <h3>Preview it, then pay $4.99</h3>
                 <p>
                   No account needed. Pay through Stripe Checkout. Opening
                   Checkout does not reserve a takeover number.

@@ -43,7 +43,7 @@ function payment(takeoverId: Id<"takeovers">, suffix: string) {
     eventId: "evt_" + suffix,
     sessionId: "cs_" + suffix,
     paymentIntentId: "pi_" + suffix,
-    amountCents: 399,
+    amountCents: 499,
     currency: "usd",
     paid: true,
     livemode: false,
@@ -576,7 +576,7 @@ it("production Stripe activation queues one admin notification with payment deta
   const jobs = await t.run((ctx) => ctx.db.query("jobs").collect());
   const notices = jobs.filter((j) => j.kind === "admin_takeover_email");
   expect(notices).toHaveLength(1);
-  expect(notices[0].adminNotice?.body).toContain("Amount: 3.99 USD");
+  expect(notices[0].adminNotice?.body).toContain("Amount: 4.99 USD");
   expect(notices[0].adminNotice?.body).toContain("pi_prod-notification");
   expect(notices[0].adminNotice?.body).toContain(p.args.buyerEmail);
   expect(notices[0].adminNotice?.body).toContain("receipt@example.com");
@@ -878,17 +878,28 @@ it("test-mode publication failures do not queue admin email",async()=>{
 
 it("taxed local-currency payment publishes once and stores gross, tax and presentment separately",async()=>{
   const t=make(),p=await pending(t);
-  const args={...payment(p.takeoverId,"taxed-local"),amountCents:479,taxCents:80,presentmentAmount:439,presentmentCurrency:"eur"};
+  const args={...payment(p.takeoverId,"taxed-local"),amountCents:579,taxCents:80,presentmentAmount:439,presentmentCurrency:"eur"};
   await t.mutation(internal.purchases.activate,args);
   await t.mutation(internal.purchases.activate,args);
   const purchase=await t.run(ctx=>ctx.db.get(p.purchaseId));
-  expect(purchase).toMatchObject({amountCents:479,taxCents:80,currency:"usd",presentmentAmount:439,presentmentCurrency:"eur"});
+  expect(purchase).toMatchObject({amountCents:579,taxCents:80,currency:"usd",presentmentAmount:439,presentmentCurrency:"eur"});
   expect((await t.query(api.wall.current,{}))?.totalTakeovers).toBe(1);
   const days=await t.run(ctx=>ctx.db.query("dailyStats").collect());
-  expect(days[0].revenueCents).toBe(399);
+  expect(days[0].revenueCents).toBe(499);
 });
 it("rejects extra charges without matching tax and negative tax",async()=>{
   const t=make(),p=await pending(t);
-  for(const patch of [{amountCents:479},{amountCents:398,taxCents:-1},{amountCents:479,taxCents:79}])
+  for(const patch of [{amountCents:579},{amountCents:398,taxCents:-1},{amountCents:579,taxCents:79}])
     await expect(t.mutation(internal.purchases.activate,{...payment(p.takeoverId,"bad-tax"),...patch})).rejects.toThrow("Invalid payment");
+});
+
+it("preserves an old checkout quote and rejects an old amount for a new purchase", async () => {
+  const t = make(), old = await pending(t);
+  await t.run(ctx => ctx.db.patch(old.purchaseId, { basePriceCents: undefined }));
+  const resumed = await t.mutation(internal.purchases.pending, old.args);
+  expect(resumed.basePriceCents).toBe(399);
+  await t.mutation(internal.purchases.activate, { ...payment(old.takeoverId, "legacy-price"), amountCents: 399 });
+  const next = await pending(t);
+  expect(next.basePriceCents).toBe(499);
+  await expect(t.mutation(internal.purchases.activate, { ...payment(next.takeoverId, "wrong-price"), amountCents: 399 })).rejects.toThrow("Invalid payment");
 });

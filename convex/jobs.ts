@@ -1,3 +1,4 @@
+import { LEGACY_TAKEOVER_PRICE_CENTS } from "../lib/config";
 import { deferForAnalytics } from "./analytics";
 import { scheduleDelivery } from "./deliverySchedule";
 import type { ActionCtx } from "./_generated/server";
@@ -152,6 +153,7 @@ export const data = internalQuery({
       environment: v.string(),
       resumeUrl: v.optional(v.string()),
       resumeExpiresAt: v.optional(v.number()),
+      basePriceCents: v.optional(v.number()),
       dashboardUrl: v.optional(v.string()),
       unsubscribeUrl: v.optional(v.string()),
       oneClickUnsubscribeUrl: v.optional(v.string()),
@@ -223,6 +225,7 @@ export const data = internalQuery({
         ? {
             resumeUrl: `${ownerBaseUrl()}/#resume=${checkoutResumeToken(p.resumeSeed)}`,
             resumeExpiresAt: p.checkoutExpiresAt,
+            basePriceCents: p.basePriceCents ?? LEGACY_TAKEOVER_PRICE_CENTS,
           }
         : {}),
       adminNotificationEnabled: notifications?.enabled ?? false,
@@ -417,7 +420,7 @@ export async function sendOne(ctx: ActionCtx, id: Id<"jobs">) {
         j.kind === "checkout_resume_email"
           ? emailTemplate(
               `${j.environment === "production" ? "" : "[TEST] "}Resume your Take The Wall checkout`,
-              `You requested a link to continue your $3.99 checkout. Your saved content is ready. Payment has not been confirmed. Nothing is reserved or published until payment is verified. This checkout expires ${new Date(j.resumeExpiresAt!).toUTCString()}.`,
+              `You requested a link to continue your $${((j.basePriceCents ?? LEGACY_TAKEOVER_PRICE_CENTS) / 100).toFixed(2)} checkout. Your saved content is ready. Payment has not been confirmed. Nothing is reserved or published until payment is verified. This checkout expires ${new Date(j.resumeExpiresAt!).toUTCString()}.`,
               {
                 eyebrow: "YOUR SAVED CHECKOUT",
                 cta: { label: "Resume checkout", url: j.resumeUrl! },

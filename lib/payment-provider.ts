@@ -37,7 +37,11 @@ export const paymentProvider: PaymentProvider = {
         existing.livemode !== (args.environment === "production") ||
         existing.mode !== "payment" ||
         existing.status !== "open" ||
-        !validCheckoutAmount(existing)
+        !validCheckoutAmount(
+          existing,
+          false,
+          args.basePriceCents ?? TAKEOVER_PRICE_CENTS,
+        )
       )
         throw new Error(
           "This checkout is complete, expired, or unavailable. Use your original checkout link to check its status.",

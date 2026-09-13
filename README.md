@@ -6,7 +6,7 @@
 
 Take The Wall is a public internet experiment. A website, app, social profile, or message occupies the wall until someone else takes it over. What would you put there?
 
-Browsing is free. A verified $3.99 USD purchase replaces the current owner; there is no guaranteed duration or audience.
+Browsing is free. A verified $4.99 USD purchase replaces the current owner; there is no guaranteed duration or audience.
 
 ## Run locally
 
@@ -113,6 +113,6 @@ Before enabling live payments: complete Stripe test-mode end-to-end tests, check
 
 ## Milestones, claims, and administration
 
-The authorized delta adds website/app/social/personal content, $3.99 paid-only numbering, configuration-driven milestones, deterministic claim succession, immutable rule versions and public trophy pages. Administrator sign-in uses **Better Auth with the Convex component**, email OTP and a backend allowlist. Winner access remains account-free through protected claim links and fresh email codes.
+The authorized delta adds website/app/social/personal content, $4.99 paid-only numbering, configuration-driven milestones, deterministic claim succession, immutable rule versions and public trophy pages. Administrator sign-in uses **Better Auth with the Convex component**, email OTP and a backend allowlist. Winner access remains account-free through protected claim links and fresh email codes.
 
 Visit `/admin` for operations; `/reward/portal` requires a verified claim session. Public pages include `/about`, `/support`, `/contact`, `/rewards`, `/terms`, `/privacy`, `/disclaimer`, `/disclosure`, and the five initial milestone routes. See [the consolidated spec](docs/IMPLEMENTATION_DELTA.md), [implementation status](IMPLEMENTATION_STATUS.md), and [deployment instructions](DEPLOYMENT.md) for configuration, historical migration, audit verification, reward activation and launch dependencies.

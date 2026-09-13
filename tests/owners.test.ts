@@ -783,7 +783,7 @@ it("feedback requires private access to an ended paid takeover and stays private
       .query("purchases")
       .withIndex("by_takeoverId", (q) => q.eq("takeoverId", id))
       .unique();
-    await ctx.db.patch(purchase!._id, { paidAt: Date.now(), amountCents: 399 });
+    await ctx.db.patch(purchase!._id, { paidAt: Date.now(), amountCents: 499 });
   });
   await expect(
     t.mutation(internal.owners.feedback, { token, answer: "yes" }),
