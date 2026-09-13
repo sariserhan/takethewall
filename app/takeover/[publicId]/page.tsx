@@ -1,11 +1,10 @@
 import { WallCanvas } from "@/components/wall-canvas";
 import { OwnershipBadge } from "@/components/ownership-badge";
 import { HistoryLink } from "@/components/history-link";
-import { ReferralVisit } from "@/components/referral-visit";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSharedTakeover } from "@/lib/shared-takeover";
 import { siteUrl } from "@/lib/site-url";
 export const dynamic = "force-dynamic";
@@ -47,9 +46,9 @@ export default async function SharedPage({ params, searchParams }: Props) {
   if (!data) notFound();
   const owner = data.owner;
   const via = (await searchParams).via;
+  if (via === "share") redirect(`/?ref=${encodeURIComponent(publicId)}&via=share`);
   return (
     <main className="owner-page public-takeover">
-      {via === "share" && <ReferralVisit publicId={publicId} />}
       <header className="owner-page-header">
         <Link href="/">TAKE THE WALL</Link>
         <span>{data.active ? "LIVE NOW" : "WALL HISTORY"}</span>

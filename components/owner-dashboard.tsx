@@ -430,7 +430,7 @@ export function OwnerDashboardView() {
                 new URLSearchParams({
                   text: "I just took the wall! 👑 Knock me off if you can.",
                   url: new URL(
-                    `/takeover/${data.publicId}?via=share`,
+                    `/?ref=${data.publicId}&via=share`,
                     siteUrl(),
                   ).href,
                 }).toString()

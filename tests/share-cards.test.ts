@@ -66,7 +66,7 @@ it.each([
     const raw = await sharp(png).ensureAlpha().raw().toBuffer();
     const decoded = jsQR(new Uint8ClampedArray(raw), width, height);
     expect(decoded?.data).toBe(
-      `https://takethewall.com/takeover/${id}?via=share`,
+      `https://takethewall.com/?ref=${id}&via=share`,
     );
   },
 );

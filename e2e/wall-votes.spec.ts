@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Page } from "@playwright/test";
-async function fixture(page: Page) {
+async function fixture(page: Page, ama = false) {
   let owner = 1,
     enabled = true;
   let update = () => {};
@@ -34,6 +34,7 @@ async function fixture(page: Page) {
       };
     const queries = new Map<number, string>();
     const value = (path: string): unknown => {
+      if (path === "ama:current" && ama) return {answers:[{id:"question-1",question:"What is this?",answer:"A community for sharing useful projects and asking the owner questions."}]};
       if (path === "whispers:history") return { page: whispers.get(owner) ?? [], isDone: true, continueCursor: "" };
       if (path === "whispers:messages" || path === "auditTrail:checkpoints") return [];
       if (path === "auditTrail:entries") return { entries: [], next: null };
@@ -536,4 +537,26 @@ test("Playground panel aligns with the primary toolbar edges", async ({ page }, 
     expect(panel!.x+panel!.width).toBeCloseTo(playground!.x+playground!.width,0);
   }
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+});
+
+
+test("homepage referrals keep the sharing owner and AMA has readable actions", async ({page}, info) => {
+ await fixture(page,true);
+ const publicId="ttw_"+"a".repeat(32);
+ const events: string[]=[];
+ await page.route("**/api/referrals",r=>{const a=r.request().postDataJSON();expect(a.publicId).toBe(publicId);events.push(a.action);return a.action==="begin"?r.fulfill({json:{proof:"fixture-proof",waitMs:5000}}):r.fulfill({status:204});});
+ await page.route("**/api/ama",r=>r.fulfill({json:{ok:true}}));
+ await page.goto(`/?ref=${publicId}&via=share`);
+ await expect(page.getByRole("heading",{name:"Owner 1",exact:true})).toBeVisible();
+ await expect.poll(()=>events,{timeout:10000}).toEqual(["begin","complete"]);
+ expect(new URL(page.url()).pathname).toBe("/");
+ const ama=page.getByRole("region",{name:"Live micro-AMA"});
+ await expect(ama.getByRole("heading",{name:"What is this?"})).toHaveCSS("font-weight","700");
+ const button=ama.getByRole("button",{name:"Ask the owner"});
+ await expect(button).toHaveCSS("border-top-style","solid");
+ await ama.getByRole("textbox",{name:"Your question"}).fill("What did you build?");
+ await button.click();
+ await expect(ama.getByRole("status")).toContainText("Question sent privately");
+ await ama.scrollIntoViewIfNeeded();await page.screenshot({path:`/tmp/ttw-ama-polish-${info.project.name}.png`});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });

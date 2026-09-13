@@ -29,7 +29,7 @@ export async function GET(
       headers: { "Cache-Control": "no-store" },
     });
   const qr = await QRCode.toDataURL(
-    `${ownerBaseUrl()}/takeover/${publicId}?via=share`,
+    `${ownerBaseUrl()}/?ref=${publicId}&via=share`,
     {
       errorCorrectionLevel: "M",
       margin: 4,

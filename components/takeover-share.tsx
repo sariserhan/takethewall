@@ -21,7 +21,7 @@ export function TakeoverShare({
 }) {
   const [format, setFormat] = useState("landscape"),
     [message, setMessage] = useState("");
-  const path = `/takeover/${publicId}?via=share`;
+  const path = `/?ref=${publicId}&via=share`;
   const tweetUrl =
     "https://twitter.com/intent/tweet?" +
     new URLSearchParams({
@@ -119,7 +119,7 @@ export function TakeoverShare({
         <a href={`/takeover/${publicId}/certificate`}>
           Print placement certificate
         </a>
-        <a href={path}>
+        <a href={`/takeover/${publicId}`}>
           Open public page <Arrow />
         </a>
       </div>

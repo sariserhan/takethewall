@@ -6,7 +6,7 @@ const escapeHtml = (value: string) =>
     .replaceAll(">", "&gt;");
 export function referralEmbeds(publicId: string, origin: string | URL) {
   const path = `/takeover/${encodeURIComponent(publicId)}`;
-  const href = new URL(`${path}?via=share`, origin).href;
+  const href = new URL(`/?ref=${encodeURIComponent(publicId)}&via=share`, origin).href;
   const src = new URL(`${path}/badge`, origin).href;
   const link = escapeHtml(href),
     image = escapeHtml(src);

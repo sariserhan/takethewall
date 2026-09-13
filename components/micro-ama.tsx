@@ -27,7 +27,7 @@ export function MicroAma({
     [busy, setBusy] = useState(false);
   if (!data) return null;
   return (
-    <section className="micro-ama">
+    <section className="micro-ama" aria-label="Live micro-AMA">
       <p className="eyebrow">LIVE MICRO-AMA</p>
       <h2>Ask {name} anything.</h2>
       <p>
@@ -54,6 +54,7 @@ export function MicroAma({
         <label>
           Your question
           <input
+            placeholder="What would you like to know?"
             required
             minLength={3}
             maxLength={240}
@@ -69,15 +70,28 @@ export function MicroAma({
           value={company}
           onChange={(e) => setCompany(e.target.value)}
         />
-        <button disabled={busy}>Ask the owner</button>
+        <div className="ama-submit-row">
+          <span className="ama-question-count">
+            {question.length}/240 characters
+          </span>
+          <button className="ama-submit" type="submit" disabled={busy}>
+            {busy ? "Sending…" : "Ask the owner"}
+            <span aria-hidden="true"> →</span>
+          </button>
+        </div>
         <p role="status">{message}</p>
       </form>
-      {data.answers.map((q) => (
-        <article key={q.id}>
-          <h3>{q.question}</h3>
-          <p>{q.answer}</p>
-        </article>
-      ))}
+      {data.answers.length > 0 && (
+        <h3 className="ama-answers-title">Answered by {name}</h3>
+      )}
+      <div className="ama-answers">
+        {data.answers.map((q) => (
+          <article key={q.id}>
+            <h3>{q.question}</h3>
+            <p>{q.answer}</p>
+          </article>
+        ))}
+      </div>
       <ReportContent takeoverId={takeoverId} name={name + " — AMA"} />
     </section>
   );
@@ -148,7 +162,10 @@ export function OwnerAma() {
         />
         Accept questions during this reign
       </label>
-      <p className="field-note">New unanswered questions are grouped into an email every five minutes. Disable questions to stop these notifications.</p>
+      <p className="field-note">
+        New unanswered questions are grouped into an email every five minutes.
+        Disable questions to stop these notifications.
+      </p>
       {data && !data.live && (
         <p>Your reign ended. New questions and replies are closed.</p>
       )}

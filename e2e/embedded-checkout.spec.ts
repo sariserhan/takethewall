@@ -60,7 +60,7 @@ test("embedded checkout stays in the overlay and waits for server activation", a
   ).toBeVisible();
   await expect(
     dialog.getByRole("link", { name: "Open public page" }),
-  ).toHaveAttribute("href", "/takeover/ttw_" + "a".repeat(32) + "?via=share");
+  ).toHaveAttribute("href", "/takeover/ttw_" + "a".repeat(32));
   expect(new URL(page.url()).pathname).toBe("/");
   expect(errors).toEqual([]);
   await dialog.getByRole("button", { name: "Back to the wall" }).click();

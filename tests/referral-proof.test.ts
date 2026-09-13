@@ -22,10 +22,12 @@ it("binds proof to the page, browser, network and short time window", () => {
 it("all embeds use the tracked public share URL and contain no script or private token", () => {
   const e = referralEmbeds("ttw_" + "a".repeat(32), "https://takethewall.com");
   for (const code of Object.values(e.formats)) {
-    expect(code).toContain(e.href);
+    expect(code.replaceAll("&amp;", "&")).toContain(e.href);
     expect(code).not.toContain("<script");
     expect(code).not.toContain("ttw-owner");
   }
+  expect(new URL(e.href).pathname).toBe("/");
+  expect(new URL(e.href).searchParams.get("ref")).toBe("ttw_" + "a".repeat(32));
   expect(e.formats.banner).toContain("width:100%");
   expect(e.formats.footer).toContain("TakeTheWall");
   const attack = referralEmbeds(

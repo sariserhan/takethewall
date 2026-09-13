@@ -97,7 +97,7 @@ export const dashboard = internalQuery({
         access.weeklyDigestEnabled &&
         !!purchase?.buyerEmail &&
         (await emailAllowed(ctx, purchase.buyerEmail, "weekly_digest_email")),
-      shareUrl: `${ownerBaseUrl()}/takeover/${t.publicTakeoverId}?via=share`,
+      shareUrl: `${ownerBaseUrl()}/?ref=${t.publicTakeoverId}&via=share`,
       shareVisitors: t.shareVisitors ?? 0,
       shareTakeovers: t.shareTakeovers ?? 0,
       regions: regions.map((r) => ({

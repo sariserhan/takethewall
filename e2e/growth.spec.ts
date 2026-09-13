@@ -39,10 +39,9 @@ test("history, public referral link, and published sharing work on desktop and m
   });
   await page.goto(`/takeover/${entry.publicId}?via=share`);
   await expect.poll(() => visits).toBe(1);
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-    "href",
-    new RegExp(`/takeover/${entry.publicId}$`),
-  );
+  expect(new URL((await page.locator('link[rel="canonical"]').getAttribute("href"))!).pathname).toBe("/");
+  expect(new URL(page.url()).pathname).toBe("/");
+  expect(new URL(page.url()).searchParams.get("ref")).toBe(entry.publicId);
   await page.goto(`/takeover/${entry.publicId}`);
   expect(visits).toBe(1);
   await page.route("**/api/status", (r) =>
@@ -65,7 +64,7 @@ test("history, public referral link, and published sharing work on desktop and m
   );
   await expect(
     dialog.getByRole("link", { name: "Open public page" }),
-  ).toHaveAttribute("href", `/takeover/${entry.publicId}?via=share`);
+  ).toHaveAttribute("href", `/takeover/${entry.publicId}`);
   await expect(page).not.toHaveURL(/purchase=/);
   expect(
     (await new AxeBuilder({ page }).include("dialog[open]").analyze())
