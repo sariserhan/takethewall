@@ -1,3 +1,4 @@
+import { isCheckoutPaused } from "./checkoutControls";
 import { previousOwnerName } from "./model";
 import { sha } from "../lib/audit";
 import { incrementFunnel } from "./funnel";
@@ -24,6 +25,7 @@ export const pending = internalMutation({
   args: {
     referralPublicId: v.optional(v.string()),
     weeklyDigestEnabled: v.optional(v.boolean()),
+    expectedCurrentId: v.optional(v.id("takeovers")),
     requestKey: v.string(),
     fingerprint: v.string(),
     tokenHash: v.string(),
@@ -66,7 +68,9 @@ export const pending = internalMutation({
         checkoutExpiresAt: old.checkoutExpiresAt,
       };
     }
-    await getSite(ctx);
+    if (await isCheckoutPaused(ctx)) throw new Error("New checkouts are temporarily paused.");
+    const site = await getSite(ctx);
+    if (a.expectedCurrentId && a.expectedCurrentId !== site.currentTakeoverId) throw new Error("The wall changed. Review the current owner before paying.");
     const content = validateWallContent(a),
       buyerEmail = validateEmail(a.buyerEmail);
     if (a.environment !== (process.env.WALL_ENVIRONMENT ?? "test"))

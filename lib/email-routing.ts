@@ -31,7 +31,7 @@ export function senderForMail(mail: {
   if (["admin_otp", "otp", "owner_access_email", "checkout_resume_email"].includes(mail.kind))
     return emailSender("account");
   if (
-    ["activation_email", "replacement_email", "admin_takeover_email"].includes(
+    ["activation_email", "replacement_email", "admin_takeover_email", "admin_payment_failure_email"].includes(
       mail.kind,
     )
   )

@@ -109,7 +109,7 @@ describe("real route boundaries", () => {
     const fetcher = vi.fn().mockImplementation(async (_url, init) => {
       const { op } = JSON.parse(init.body);
       return Response.json(
-        op === "pending"
+        op === "checkoutControls" ? {paused:false,ownerId:"house123",ownerName:"House"} : op === "pending"
           ? {
               takeoverId: "takeover123",
               purchaseId: "purchase123",
@@ -132,6 +132,7 @@ describe("real route boundaries", () => {
       requestKey: "a".repeat(32),
       uploadKey: "b".repeat(32),
       amount: 1,
+      expectedCurrentId: "house123",
     };
     const response = await checkout(
       req("checkout", JSON.stringify(data), "application/json"),
@@ -164,4 +165,15 @@ describe("real route boundaries", () => {
     });
     expect(params.metadata).not.toHaveProperty("email");
   });
+  it.each([{paused:true,status:503},{paused:false,status:409}])("blocks checkout before Stripe when controls reject the request ($status)", async ({paused,status}) => {
+    create.mockClear();
+    vi.stubGlobal("fetch",vi.fn().mockImplementation(async (_url,init) => {
+      const {op}=JSON.parse(init.body);
+      return Response.json(op === "checkoutControls" ? {paused,ownerId:"new-owner",ownerName:"New owner"} : null);
+    }));
+    const response=await checkout(req("checkout",JSON.stringify({requestKey:"a".repeat(32),uploadKey:"",expectedCurrentId:"old-owner"}),"application/json"));
+    expect(response.status).toBe(status);
+    expect(create).not.toHaveBeenCalled();
+  });
+
 });

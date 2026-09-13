@@ -65,3 +65,10 @@ it("recovery refuses unpaid, wrong-owner, wrong-amount and wrong-mode sessions",
   );
   expect(backend).not.toHaveBeenCalled();
 });
+it("publication errors queue a verified failure alert and still propagate for retry", async () => {
+  vi.stubEnv("WALL_ENVIRONMENT", "test");
+  mockSession(session);
+  vi.mocked(backend).mockRejectedValueOnce(new Error("publication unavailable")).mockResolvedValueOnce(null);
+  await expect(recoverPayment(session.id,"owner")).rejects.toThrow("publication unavailable");
+  expect(backend).toHaveBeenLastCalledWith("paidPublicationFailure",{takeoverId:"owner",sessionId:session.id,paymentIntentId:"pi_recover",livemode:false});
+});

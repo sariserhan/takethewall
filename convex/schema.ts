@@ -19,6 +19,7 @@ export const status = v.union(
 export const jobKind = v.union(
   v.literal("activation_email"),
   v.literal("admin_takeover_email"),
+  v.literal("admin_payment_failure_email"),
   v.literal("owner_access_email"),
   v.literal("checkout_resume_email"),
   v.literal("weekly_digest_email"),
@@ -257,6 +258,7 @@ export default defineSchema({
     .index("by_logoStorageId", ["logoStorageId"])
     .index("by_originalLogoStorageId", ["originalContent.logoStorageId"]),
   growthSettings: defineTable({
+    checkoutPaused: v.optional(v.boolean()),
     key: v.literal("current"),
     historyEnabled: v.boolean(),
   }).index("by_key", ["key"]),

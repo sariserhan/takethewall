@@ -814,3 +814,56 @@ it("admin payment labels and timeline use recorded facts without exposing checko
   expect(JSON.stringify(timeline)).not.toContain(p.args.tokenHash);
   expect((await t.run(ctx => ctx.db.get(p.purchaseId)))?.paidAt).toBeUndefined();
 });
+
+it("checkout pause is admin-only, preserves the wall and lets existing payments publish", async () => {
+  vi.stubEnv("ADMIN_USER_IDS", "admin-test");
+  const t = make(), p = await pending(t), admin = t.withIdentity({subject:"admin-test"});
+  const before = await t.query(api.checkoutControls.state, {});
+  await expect(t.mutation(api.checkoutControls.setPaused, {paused:true})).rejects.toThrow();
+  await admin.mutation(api.checkoutControls.setPaused, {paused:true});
+  expect(await t.query(api.checkoutControls.state, {})).toMatchObject({paused:true,ownerId:before.ownerId});
+  await expect(t.mutation(internal.purchases.pending,{...p.args,requestKey:"new-paused"})).rejects.toThrow("paused");
+  await t.mutation(internal.purchases.activate,payment(p.takeoverId,"during-pause"));
+  expect((await t.query(api.wall.current, {}))?.owner.id).toBe(p.takeoverId);
+  await admin.mutation(api.checkoutControls.setPaused,{paused:false});
+  expect((await t.query(api.checkoutControls.state, {})).paused).toBe(false);
+});
+it("stale owner review cannot create a new purchase", async () => {
+  const t = make(), p = await pending(t);
+  const old = await t.query(api.checkoutControls.state, {});
+  await t.mutation(internal.purchases.activate,payment(p.takeoverId,"new-owner"));
+  await expect(t.mutation(internal.purchases.pending,{...p.args,requestKey:"stale-review",expectedCurrentId:old.ownerId})).rejects.toThrow("wall changed");
+  expect(await t.run(ctx=>ctx.db.query("purchases").collect())).toHaveLength(1);
+});
+it("verified live publication failures queue one admin alert and record payment status", async () => {
+  const t = make(), p = await pending(t);
+  await t.mutation(internal.purchases.attach,{purchaseId:p.purchaseId,sessionId:"cs_failure",checkoutUrl:""});
+  await t.run(ctx=>ctx.db.patch(p.purchaseId,{environment:"production"}));
+  vi.stubEnv("WALL_ENVIRONMENT","production");
+  const args={takeoverId:p.takeoverId,sessionId:"cs_failure",paymentIntentId:"pi_failure",livemode:true};
+  await t.mutation(internal.checkoutControls.publicationFailure,{...args,sessionId:"cs_wrong"});
+  expect(await t.run(ctx=>ctx.db.query("jobs").collect())).toHaveLength(0);
+  await t.mutation(internal.checkoutControls.publicationFailure,args);
+  await t.mutation(internal.checkoutControls.publicationFailure,args);
+  const jobs=await t.run(ctx=>ctx.db.query("jobs").collect());
+  expect(jobs).toHaveLength(1);
+  expect(jobs[0]).toMatchObject({kind:"admin_payment_failure_email",adminRecipient:"serhan.sari@yahoo.com"});
+  expect(jobs[0].adminNotice?.body).toContain("pi_failure");
+  expect((await t.run(ctx=>ctx.db.get(p.purchaseId)))?.stripeStatus).toBe("paid");
+  expect((await t.run(ctx=>ctx.db.get(p.purchaseId)))?.paidAt).toBeUndefined();
+});
+it("admin filters match payment status and environment without exposing records anonymously", async () => {
+  vi.stubEnv("ADMIN_USER_IDS","admin-test");
+  const t=make(),p=await pending(t),admin=t.withIdentity({subject:"admin-test"});
+  await expect(t.query(api.admin.list,{section:"takeovers",paymentStatus:"Awaiting payment"})).rejects.toThrow();
+  const read=async (paymentStatus:string,environment:"test"|"production")=>JSON.parse(await admin.query(api.admin.list,{section:"takeovers",paymentStatus,environment}));
+  expect((await read("Awaiting payment","test")).rows.map((r:{_id:string})=>r._id)).toEqual([p.takeoverId]);
+  expect((await read("Paid","test")).rows).toEqual([]);
+  expect((await read("Awaiting payment","production")).rows).toEqual([]);
+});
+it("test-mode publication failures do not queue admin email",async()=>{
+  const t=make(),p=await pending(t);
+  await t.mutation(internal.purchases.attach,{purchaseId:p.purchaseId,sessionId:"cs_test_failure",checkoutUrl:""});
+  await t.mutation(internal.checkoutControls.publicationFailure,{takeoverId:p.takeoverId,sessionId:"cs_test_failure",paymentIntentId:"pi_test",livemode:false});
+  expect(await t.run(ctx=>ctx.db.query("jobs").collect())).toHaveLength(0);
+});

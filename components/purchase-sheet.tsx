@@ -1,4 +1,6 @@
 "use client";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { ImageUpload } from "./image-upload";
 import { TakeoverPreview } from "./takeover-preview";
 import { validateWallContent } from "@/lib/content";
@@ -50,6 +52,10 @@ export function PurchaseSheet({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false);
+  const controls = useQuery(api.checkoutControls.state);
+  const [reviewedOwner, setReviewedOwner] = useState<string | null>(null);
+  const [serverChanged, setServerChanged] = useState(false);
+  const ownerChanged = serverChanged || (!!reviewedOwner && !!controls && reviewedOwner !== controls.ownerId);
   const [reviewing, setReviewing] = useState(false);
   const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   // Hydrate a browser-only saved draft after server rendering.
@@ -83,10 +89,15 @@ export function PurchaseSheet({
     setError("");
     try {
       validateWallContent(draft);
+      if (controls?.paused) throw new Error("New checkouts are temporarily paused.");
+      if (!controls) throw new Error("Loading the current wall. Please try again.");
       if (!reviewing) {
+        setReviewedOwner(controls.ownerId);
+        setServerChanged(false);
         setReviewing(true);
         return;
       }
+      if (ownerChanged || !reviewedOwner) throw new Error("The wall changed. Review the current owner before paying.");
       validateEmail(draft.buyerEmail);
       setBusy(true);
       const requestKey = draft.requestKey || crypto.randomUUID();
@@ -98,9 +109,10 @@ export function PurchaseSheet({
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(saved),
+        body: JSON.stringify({ ...saved, expectedCurrentId: reviewedOwner }),
       });
       const data = await response.json();
+      if (response.status === 409) setServerChanged(true);
       if (!response.ok)
         throw new Error(data.error ?? "Couldn't start checkout. Try again.");
       if (
@@ -131,6 +143,12 @@ export function PurchaseSheet({
       title="MAKE IT YOURS."
       wide
     >
+      {controls?.paused && <p role="status" className="form-error">New checkouts are temporarily paused. The current wall remains visible. Already-open payments may still complete.</p>}
+      {reviewing && controls && <div className="purchase-contact">
+        <p>Current owner: <strong>{controls.ownerName}</strong></p>
+        {ownerChanged && <><p role="alert">The wall changed while you were reviewing. Check the new owner before continuing. Checkout does not reserve the wall.</p>
+        {!checkout && <button type="button" onClick={() => { setReviewedOwner(controls.ownerId); setServerChanged(false); setError(""); }}>I reviewed the current owner</button>}</>}
+      </div>}
       {checkout ? (
         open && (
           <EmbeddedPayment
@@ -193,7 +211,7 @@ export function PurchaseSheet({
             >
               Edit content
             </button>
-            <button type="submit" className="button pay" disabled={busy}>
+            <button type="submit" className="button pay" disabled={busy || ownerChanged || !controls || controls.paused}>
               {busy ? "Preparing checkout…" : "PAY $3.99 & TAKE THE WALL"}
               <Arrow />
             </button>

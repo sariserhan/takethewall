@@ -77,7 +77,7 @@ export const overview = query({
 });
 // JSON is an admin-only transport; projections deliberately omit authentication secrets.
 export const list = query({
-  args: { section: v.string(), cursor: v.optional(v.string()) },
+  args: { section: v.string(), cursor: v.optional(v.string()), paymentStatus: v.optional(v.string()), environment: v.optional(v.union(v.literal("test"), v.literal("production"))) },
   returns: v.string(),
   handler: async (ctx, a) => {
     await requireAdmin(ctx);
@@ -97,9 +97,7 @@ export const list = query({
           .query("takeovers")
           .order("desc")
           .paginate(pagination);
-        return page(
-          rows,
-          await Promise.all(
+        const projected = await Promise.all(
             rows.page.map(async (t) => {
               const p = await ctx.db
                 .query("purchases")
@@ -121,8 +119,8 @@ export const list = query({
                 paymentReference: p?.paymentIntentId ?? null,
               };
             }),
-          ),
-        );
+          );
+        return page(rows, projected.filter(t => (!a.paymentStatus || t.paymentStatus === a.paymentStatus) && (!a.environment || t.paymentEnvironment === a.environment)));
       }
       case "milestones":
         return page(

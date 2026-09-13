@@ -30,6 +30,9 @@ export async function POST(req: Request) {
         !opaqueId(a.uploadKey))
     )
       throw new HttpError("Invalid checkout or image reference.");
+    const controls = await backend<{paused:boolean;ownerId:string;ownerName:string}>("checkoutControls", {});
+    if (controls.paused) return Response.json({ error: "New checkouts are temporarily paused. The current wall remains visible." }, { status: 503 });
+    if (a.expectedCurrentId !== controls.ownerId) return Response.json({ error: "The wall changed. Review the current owner before paying.", currentOwner: controls }, { status: 409 });
     const content = validateWallContent(a);
     if (content.contentType !== "personal")
       await publicDestination(content.websiteUrl);
@@ -56,6 +59,7 @@ export async function POST(req: Request) {
       checkoutUrl: string | null;
       checkoutExpiresAt: number;
     }>("pending", {
+      expectedCurrentId: controls.ownerId,
       referralPublicId: readReferral(
         new NextRequest(req.url, { headers: req.headers }).cookies.get(
           REFERRAL_COOKIE,

@@ -158,7 +158,7 @@ export const data = internalQuery({
       .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
       .unique();
     const access =
-      j.kind !== "admin_takeover_email" && j.kind.endsWith("_email")
+      !["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind) && j.kind.endsWith("_email")
         ? await ctx.db
             .query("ownerAccess")
             .withIndex("by_takeover", (q) => q.eq("takeoverId", t._id))
@@ -172,11 +172,11 @@ export const data = internalQuery({
             .unique()
         : null;
     const notifications =
-      j.kind === "admin_takeover_email"
+      ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
         ? await notificationSettings(ctx)
         : null;
     const destination =
-      j.kind === "admin_takeover_email"
+      ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
         ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
         : j.recoveryToReceipt
           ? (p?.receiptEmail ?? "")
@@ -240,7 +240,7 @@ export const data = internalQuery({
       ...(t.replacedAt !== undefined ? { replacedAt: t.replacedAt } : {}),
       ...(t.endReason ? { endReason: t.endReason } : {}),
       email:
-        j.kind === "admin_takeover_email"
+        ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
           ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
           : j.kind === "owner_access_email"
             ? ((j.recoveryToReceipt ? p?.receiptEmail : p?.buyerEmail) ?? "")
@@ -333,7 +333,7 @@ export const dispatch = internalAction({
         const raw = await ctx.runQuery(internal.jobs.data, { id });
         if (!raw) continue;
         if (
-          raw.kind !== "admin_takeover_email" &&
+          !["admin_takeover_email", "admin_payment_failure_email"].includes(raw.kind) &&
           raw.kind.endsWith("_email") &&
           (process.env.CLAIM_TOKEN_SECRET?.length ?? 0) >= 32
         )
@@ -350,7 +350,7 @@ export const dispatch = internalAction({
           if (
             !j.email ||
             !j.deliveryAllowed ||
-            (j.kind === "admin_takeover_email" &&
+            (["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind) &&
               (!j.adminNotificationEnabled ||
                 j.environment !== "production" ||
                 process.env.WALL_ENVIRONMENT !== "production")) ||
@@ -380,7 +380,7 @@ export const dispatch = internalAction({
                   text: "Your private link shows your takeover performance and weekly email preferences. Keep this link private; use the share button inside the dashboard for a public link.",
                 }
               : emailMessage(j);
-          if (j.kind === "admin_takeover_email" && !j.adminNotice)
+          if (["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind) && !j.adminNotice)
             throw new Error("Missing activation snapshot");
           const rendered =
             j.kind === "checkout_resume_email"
@@ -394,15 +394,15 @@ export const dispatch = internalAction({
                       "Keep this link private. It opens your saved checkout. If you already paid, we’ll check your payment instead of asking you to pay again.",
                   },
                 )
-              : j.kind === "admin_takeover_email"
+              : ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
                 ? emailTemplate(j.adminNotice!.subject, j.adminNotice!.body, {
-                    eyebrow: "WALL TAKEOVER NOTIFICATION",
+                    eyebrow: j.kind === "admin_payment_failure_email" ? "PAYMENT NEEDS ATTENTION" : "WALL TAKEOVER NOTIFICATION",
                     cta: {
                       label: "Open admin dashboard",
                       url: ownerBaseUrl() + "/admin",
                     },
                     footnote:
-                      "Activation snapshot. Content and ownership may have changed since this notification.",
+                      j.kind === "admin_payment_failure_email" ? "Payment failure snapshot. A later retry may have recovered publication; check Stripe status before acting." : "Activation snapshot. Content and ownership may have changed since this notification.",
                   })
                 : j.kind === "replacement_email"
                   ? finalOwnerEmail(j.finalReport!, j.dashboardUrl)

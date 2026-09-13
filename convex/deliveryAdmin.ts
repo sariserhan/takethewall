@@ -257,7 +257,9 @@ export const timeline = query({
       .order("desc")
       .take(50);
     for (const check of checks)
-      if (check.action === "STRIPE_STATUS_CHECKED") {
+      if (check.action === "PAID_PUBLICATION_FAILED") {
+        events.push({at:check.createdAt,label:"Paid payment could not publish; recovery needed"});
+      } else if (check.action === "STRIPE_STATUS_CHECKED") {
         const data = JSON.parse(check.metadata);
         events.push({
           at: check.createdAt,

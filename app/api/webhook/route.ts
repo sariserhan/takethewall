@@ -1,3 +1,4 @@
+import { activatePayment } from "@/lib/activate-payment";
 import { backend } from "@/lib/server";
 import {
   paymentProvider,
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
       event,
       process.env.WALL_ENVIRONMENT === "production",
     );
-    if (data) await backend("activate", data);
+    if (data) await activatePayment(data);
     const expired = verifiedExpiration(
       event,
       process.env.WALL_ENVIRONMENT === "production",

@@ -1,4 +1,5 @@
 "use client";
+import { AdminCheckoutControls } from "./admin-checkout-controls";
 import { AdminPaymentDetails } from "./admin-payment-details";
 import { AdminGrowth } from "./admin-growth";
 import { AdminEmails } from "./admin-emails";
@@ -37,6 +38,8 @@ export function AdminDashboard() {
     api.admin.overview,
     section === "overview" ? {} : "skip",
   );
+  const [paymentFilter, setPaymentFilter] = useState("");
+  const [environmentFilter, setEnvironmentFilter] = useState<"" | "test" | "production">("");
   const [before, setBefore] = useState<string | undefined>();
   const raw = useQuery(
     api.admin.list,
@@ -50,7 +53,7 @@ export function AdminDashboard() {
       "publish",
       "demo stats",
     ].includes(section)
-      ? { section, cursor: before }
+      ? { section, cursor: before, ...(section === "takeovers" ? { paymentStatus: paymentFilter || undefined, environment: environmentFilter || undefined } : {}) }
       : "skip",
   );
   const [selected, setSelected] = useState("");
@@ -146,10 +149,21 @@ export function AdminDashboard() {
       {section === "demo stats" && <AdminDemoStats />}
       {section === "settings" && (
         <>
+          <AdminCheckoutControls />
           <AdminNotifications />
           <Settings />
         </>
       )}
+      {section === "takeovers" && <div className="purchase-contact">
+        <label>Payment status<select value={paymentFilter} onChange={e => {setPaymentFilter(e.target.value); setBefore(undefined); setSelected("");}}>
+          <option value="">All payment statuses</option>
+          {["Awaiting payment", "Payment processing", "Paid", "Paid — publication pending", "Expired", "No payment required", "Refunded", "Disputed"].map(s => <option key={s}>{s}</option>)}
+        </select></label>
+        <label>Payment environment<select value={environmentFilter} onChange={e => {setEnvironmentFilter(e.target.value as "" | "test" | "production"); setBefore(undefined); setSelected("");}}>
+          <option value="">All environments</option><option value="production">Live</option><option value="test">Test</option>
+        </select></label>
+        <p className="field-note">Filters apply to each batch of 50 records. Use Next to check older records.</p>
+      </div>}
       {page && (
         <>
           <div className="admin-table-wrap">
@@ -300,7 +314,7 @@ export function AdminDashboard() {
               </tbody>
             </table>
           </div>
-          {page.rows.length === 0 && <p>No records yet.</p>}
+          {page.rows.length === 0 && <p>{section === "takeovers" && (paymentFilter || environmentFilter) ? "No matching records in this batch." : "No records yet."}</p>}
           <button
             onClick={() => setBefore(undefined)}
             disabled={before === undefined}

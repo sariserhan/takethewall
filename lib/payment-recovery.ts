@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { getStripe, verifiedSession } from "./stripe";
-import { backend } from "./server";
+import { activatePayment } from "./activate-payment";
 export async function recoverPayment(sessionId: string, takeoverId: string) {
   const session = await getStripe().checkout.sessions.retrieve(sessionId);
   if (session.metadata?.takeoverId !== takeoverId)
@@ -20,6 +20,6 @@ export async function recoverPayment(sessionId: string, takeoverId: string) {
     process.env.WALL_ENVIRONMENT === "production",
   );
   if (!verified) return false;
-  await backend("activate", verified);
+  await activatePayment(verified);
   return true;
 }

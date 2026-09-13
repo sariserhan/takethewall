@@ -44,10 +44,12 @@ function Connected() {
     () => false,
   );
   const data = useQuery(api.wall.current);
+  const controls = useQuery(api.checkoutControls.state);
   const connection = useConvexConnectionState();
   return (
     <WallView
       data={data}
+      checkoutPaused={controls?.paused ?? false}
       connected={hydrated && connection.isWebSocketConnected}
     />
   );
@@ -77,9 +79,11 @@ interface Confirmation {
   durationMs: number | null;
 }
 function WallView({
+  checkoutPaused = false,
   data,
   connected,
 }: {
+  checkoutPaused?: boolean;
   data: WallData | undefined;
   connected: boolean;
 }) {
@@ -479,8 +483,8 @@ function WallView({
             <br />
             It stays until the next takeover replaces it.
           </p>
-          <button className="button primary" onClick={takeWall}>
-            TAKE THE WALL — $3.99 <Arrow />
+          <button className="button primary" onClick={takeWall} disabled={checkoutPaused}>
+            {checkoutPaused ? "NEW CHECKOUTS PAUSED" : "TAKE THE WALL — $3.99"} <Arrow />
           </button>
         </section>
       </div>

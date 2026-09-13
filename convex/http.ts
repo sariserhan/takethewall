@@ -26,6 +26,12 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "checkoutControls":
+          result = await ctx.runQuery(api.checkoutControls.state, {});
+          break;
+        case "paidPublicationFailure":
+          result = await ctx.runMutation(internal.checkoutControls.publicationFailure, args);
+          break;
         case "adminStripeCheck":
           result = await ctx.runMutation(internal.deliveryAdmin.recordStripeCheck, args);
           break;
