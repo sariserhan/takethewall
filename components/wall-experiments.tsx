@@ -1,4 +1,5 @@
 "use client";
+import { WallToolIcon } from "./wall-tool-icon";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { Dialog } from "./dialog";
@@ -132,13 +133,13 @@ export function WallExperiments({
   return (
     <>
       <button className="wall-action" onClick={onTry}>
-        Try Mine
+        <WallToolIcon name="preview" /> Try Mine
       </button>
       <button className="wall-action" onClick={() => setPanel("Hold")}>
-        Hold
+        <WallToolIcon name="hold" /> Hold
       </button>
       <button className="wall-action" onClick={() => setPanel("Pulse")}>
-        Pulse
+        <WallToolIcon name="pulse" /> Pulse
       </button>
       <button
         className="wall-action"
@@ -146,7 +147,7 @@ export function WallExperiments({
         onClick={onMagnet}
         title="Move your mouse over the title. Respects reduced motion."
       >
-        Magnet
+        <WallToolIcon name="magnet" /> Magnet
       </button>
       <button
         className="wall-action"
@@ -156,7 +157,7 @@ export function WallExperiments({
           setBeat(false);
         }}
       >
-        Rave
+        <WallToolIcon name="rave" /> Rave
       </button>
       {rave && (
         <button
@@ -164,7 +165,7 @@ export function WallExperiments({
           aria-pressed={beat}
           onClick={() => setBeat(!beat)}
         >
-          Rave beat {beat ? "on" : "off"}
+          <WallToolIcon name={beat ? "sound" : "muted"} /> Rave beat {beat ? "on" : "off"}
         </button>
       )}
       <Dialog
@@ -221,7 +222,7 @@ function Pulse({ ownerId, name }: { ownerId?: string; name?: string }) {
         disabled={!ownerId || busy}
         onClick={() => void check()}
       >
-        {busy ? "Checking…" : "Check website"}
+        <WallToolIcon name="pulse" /> {busy ? "Checking…" : "Check website"}
       </button>
       {error && <p role="alert">{error}</p>}
       {result && (

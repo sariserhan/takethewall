@@ -1,4 +1,5 @@
 "use client";
+import { WallToolIcon } from "./wall-tool-icon";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { HistoryLink } from "./history-link";
@@ -122,7 +123,7 @@ export function HackerTerminal({
   return (
     <>
       <button className="terminal-trigger" onClick={() => setOpen(true)}>
-        Terminal <kbd>Ctrl K</kbd>
+        <WallToolIcon name="terminal" /> Terminal <kbd>Ctrl K</kbd>
       </button>
       <Dialog open={open} onClose={() => setOpen(false)} title="WALL TERMINAL">
         <section className="hacker-terminal">

@@ -1,4 +1,5 @@
 "use client";
+import { WallToolIcon } from "./wall-tool-icon";
 import { useEffect, useState } from "react";
 export function WallActions({ name }: { name?: string }) {
   const [fullscreen, setFullscreen] = useState(false);
@@ -26,6 +27,7 @@ export function WallActions({ name }: { name?: string }) {
           }
         }}
       >
+        <WallToolIcon name={fullscreen ? "collapse" : "fullscreen"} />
         {fullscreen ? "Exit fullscreen" : "Fullscreen"}
       </button>
       <button
@@ -55,7 +57,7 @@ export function WallActions({ name }: { name?: string }) {
           }
         }}
       >
-        Share wall
+        <WallToolIcon name="share" /> Share wall
       </button>
       {message && (
         <p className="wall-action-status" role="status">

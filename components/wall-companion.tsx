@@ -1,4 +1,5 @@
 "use client";
+import { WallToolIcon } from "./wall-tool-icon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ConvexProvider, useQuery } from "convex/react";
@@ -71,7 +72,7 @@ export function PopOutWall() {
           }
         }}
       >
-        Pop out wall
+        <WallToolIcon name="popout" /> Pop out wall
       </button>
       {message && (
         <p role="status">

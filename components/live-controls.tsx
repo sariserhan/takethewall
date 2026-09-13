@@ -1,4 +1,5 @@
 "use client";
+import { WallToolIcon } from "./wall-tool-icon";
 import { useEffect, useRef, useState, type RefObject } from "react";
 export function MobilePurchaseBar({
   target,
@@ -111,7 +112,7 @@ export function TakeoverSound({ changed }: { changed: boolean }) {
         }
       }}
     >
-      Sound {enabled ? "on" : "off"}
+      <WallToolIcon name={enabled ? "sound" : "muted"} /> Sound {enabled ? "on" : "off"}
     </button>
   );
 }
