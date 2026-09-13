@@ -39,7 +39,9 @@ export function AdminDashboard() {
     section === "overview" ? {} : "skip",
   );
   const [paymentFilter, setPaymentFilter] = useState("");
-  const [environmentFilter, setEnvironmentFilter] = useState<"" | "test" | "production">("");
+  const [environmentFilter, setEnvironmentFilter] = useState<
+    "" | "test" | "production"
+  >("");
   const [before, setBefore] = useState<string | undefined>();
   const raw = useQuery(
     api.admin.list,
@@ -53,7 +55,16 @@ export function AdminDashboard() {
       "publish",
       "demo stats",
     ].includes(section)
-      ? { section, cursor: before, ...(section === "takeovers" ? { paymentStatus: paymentFilter || undefined, environment: environmentFilter || undefined } : {}) }
+      ? {
+          section,
+          cursor: before,
+          ...(section === "takeovers"
+            ? {
+                paymentStatus: paymentFilter || undefined,
+                environment: environmentFilter || undefined,
+              }
+            : {}),
+        }
       : "skip",
   );
   const [selected, setSelected] = useState("");
@@ -61,8 +72,8 @@ export function AdminDashboard() {
   const moderate = useMutation(api.admin.moderate);
   if (identity === undefined)
     return <LoadingSkeleton label="Checking administrator access" />;
-  const page = raw ? JSON.parse(raw) : null;
-  const stats = overview ? JSON.parse(overview) : null;
+  const page = raw ?? null;
+  const stats = overview ?? null;
   return (
     <>
       <header>
@@ -154,16 +165,56 @@ export function AdminDashboard() {
           <Settings />
         </>
       )}
-      {section === "takeovers" && <div className="purchase-contact">
-        <label>Payment status<select value={paymentFilter} onChange={e => {setPaymentFilter(e.target.value); setBefore(undefined); setSelected("");}}>
-          <option value="">All payment statuses</option>
-          {["Awaiting payment", "Payment processing", "Paid", "Paid — publication pending", "Expired", "No payment required", "Refunded", "Disputed"].map(s => <option key={s}>{s}</option>)}
-        </select></label>
-        <label>Payment environment<select value={environmentFilter} onChange={e => {setEnvironmentFilter(e.target.value as "" | "test" | "production"); setBefore(undefined); setSelected("");}}>
-          <option value="">All environments</option><option value="production">Live</option><option value="test">Test</option>
-        </select></label>
-        <p className="field-note">Filters apply to each batch of 50 records. Use Next to check older records.</p>
-      </div>}
+      {section === "takeovers" && (
+        <div className="purchase-contact">
+          <label>
+            Payment status
+            <select
+              value={paymentFilter}
+              onChange={(e) => {
+                setPaymentFilter(e.target.value);
+                setBefore(undefined);
+                setSelected("");
+              }}
+            >
+              <option value="">All payment statuses</option>
+              {[
+                "Awaiting payment",
+                "Payment processing",
+                "Paid",
+                "Paid — publication pending",
+                "Expired",
+                "No payment required",
+                "Refunded",
+                "Disputed",
+              ].map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Payment environment
+            <select
+              value={environmentFilter}
+              onChange={(e) => {
+                setEnvironmentFilter(
+                  e.target.value as "" | "test" | "production",
+                );
+                setBefore(undefined);
+                setSelected("");
+              }}
+            >
+              <option value="">All environments</option>
+              <option value="production">Live</option>
+              <option value="test">Test</option>
+            </select>
+          </label>
+          <p className="field-note">
+            Filters apply to each batch of 50 records. Use Next to check older
+            records.
+          </p>
+        </div>
+      )}
       {page && (
         <>
           <div className="admin-table-wrap">
@@ -194,11 +245,28 @@ export function AdminDashboard() {
                       </small>
                     </td>
                     <td>
-                      {section === "takeovers" ? <>
-                        <strong>{String(row.paymentStatus ?? "Payment status unavailable")}</strong>
-                        <small>Placement: {String(row.status ?? "unknown")} · {String(row.placementType ?? row.kind ?? "")}</small>
-                        {row.paymentEnvironment ? <small>{row.paymentEnvironment === "production" ? "Live Stripe" : "Test mode"}</small> : null}
-                      </> : String(row.status ?? row.createdAt ?? "")}
+                      {section === "takeovers" ? (
+                        <>
+                          <strong>
+                            {String(
+                              row.paymentStatus ?? "Payment status unavailable",
+                            )}
+                          </strong>
+                          <small>
+                            Placement: {String(row.status ?? "unknown")} ·{" "}
+                            {String(row.placementType ?? row.kind ?? "")}
+                          </small>
+                          {row.paymentEnvironment ? (
+                            <small>
+                              {row.paymentEnvironment === "production"
+                                ? "Live Stripe"
+                                : "Test mode"}
+                            </small>
+                          ) : null}
+                        </>
+                      ) : (
+                        String(row.status ?? row.createdAt ?? "")
+                      )}
                       {row.unread ? <strong> · UNREAD</strong> : null}
                       {row.milestone ? (
                         <small>Milestone #{String(row.milestone)}</small>
@@ -220,10 +288,31 @@ export function AdminDashboard() {
                       ) : (
                         <details>
                           <summary>Inspect</summary>
-                          {section === "takeovers" ? <>
-                            <AdminPaymentDetails takeoverId={String(row._id)} sessionId={typeof row.checkoutSessionId === "string" ? row.checkoutSessionId : null} checkedAt={typeof row.stripeCheckedAt === "number" ? row.stripeCheckedAt : null} />
-                            <details><summary>Raw record (kind is placement type)</summary><pre>{JSON.stringify(row, null, 2)}</pre></details>
-                          </> : <pre>{JSON.stringify(row, null, 2)}</pre>}
+                          {section === "takeovers" ? (
+                            <>
+                              <AdminPaymentDetails
+                                takeoverId={String(row._id)}
+                                sessionId={
+                                  typeof row.checkoutSessionId === "string"
+                                    ? row.checkoutSessionId
+                                    : null
+                                }
+                                checkedAt={
+                                  typeof row.stripeCheckedAt === "number"
+                                    ? row.stripeCheckedAt
+                                    : null
+                                }
+                              />
+                              <details>
+                                <summary>
+                                  Raw record (kind is placement type)
+                                </summary>
+                                <pre>{JSON.stringify(row, null, 2)}</pre>
+                              </details>
+                            </>
+                          ) : (
+                            <pre>{JSON.stringify(row, null, 2)}</pre>
+                          )}
                           {section === "takeovers" &&
                             row.status === "active" && (
                               <button
@@ -314,7 +403,13 @@ export function AdminDashboard() {
               </tbody>
             </table>
           </div>
-          {page.rows.length === 0 && <p>{section === "takeovers" && (paymentFilter || environmentFilter) ? "No matching records in this batch." : "No records yet."}</p>}
+          {page.rows.length === 0 && (
+            <p>
+              {section === "takeovers" && (paymentFilter || environmentFilter)
+                ? "No matching records in this batch."
+                : "No records yet."}
+            </p>
+          )}
           <button
             onClick={() => setBefore(undefined)}
             disabled={before === undefined}
@@ -322,7 +417,7 @@ export function AdminDashboard() {
             Newest
           </button>
           {page.next && (
-            <button onClick={() => setBefore(page.next)}>
+            <button onClick={() => setBefore(page.next ?? undefined)}>
               Older records →
             </button>
           )}
@@ -365,7 +460,8 @@ function ClaimDetail({
     void read({ claimId: id });
   }, [id, read, raw]);
   if (!raw) return <p>Loading claim…</p>;
-  const { claim, reward, messages, documents, history } = JSON.parse(raw);
+  const { claim, reward, messages, documents, history } = raw;
+  if (!reward) return <p>This claim’s reward record is unavailable.</p>;
   async function run(
     name:
       | "request_information"
@@ -407,16 +503,18 @@ function ClaimDetail({
         {claim.status} · deadline {new Date(claim.deadlineAt).toUTCString()}
       </p>
       <dl>
-        {[
-          "email",
-          "legalName",
-          "country",
-          "region",
-          "dob",
-          "declaration",
-          "requiredInformation",
-          "privateReason",
-        ].map((k) => (
+        {(
+          [
+            "email",
+            "legalName",
+            "country",
+            "region",
+            "dob",
+            "declaration",
+            "requiredInformation",
+            "privateReason",
+          ] as const
+        ).map((k) => (
           <div key={k}>
             <dt>{k}</dt>
             <dd>{claim[k] || "—"}</dd>
@@ -615,7 +713,8 @@ function TicketDetail({
   const [reply, setReply] = useState(""),
     [error, setError] = useState("");
   if (!raw) return null;
-  const { ticket, messages } = JSON.parse(raw);
+  const { ticket, messages } = raw;
+  if (!ticket) return <p>Ticket no longer exists.</p>;
   return (
     <section className="admin-detail">
       <button onClick={close}>Close ticket ×</button>

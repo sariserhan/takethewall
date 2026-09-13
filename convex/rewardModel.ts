@@ -1,3 +1,5 @@
+import { scheduleRewardDeadline } from "./rewardSchedule";
+import { scheduleDelivery } from "./deliverySchedule";
 import { emailAllowed } from "./emailPolicy";
 import { trackEmail } from "./emailDirectory";
 import { numberingOffset } from "./numbering";
@@ -76,13 +78,14 @@ export async function mail(
     subject: a.subject,
     state: "pending",
   });
-  await ctx.db.insert("transactionalMail", {
+  const deliveryId = await ctx.db.insert("transactionalMail", {
     ...a,
     state: "pending",
     attempts: 0,
     nextAt: Date.now(),
     createdAt: Date.now(),
   });
+  await scheduleDelivery(ctx, "mail", deliveryId);
 }
 export async function systemMessage(
   ctx: MutationCtx,
@@ -121,6 +124,10 @@ export async function createCandidate(
     .query("purchases")
     .withIndex("by_takeoverId", (q) => q.eq("takeoverId", takeover._id))
     .unique();
+  await scheduleRewardDeadline(
+    ctx,
+    Date.now() + reward.initialDays * 86400_000,
+  );
   const claimId = await ctx.db.insert("rewardClaims", {
     rewardId,
     takeoverId: takeover._id,

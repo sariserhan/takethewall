@@ -1,3 +1,6 @@
+import { scheduleDelivery } from "./deliverySchedule";
+import type { ActionCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { emailAllowed } from "./emailPolicy";
 import { trackEmail } from "./emailDirectory";
 import {
@@ -340,33 +343,35 @@ export const finish = internalMutation({
         j.claimId,
         { kind: j.kind },
       );
+    const updated = await ctx.db.get(a.id);
+    if (updated?.state === "pending")
+      await scheduleDelivery(ctx, "mail", updated._id, updated.nextAt);
     return null;
   },
 });
+export async function sendOne(ctx: ActionCtx, id: Id<"transactionalMail">) {
+  try {
+    const j = await ctx.runMutation(internal.mail.prepare, { id });
+    if (!j) return;
+    const providerId = await transactionalEmail.send(j);
+    await ctx.runMutation(internal.mail.finish, {
+      id,
+      ok: true,
+      providerId,
+    });
+  } catch {
+    await ctx.runMutation(internal.mail.finish, {
+      id,
+      ok: false,
+      error: "Email unavailable or configuration incomplete",
+    });
+  }
+}
 export const dispatch = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    if (!process.env.RESEND_API_KEY) return null;
-    const ids = await ctx.runQuery(internal.mail.due, {});
-    for (const id of ids) {
-      try {
-        const j = await ctx.runMutation(internal.mail.prepare, { id });
-        if (!j) continue;
-        const providerId = await transactionalEmail.send(j);
-        await ctx.runMutation(internal.mail.finish, {
-          id,
-          ok: true,
-          providerId,
-        });
-      } catch {
-        await ctx.runMutation(internal.mail.finish, {
-          id,
-          ok: false,
-          error: "Email unavailable or configuration incomplete",
-        });
-      }
-    }
+    await ctx.runMutation(internal.delivery.recover, {});
     return null;
   },
 });

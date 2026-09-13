@@ -1,3 +1,4 @@
+import { internal } from "./_generated/api";
 import { internalQuery } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
@@ -24,6 +25,8 @@ export const indexContacts = internalMutation({
           ? sha(p.receiptEmail.toLowerCase())
           : "",
       });
+    if (rows.length === 50)
+      await ctx.scheduler.runAfter(0, internal.recovery.indexContacts, {});
     return rows.length;
   },
 });

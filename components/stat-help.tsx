@@ -16,7 +16,7 @@ const explanations: Record<string, string> = {
   "Owner since":
     "The exact activation time, shown in UTC so everyone sees the same timestamp. UTC is a worldwide time standard, not your local time zone.",
   IMPRESSIONS:
-    "How many times the current owner's content was viewed. Repeat views can count, so this can be higher than unique visitors. For example, 2 people viewing several times could create 9 impressions.",
+    "How many times the current owner's content was viewed. Counts usually update within 15 seconds. Repeat views can count, so this can be higher than unique visitors. For example, 2 people viewing several times could create 9 impressions.",
   "UNIQUE VISITORS":
     "Distinct browsers that viewed the current owner's content during this reign. Repeat views from the same browser count once. This starts over for each new owner.",
   CLICKS:

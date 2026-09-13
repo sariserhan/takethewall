@@ -1,4 +1,4 @@
-import { incrementFunnel } from "./funnel";
+import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { daily, getSite, limit, receipt } from "./model";
@@ -61,12 +61,14 @@ export const record = internalMutation({
     if (a.event === "take_wall_clicked" || a.event === "checkout_started") {
       return true;
     }
-    const site = await getSite(ctx),
-      d = await daily(ctx);
+    const date = new Date(now).toISOString().slice(0, 10);
+    let fresh = false,
+      freshSite = false,
+      freshDay = false,
+      funnelVisit = false;
     const region = /^[A-Z]{2}$/.test(a.region) ? a.region : "ZZ";
     if (a.event === "impression") {
-      if (await receipt(ctx, "funnel-visit:" + a.pageId))
-        await incrementFunnel(ctx, "funnelVisits");
+      funnelVisit = await receipt(ctx, "funnel-visit:" + a.pageId);
       const seen = await ctx.db
         .query("takeoverVisitors")
         .withIndex("by_takeoverId_visitorHash", (q) =>
@@ -91,49 +93,138 @@ export const record = internalMutation({
       const today = await ctx.db
         .query("dailyVisitors")
         .withIndex("by_date_visitorHash", (q) =>
-          q.eq("date", d.date).eq("visitorHash", a.visitorHash),
+          q.eq("date", date).eq("visitorHash", a.visitorHash),
         )
         .unique();
       if (!today)
         await ctx.db.insert("dailyVisitors", {
-          date: d.date,
+          date,
           visitorHash: a.visitorHash,
           expiresAt: now + 3 * 86400_000,
         });
-      await ctx.db.patch(t._id, {
-        impressions: t.impressions + 1,
-        uniqueVisitors: t.uniqueVisitors + (seen ? 0 : 1),
+      fresh = !seen;
+      freshSite = !lifetime;
+      freshDay = !today;
+    }
+    // Independent buckets avoid a shared write for every incoming impression.
+    const shard =
+      [...a.visitorHash].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 0) %
+      16;
+    const batch = await ctx.db
+      .query("analyticsBatches")
+      .withIndex("by_bucket", (q) =>
+        q.eq("takeoverId", t._id).eq("date", date).eq("shard", shard),
+      )
+      .unique();
+    const impression = a.event === "impression" ? 1 : 0;
+    const regions = batch?.regions ?? [];
+    if (impression) {
+      const r = regions.find((r) => r.code === region);
+      if (r) {
+        r.impressions++;
+        r.uniqueVisitors += Number(fresh);
+      } else
+        regions.push({
+          code: region,
+          impressions: 1,
+          uniqueVisitors: Number(fresh),
+        });
+    }
+    const values = {
+      impressions: (batch?.impressions ?? 0) + impression,
+      uniqueVisitors: (batch?.uniqueVisitors ?? 0) + Number(fresh),
+      siteVisitors: (batch?.siteVisitors ?? 0) + Number(freshSite),
+      dailyVisitors: (batch?.dailyVisitors ?? 0) + Number(freshDay),
+      clicks: (batch?.clicks ?? 0) + Number(a.event === "click"),
+      funnelVisits:
+        (batch?.funnelVisits ?? 0) +
+        Number(funnelVisit && process.env.WALL_ENVIRONMENT === "production"),
+      regions,
+    };
+    if (batch) await ctx.db.patch(batch._id, values);
+    else {
+      const id = await ctx.db.insert("analyticsBatches", {
+        takeoverId: t._id,
+        date,
+        shard,
+        ...values,
       });
-      await ctx.db.patch(site._id, {
-        totalVisitors: site.totalVisitors + (lifetime ? 0 : 1),
-        updatedAt: now,
-      });
-      await ctx.db.patch(d._id, {
-        visitors: d.visitors + (today ? 0 : 1),
-        impressions: d.impressions + 1,
-      });
+      await ctx.scheduler.runAfter(
+        10_000 + shard * 300,
+        internal.analytics.flush,
+        { id },
+      );
+    }
+    return true;
+  },
+});
+
+// Applying and deleting the delta is one transaction: retries cannot double count.
+export const flush = internalMutation({
+  args: { id: v.id("analyticsBatches") },
+  returns: v.null(),
+  handler: async (ctx, { id }) => {
+    const b = await ctx.db.get(id);
+    if (!b) return null;
+    const t = await ctx.db.get(b.takeoverId);
+    if (!t) throw new Error("Analytics owner missing");
+    const site = await getSite(ctx),
+      d = await daily(ctx, b.date);
+    await ctx.db.patch(t._id, {
+      impressions: t.impressions + b.impressions,
+      uniqueVisitors: t.uniqueVisitors + b.uniqueVisitors,
+      clicks: t.clicks + b.clicks,
+    });
+    await ctx.db.patch(site._id, {
+      totalVisitors: site.totalVisitors + b.siteVisitors,
+      updatedAt: Math.max(site.updatedAt, Date.now()),
+    });
+    await ctx.db.patch(d._id, {
+      visitors: d.visitors + b.dailyVisitors,
+      impressions: d.impressions + b.impressions,
+      clicks: d.clicks + b.clicks,
+      ...(b.funnelVisits
+        ? {
+            funnelVisits: (d.funnelVisits ?? 0) + b.funnelVisits,
+            funnelStartedAt: d.funnelStartedAt ?? Date.now(),
+          }
+        : {}),
+    });
+    for (const delta of b.regions) {
       const r = await ctx.db
         .query("takeoverRegions")
         .withIndex("by_takeoverId_regionCode", (q) =>
-          q.eq("takeoverId", t._id).eq("regionCode", region),
+          q.eq("takeoverId", t._id).eq("regionCode", delta.code),
         )
         .unique();
       if (r)
         await ctx.db.patch(r._id, {
-          impressions: r.impressions + 1,
-          uniqueVisitors: r.uniqueVisitors + (seen ? 0 : 1),
+          impressions: r.impressions + delta.impressions,
+          uniqueVisitors: r.uniqueVisitors + delta.uniqueVisitors,
         });
       else
         await ctx.db.insert("takeoverRegions", {
           takeoverId: t._id,
-          regionCode: region,
-          impressions: 1,
-          uniqueVisitors: seen ? 0 : 1,
+          regionCode: delta.code,
+          impressions: delta.impressions,
+          uniqueVisitors: delta.uniqueVisitors,
         });
-    } else {
-      await ctx.db.patch(t._id, { clicks: t.clicks + 1 });
-      await ctx.db.patch(d._id, { clicks: d.clicks + 1 });
     }
-    return true;
+    await ctx.db.delete(id);
+    return null;
+  },
+});
+
+export const recover = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("analyticsBatches")
+      .withIndex("by_bucket")
+      .take(100);
+    for (const b of rows)
+      await ctx.scheduler.runAfter(0, internal.analytics.flush, { id: b._id });
+    return null;
   },
 });

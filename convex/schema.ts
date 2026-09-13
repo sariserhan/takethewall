@@ -2,7 +2,11 @@ import { demoValues, demoPresentation } from "./demoValues";
 import { rewardTables, emailSenderFields } from "./rewardSchema";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-export const ownerFeedback = v.union(v.literal("yes"), v.literal("no"), v.literal("unsure"));
+export const ownerFeedback = v.union(
+  v.literal("yes"),
+  v.literal("no"),
+  v.literal("unsure"),
+);
 export const kind = v.union(
   v.literal("paid"),
   v.literal("admin_counted"),
@@ -64,6 +68,28 @@ export const finalReportSnapshot = v.object({
   endReason: v.string(),
 });
 export default defineSchema({
+  deliveryClock: defineTable({
+    key: v.literal("email"),
+    nextAt: v.number(),
+  }).index("by_key", ["key"]),
+  analyticsBatches: defineTable({
+    takeoverId: v.id("takeovers"),
+    date: v.string(),
+    shard: v.number(),
+    impressions: v.number(),
+    uniqueVisitors: v.number(),
+    clicks: v.number(),
+    siteVisitors: v.number(),
+    dailyVisitors: v.number(),
+    funnelVisits: v.number(),
+    regions: v.array(
+      v.object({
+        code: v.string(),
+        impressions: v.number(),
+        uniqueVisitors: v.number(),
+      }),
+    ),
+  }).index("by_bucket", ["takeoverId", "date", "shard"]),
   emailPolicies: defineTable({
     emailHash: v.string(),
     reason: v.optional(
@@ -102,7 +128,9 @@ export default defineSchema({
     .index("by_email", ["emailHash"])
     .index("by_confirm", ["confirmHash"])
     .index("by_unsubscribe", ["unsubscribeHash"])
-    .index("by_due", ["active", "nextAt"]),
+    .index("by_due", ["active", "nextAt"])
+    .index("by_frequency_due", ["active", "frequency", "nextAt"])
+    .index("by_sequence", ["active", "frequency", "lastSequence"]),
   emailContacts: defineTable({
     email: v.string(),
     emailHash: v.string(),
@@ -269,7 +297,14 @@ export default defineSchema({
   }).index("by_source_visitor", ["takeoverId", "visitorHash"]),
   purchases: defineTable({
     sessionCreatedAt: v.optional(v.number()),
-    stripeStatus: v.optional(v.union(v.literal("paid"), v.literal("processing"), v.literal("expired"), v.literal("unpaid"))),
+    stripeStatus: v.optional(
+      v.union(
+        v.literal("paid"),
+        v.literal("processing"),
+        v.literal("expired"),
+        v.literal("unpaid"),
+      ),
+    ),
     stripeCheckedAt: v.optional(v.number()),
     resumeSeed: v.optional(v.string()),
     resumeHash: v.optional(v.string()),

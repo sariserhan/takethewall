@@ -154,7 +154,7 @@ test("admin prepares a social post and reviews search eligibility within /admin"
           : path === "admin:identity"
             ? "admin-fixture"
             : path === "admin:overview"
-              ? JSON.stringify({ site: {}, milestones: [] })
+              ? ({ site: {}, milestones: [] })
               : path === "growth:kit"
                 ? {
                     revision: 0,

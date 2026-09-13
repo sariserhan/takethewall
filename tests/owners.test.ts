@@ -1,3 +1,4 @@
+import { flushAnalytics, deliverDue } from "./backend-work-helpers";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../convex/schema";
@@ -202,7 +203,7 @@ it("weekly digests are deduplicated, use recorded totals, and have stable retry 
     .fn()
     .mockResolvedValue(new Response("{}", { status: 200 }));
   vi.stubGlobal("fetch", fetchMock);
-  await t.action(internal.jobs.dispatch, {});
+  await deliverDue(t);
   expect(fetchMock).toHaveBeenCalledTimes(1);
   const request = JSON.parse(fetchMock.mock.calls[0][1].body);
   expect(request.to).toEqual(["first@example.com"]);
@@ -216,7 +217,7 @@ it("weekly digests are deduplicated, use recorded totals, and have stable retry 
   expect(request.headers["List-Unsubscribe-Post"]).toBe(
     "List-Unsubscribe=One-Click",
   );
-  await t.action(internal.jobs.dispatch, {});
+  await deliverDue(t);
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 it.each(["replaced", "unsubscribed"] as const)(
@@ -237,7 +238,7 @@ it.each(["replaced", "unsubscribed"] as const)(
     vi.stubEnv("RESEND_FROM", "notification@takethewall.com");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    await t.action(internal.jobs.dispatch, {});
+    await deliverDue(t);
     expect(fetchMock).not.toHaveBeenCalled();
   },
 );
@@ -486,7 +487,7 @@ it("admin notifications capture activation once and dispatch privately without o
   vi.stubEnv("RESEND_FROM", "notification@takethewall.com");
   const send = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
   vi.stubGlobal("fetch", send);
-  await t.action(internal.jobs.dispatch, {});
+  await deliverDue(t);
   expect(send).toHaveBeenCalledTimes(1);
   const message = JSON.parse(send.mock.calls[0][1].body);
   expect(message.to).toEqual(["serhan.sari@yahoo.com"]);
@@ -499,7 +500,7 @@ it("admin notifications capture activation once and dispatch privately without o
   expect(message.html).toContain("WALL TAKEOVER NOTIFICATION");
   expect(message.html).toContain("Open admin dashboard");
   expect(message.text).not.toContain("#token=");
-  await t.action(internal.jobs.dispatch, {});
+  await deliverDue(t);
   expect(send).toHaveBeenCalledTimes(1);
 });
 
@@ -536,7 +537,7 @@ it("final report waits for late events and keeps a stable snapshot across retrie
   await t.run((ctx) =>
     ctx.db.patch(id, { impressions: 10, uniqueVisitors: 4, clicks: 1 }),
   );
-  vi.advanceTimersByTime(3600_000);
+  vi.setSystemTime(Date.now() + (3600_000));
   const ended = Date.now();
   await publish("replacement");
   const job = (await t.run((ctx) =>
@@ -556,9 +557,9 @@ it("final report waits for late events and keeps a stable snapshot across retrie
     .mockRejectedValueOnce(new Error("provider down"))
     .mockResolvedValue(new Response("{}", { status: 200 }));
   vi.stubGlobal("fetch", send);
-  await t.action(internal.jobs.dispatch, {});
+  await deliverDue(t);
   expect(send).not.toHaveBeenCalled();
-  vi.advanceTimersByTime(60_000);
+  vi.setSystemTime(Date.now() + (60_000));
   await t.mutation(internal.analytics.record, {
     takeoverId: id,
     event: "impression",
@@ -570,8 +571,9 @@ it("final report waits for late events and keeps a stable snapshot across retrie
     expiresAt: ended + 240_000,
     excluded: false,
   });
-  vi.advanceTimersByTime(60_001);
-  await t.action(internal.jobs.dispatch, {});
+  await flushAnalytics(t);
+  vi.setSystemTime(Date.now() + (90_001));
+  await deliverDue(t);
   expect(send).toHaveBeenCalledTimes(1);
   const report = (await t.run((ctx) => ctx.db.get(job._id)))!.finalReport!;
   expect(report).toMatchObject({
@@ -583,8 +585,8 @@ it("final report waits for late events and keeps a stable snapshot across retrie
   });
   const first = send.mock.calls[0][1].body;
   await t.run((ctx) => ctx.db.patch(id, { impressions: 999 }));
-  vi.advanceTimersByTime(31_000);
-  await t.action(internal.jobs.dispatch, {});
+  vi.setSystemTime(Date.now() + (31_000));
+  await deliverDue(t);
   expect(send).toHaveBeenCalledTimes(2);
   expect(send.mock.calls[1][1].body).toBe(first);
   const mail = JSON.parse(first);
@@ -594,7 +596,7 @@ it("final report waits for late events and keeps a stable snapshot across retrie
   expect(mail.text).toContain("9.09%");
   expect(mail.text).not.toContain("999");
   expect(mail.html).toContain("View your takeover report");
-  await t.action(internal.jobs.dispatch, {});
+  await deliverDue(t);
   expect(send).toHaveBeenCalledTimes(2);
 });
 it("only admins can change notification settings; recipient changes affect future jobs and disabling suppresses queued alerts", async () => {
@@ -656,7 +658,7 @@ it("only admins can change notification settings; recipient changes affect futur
   });
   const send = vi.fn();
   vi.stubGlobal("fetch", send);
-  await t.action(internal.jobs.dispatch, {});
+  await deliverDue(t);
   expect(send).not.toHaveBeenCalled();
   const next = await publish("muted");
   expect(

@@ -1,10 +1,15 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
-crons.interval("delivery outbox", { minutes: 1 }, internal.jobs.dispatch, {});
+crons.interval(
+  "email delivery recovery",
+  { minutes: 15 },
+  internal.delivery.recover,
+  {},
+);
 crons.interval(
   "bounded cleanup and UTC rollover",
-  { minutes: 1 },
+  { minutes: 5 },
   internal.operations.cleanup,
   {},
 );
@@ -16,19 +21,14 @@ crons.interval(
 );
 crons.interval(
   "reward maintenance",
-  { minutes: 1 },
+  { minutes: 15 },
   internal.rewards.maintain,
   {},
 );
-crons.interval(
-  "transactional email",
-  { minutes: 1 },
-  internal.mail.dispatch,
-  {},
-);
+
 crons.interval(
   "audit checkpoints",
-  { minutes: 1 },
+  { minutes: 15 },
   internal.auditTrail.checkpoint,
   {},
 );
@@ -46,7 +46,7 @@ crons.weekly(
 );
 crons.interval(
   "milestone subscriber alerts",
-  { minutes: 1 },
+  { minutes: 15 },
   internal.milestoneAlerts.queue,
   {},
 );
@@ -58,26 +58,44 @@ crons.daily(
 );
 crons.interval(
   "index recovery contacts",
-  { minutes: 1 },
+  { hours: 1 },
   internal.recovery.indexContacts,
   {},
 );
 crons.interval(
   "wall subscriber notifications",
-  { minutes: 1 },
+  { minutes: 15 },
   internal.wallSubscriptions.queue,
   {},
 );
 crons.interval(
   "email directory reconciliation",
-  { minutes: 5 },
+  { hours: 1 },
   internal.emailDirectory.reconcile,
   {},
 );
 crons.interval(
   "resume contact deletions",
-  { minutes: 1 },
+  { minutes: 15 },
   internal.contactManagement.resume,
+  {},
+);
+crons.daily(
+  "UTC date rollover",
+  { hourUTC: 0, minuteUTC: 0 },
+  internal.operations.cleanup,
+  {},
+);
+crons.daily(
+  "daily wall summaries",
+  { hourUTC: 9, minuteUTC: 0 },
+  internal.wallSubscriptions.queue,
+  {},
+);
+crons.interval(
+  "analytics recovery",
+  { minutes: 15 },
+  internal.analytics.recover,
   {},
 );
 export default crons;

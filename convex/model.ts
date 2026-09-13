@@ -1,3 +1,4 @@
+import { scheduleDelivery } from "./deliverySchedule";
 import { numberingOffset } from "./numbering";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -122,7 +123,7 @@ export async function enqueue(
       .unique()
   )
     return;
-  await ctx.db.insert("jobs", {
+  const deliveryId = await ctx.db.insert("jobs", {
     key,
     kind,
     takeoverId,
@@ -131,8 +132,14 @@ export async function enqueue(
     timestamp: Date.now(),
     state: "pending",
     attempts: 0,
-    nextAt: Date.now() + (kind === "replacement_email" ? 120_001 : 0),
+    nextAt: Date.now() + (kind === "replacement_email" ? 150_001 : 0),
   });
+  await scheduleDelivery(
+    ctx,
+    "jobs",
+    deliveryId,
+    Date.now() + (kind === "replacement_email" ? 150_001 : 0),
+  );
 }
 export const zeros = { impressions: 0, uniqueVisitors: 0, clicks: 0 };
 

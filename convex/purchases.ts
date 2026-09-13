@@ -66,13 +66,17 @@ export const pending = internalMutation({
         takeoverId: old.takeoverId,
         purchaseId: old._id,
         checkoutUrl: old.checkoutUrl ?? null,
-        ...(old.sessionId ? {sessionId:old.sessionId} : {}),
+        ...(old.sessionId ? { sessionId: old.sessionId } : {}),
         checkoutExpiresAt: old.checkoutExpiresAt,
       };
     }
-    if (await isCheckoutPaused(ctx)) throw new Error("New checkouts are temporarily paused.");
+    if (await isCheckoutPaused(ctx))
+      throw new Error("New checkouts are temporarily paused.");
     const site = await getSite(ctx);
-    if (a.expectedCurrentId && a.expectedCurrentId !== site.currentTakeoverId) throw new Error("The wall changed. Review the current owner before paying.");
+    if (a.expectedCurrentId && a.expectedCurrentId !== site.currentTakeoverId)
+      throw new Error(
+        "The wall changed. Review the current owner before paying.",
+      );
     const content = validateWallContent(a),
       buyerEmail = validateEmail(a.buyerEmail);
     if (a.environment !== (process.env.WALL_ENVIRONMENT ?? "test"))
@@ -177,8 +181,11 @@ export const activate = internalMutation({
       !Number.isSafeInteger(a.taxCents ?? 0) ||
       (a.taxCents ?? 0) < 0 ||
       a.amountCents !== TAKEOVER_PRICE_CENTS + (a.taxCents ?? 0) ||
-      ((a.presentmentAmount !== undefined || a.presentmentCurrency !== undefined) &&
-        (!Number.isSafeInteger(a.presentmentAmount) || (a.presentmentAmount ?? 0) <= 0 || !/^[a-z]{3}$/.test(a.presentmentCurrency ?? ""))) ||
+      ((a.presentmentAmount !== undefined ||
+        a.presentmentCurrency !== undefined) &&
+        (!Number.isSafeInteger(a.presentmentAmount) ||
+          (a.presentmentAmount ?? 0) <= 0 ||
+          !/^[a-z]{3}$/.test(a.presentmentCurrency ?? ""))) ||
       a.currency !== "usd" ||
       !a.paymentIntentId
     )
@@ -302,7 +309,12 @@ export const activate = internalMutation({
       expiredConfirmed: undefined,
       amountCents: a.amountCents,
       taxCents: a.taxCents ?? 0,
-      ...(a.presentmentAmount !== undefined ? {presentmentAmount:a.presentmentAmount,presentmentCurrency:a.presentmentCurrency} : {}),
+      ...(a.presentmentAmount !== undefined
+        ? {
+            presentmentAmount: a.presentmentAmount,
+            presentmentCurrency: a.presentmentCurrency,
+          }
+        : {}),
       currency: "usd",
       sessionId: a.sessionId,
       paymentIntentId: a.paymentIntentId,
@@ -321,6 +333,9 @@ export const activate = internalMutation({
       auditHash: finalHash,
       updatedAt: now,
     });
+    await ctx.scheduler.runAfter(0, internal.wallSubscriptions.queue, {});
+    await ctx.scheduler.runAfter(0, internal.milestoneAlerts.queue, {});
+    await ctx.scheduler.runAfter(0, internal.rewards.maintain, {});
     const d = await daily(ctx);
     await ctx.db.patch(d._id, {
       takeovers: d.takeovers + 1,

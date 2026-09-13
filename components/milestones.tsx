@@ -46,7 +46,12 @@ export function Sequence({ milestone }: { milestone: Milestone }) {
           {r.auditHash && (
             <details>
               <summary>Audit</summary>
-              {r.auditSequenceNumber !== undefined && <span>Original audit sequence #{r.auditSequenceNumber}; public number includes the starting offset.</span>}
+              {r.auditSequenceNumber !== undefined && (
+                <span>
+                  Original audit sequence #{r.auditSequenceNumber}; public
+                  number includes the starting offset.
+                </span>
+              )}
               <span>{r.publicTakeoverId}</span>
               <code>{r.auditHash}</code>
               <time>
@@ -60,7 +65,7 @@ export function Sequence({ milestone }: { milestone: Milestone }) {
   );
 }
 export function HomepageMilestones({ demoCount }: { demoCount?: number }) {
-  const data = useQuery(api.rewards.overview);
+  const data = useQuery(api.rewards.overview, { summary: true });
   const [selected, setSelected] = useState<number | null>(null),
     [dismissed, setDismissed] = useState<number[]>(() => {
       if (typeof window === "undefined") return [];
@@ -73,12 +78,25 @@ export function HomepageMilestones({ demoCount }: { demoCount?: number }) {
       }
     }),
     [mobileOpen, setMobileOpen] = useState(false);
+  const activeNumber =
+    data?.milestones
+      .filter((m) => !["future", "paid"].includes(m.status))
+      .find((m) => m.number === selected)?.number ??
+    data?.milestones
+      .filter((m) => !["future", "paid"].includes(m.status))
+      .at(-1)?.number;
+  const detail = useQuery(
+    api.rewards.overview,
+    activeNumber === undefined ? "skip" : { number: activeNumber },
+  );
   if (!data) return null;
   const unresolved = data.milestones.filter(
     (m) => !["future", "paid"].includes(m.status),
   );
   const active =
-    unresolved.find((m) => m.number === selected) ?? unresolved.at(-1);
+    detail?.milestones[0] ??
+    unresolved.find((m) => m.number === selected) ??
+    unresolved.at(-1);
   const show = active && !dismissed.includes(active.number);
   return (
     <>
@@ -179,7 +197,7 @@ export function MilestonePage({ number }: { number: number }) {
   );
 }
 function MilestoneView({ number }: { number: number }) {
-  const data = useQuery(api.rewards.overview);
+  const data = useQuery(api.rewards.overview, { number });
   if (!data) return <LoadingSkeleton label="Loading milestone" />;
   const m = data.milestones.find((m) => m.number === number);
   if (!m) return <p>This milestone is unavailable.</p>;
@@ -367,7 +385,10 @@ function MilestoneView({ number }: { number: number }) {
         </>
       ) : null}
       {!!data.numberingOffset && (
-        <p className="numbering-note">Numbering includes a starting offset of {data.numberingOffset}; no owner or payment records exist for the offset.</p>
+        <p className="numbering-note">
+          Numbering includes a starting offset of {data.numberingOffset}; no
+          owner or payment records exist for the offset.
+        </p>
       )}
       <p className="permanent-rules">
         <Link href={`/rewards?version=${encodeURIComponent(m.rulesVersion)}`}>

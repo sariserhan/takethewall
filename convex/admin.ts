@@ -1,5 +1,11 @@
+import { adminPage, claimDetails, ticketDetails } from "./adminValidators";
+import schema from "./schema";
+import { scheduleRewardDeadline } from "./rewardSchedule";
 import { paymentStatus, placementType } from "../lib/payment-status";
-import { queueAdminTakeoverEmail, notificationSettings } from "./adminNotifications";
+import {
+  queueAdminTakeoverEmail,
+  notificationSettings,
+} from "./adminNotifications";
 import { numberingOffset } from "./numbering";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -28,7 +34,38 @@ export const identity = query({
 });
 export const overview = query({
   args: {},
-  returns: v.string(),
+  returns: v.object({
+    adminId: v.string(),
+    site: v.union(
+      v.null(),
+      v.object({
+        ...schema.tables.siteStats.validator.fields,
+        _id: v.id("siteStats"),
+        _creationTime: v.number(),
+        recordedTakeovers: v.number(),
+      }),
+    ),
+    today: v.union(
+      v.null(),
+      v.object({
+        ...schema.tables.dailyStats.validator.fields,
+        _id: v.id("dailyStats"),
+        _creationTime: v.number(),
+      }),
+    ),
+    recentOpenClaims: v.number(),
+    unreadConversations: v.number(),
+    openSupport: v.number(),
+    failedEmails: v.number(),
+    milestones: v.array(
+      v.object({
+        number: v.number(),
+        status: v.string(),
+        candidate: v.number(),
+      }),
+    ),
+    countsBoundedAt: v.number(),
+  }),
   handler: async (ctx) => {
     const adminId = await requireAdmin(ctx);
     const site = await ctx.db
@@ -54,9 +91,15 @@ export const overview = query({
       .query("milestoneRewards")
       .withIndex("by_number")
       .take(100);
-    return JSON.stringify({
+    return {
       adminId,
-      site: site ? { ...site, recordedTakeovers: site.totalTakeovers, totalTakeovers: site.totalTakeovers + (site.numberingOffset ?? 0) } : null,
+      site: site
+        ? {
+            ...site,
+            recordedTakeovers: site.totalTakeovers,
+            totalTakeovers: site.totalTakeovers + (site.numberingOffset ?? 0),
+          }
+        : null,
       today,
       recentOpenClaims: claims.filter(
         (c) => !["paid", "expired", "ineligible"].includes(c.status),
@@ -72,24 +115,27 @@ export const overview = query({
         candidate: r.candidateNumber,
       })),
       countsBoundedAt: 100,
-    });
+    };
   },
 });
-// JSON is an admin-only transport; projections deliberately omit authentication secrets.
+// Structured admin projections deliberately omit authentication secrets.
 export const list = query({
-  args: { section: v.string(), cursor: v.optional(v.string()), paymentStatus: v.optional(v.string()), environment: v.optional(v.union(v.literal("test"), v.literal("production"))) },
-  returns: v.string(),
+  args: {
+    section: v.string(),
+    cursor: v.optional(v.string()),
+    paymentStatus: v.optional(v.string()),
+    environment: v.optional(
+      v.union(v.literal("test"), v.literal("production")),
+    ),
+  },
+  returns: adminPage,
   handler: async (ctx, a) => {
     await requireAdmin(ctx);
     const pagination = { numItems: 50, cursor: a.cursor ?? null };
     const page = <T>(
-      result: { page: T[]; isDone: boolean; continueCursor: string },
-      rows: unknown[] = result.page,
-    ) =>
-      JSON.stringify({
-        rows,
-        next: result.isDone ? null : result.continueCursor,
-      });
+      result: { isDone: boolean; continueCursor: string },
+      rows: T[],
+    ) => ({ rows, next: result.isDone ? null : result.continueCursor });
     switch (a.section) {
       case "takeovers": {
         const offset = await numberingOffset(ctx);
@@ -98,40 +144,52 @@ export const list = query({
           .order("desc")
           .paginate(pagination);
         const projected = await Promise.all(
-            rows.page.map(async (t) => {
-              const p = await ctx.db
-                .query("purchases")
-                .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
-                .unique();
-              return {
-                ...t,
-                ...(offset && t.takeoverNumber !== undefined ? { auditSequenceNumber: t.takeoverNumber, takeoverNumber: t.takeoverNumber + offset } : {}),
-                logoUrl: t.logoStorageId
-                  ? await ctx.storage.getUrl(t.logoStorageId)
-                  : null,
-                paymentStatus: paymentStatus(t.kind, p),
-                placementType: placementType(t.kind),
-                checkoutSessionId: p?.sessionId ?? null,
-                paymentEnvironment: p?.environment ?? null,
-                stripeCheckedAt: p?.stripeCheckedAt ?? null,
-                amountCents: p?.amountCents ?? null,
-                taxCents: p?.taxCents ?? null,
-                presentmentAmount: p?.presentmentAmount ?? null,
-                presentmentCurrency: p?.presentmentCurrency ?? null,
-                paymentIssue: p?.paymentIssue ?? null,
-                paymentReference: p?.paymentIntentId ?? null,
-              };
-            }),
-          );
-        return page(rows, projected.filter(t => (!a.paymentStatus || t.paymentStatus === a.paymentStatus) && (!a.environment || t.paymentEnvironment === a.environment)));
-      }
-      case "milestones":
-        return page(
-          await ctx.db
-            .query("milestoneRewards")
-            .order("desc")
-            .paginate(pagination),
+          rows.page.map(async (t) => {
+            const p = await ctx.db
+              .query("purchases")
+              .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
+              .unique();
+            return {
+              ...t,
+              ...(offset && t.takeoverNumber !== undefined
+                ? {
+                    auditSequenceNumber: t.takeoverNumber,
+                    takeoverNumber: t.takeoverNumber + offset,
+                  }
+                : {}),
+              logoUrl: t.logoStorageId
+                ? await ctx.storage.getUrl(t.logoStorageId)
+                : null,
+              paymentStatus: paymentStatus(t.kind, p),
+              placementType: placementType(t.kind),
+              checkoutSessionId: p?.sessionId ?? null,
+              paymentEnvironment: p?.environment ?? null,
+              stripeCheckedAt: p?.stripeCheckedAt ?? null,
+              amountCents: p?.amountCents ?? null,
+              taxCents: p?.taxCents ?? null,
+              presentmentAmount: p?.presentmentAmount ?? null,
+              presentmentCurrency: p?.presentmentCurrency ?? null,
+              paymentIssue: p?.paymentIssue ?? null,
+              paymentReference: p?.paymentIntentId ?? null,
+            };
+          }),
         );
+        return page(
+          rows,
+          projected.filter(
+            (t) =>
+              (!a.paymentStatus || t.paymentStatus === a.paymentStatus) &&
+              (!a.environment || t.paymentEnvironment === a.environment),
+          ),
+        );
+      }
+      case "milestones": {
+        const rows = await ctx.db
+          .query("milestoneRewards")
+          .order("desc")
+          .paginate(pagination);
+        return page(rows, rows.page);
+      }
       case "claims":
       case "messages": {
         const rows = await ctx.db
@@ -170,17 +228,20 @@ export const list = query({
           ),
         );
       }
-      case "support":
-        return page(
-          await ctx.db
-            .query("supportTickets")
-            .order("desc")
-            .paginate(pagination),
-        );
-      case "audit":
-        return page(
-          await ctx.db.query("adminAudit").order("desc").paginate(pagination),
-        );
+      case "support": {
+        const rows = await ctx.db
+          .query("supportTickets")
+          .order("desc")
+          .paginate(pagination);
+        return page(rows, rows.page);
+      }
+      case "audit": {
+        const rows = await ctx.db
+          .query("adminAudit")
+          .order("desc")
+          .paginate(pagination);
+        return page(rows, rows.page);
+      }
       default:
         throw new Error("Unknown admin section");
     }
@@ -188,7 +249,7 @@ export const list = query({
 });
 export const claim = query({
   args: { id: v.id("rewardClaims") },
-  returns: v.string(),
+  returns: claimDetails,
   handler: async (ctx, a) => {
     await requireAdmin(ctx);
     const c = await ctx.db.get(a.id);
@@ -208,7 +269,7 @@ export const claim = query({
       .withIndex("by_claim", (q) => q.eq("claimId", c._id))
       .take(10);
     const reward = await ctx.db.get(c.rewardId);
-    return JSON.stringify({
+    return {
       claim: {
         id: c._id,
         status: c.status,
@@ -233,12 +294,12 @@ export const claim = query({
         uploaded: !!d.storageId,
         deletedAt: d.deletedAt,
       })),
-    });
+    };
   },
 });
 export const ticket = query({
   args: { id: v.id("supportTickets") },
-  returns: v.string(),
+  returns: ticketDetails,
   handler: async (ctx, a) => {
     await requireAdmin(ctx);
     const ticket = await ctx.db.get(a.id);
@@ -247,7 +308,7 @@ export const ticket = query({
       .withIndex("by_ticket", (q) => q.eq("ticketId", a.id))
       .order("desc")
       .take(100);
-    return JSON.stringify({ ticket, messages: messages.reverse() });
+    return { ticket, messages: messages.reverse() };
   },
 });
 export const message = mutation({
@@ -270,6 +331,11 @@ export const message = mutation({
       lastAdminMessageAt: Date.now(),
       notifyAt: c.notifyAt ?? Date.now() + 600_000,
     });
+    await ctx.scheduler.runAt(
+      c.notifyAt ?? Date.now() + 600_000,
+      internal.rewards.maintain,
+      {},
+    );
     await audit(ctx, actor, "ADMIN_MESSAGE_SENT", c._id);
     return null;
   },
@@ -386,6 +452,7 @@ export const claimAction = mutation({
           throw new Error("Choose a later active claimant deadline");
         const reason = plainText(a.body, 1000);
         await ctx.db.patch(c._id, { deadlineAt: a.deadlineAt });
+        await scheduleRewardDeadline(ctx, a.deadlineAt);
         await audit(ctx, actor, "DEADLINE_EXTENDED", c._id, {
           reason,
           oldDeadline: c.deadlineAt,
@@ -467,7 +534,9 @@ export const claimAction = mutation({
             linkType: content.linkType ?? "website",
             websiteUrl: content.websiteUrl,
             description: content.description,
-            ...(content.logoStorageId ? { logoStorageId: content.logoStorageId } : {}),
+            ...(content.logoStorageId
+              ? { logoStorageId: content.logoStorageId }
+              : {}),
             activatedAt: t.activatedAt!,
             ...(t.replacedAt ? { replacedAt: t.replacedAt } : {}),
             impressions: t.impressions,
@@ -544,6 +613,9 @@ export const claimAction = mutation({
       subject: "Your TakeTheWall reward claim was updated",
       body: text,
     });
+    const updatedClaim = await ctx.db.get(c._id);
+    if (updatedClaim)
+      await scheduleRewardDeadline(ctx, updatedClaim.deadlineAt);
     return null;
   },
 });
@@ -609,7 +681,7 @@ export const supportAction = mutation({
       });
     }
     if (a.reply) {
-      if(!t.email)throw new Error("This report has no reply email.");
+      if (!t.email) throw new Error("This report has no reply email.");
       const body = plainText(a.reply, 10000, true, true);
       const id = await ctx.db.insert("supportMessages", {
         ticketId: t._id,
@@ -619,10 +691,18 @@ export const supportAction = mutation({
       });
       await mail(ctx, {
         key: "support:" + id,
-        kind: ["General question", "Business inquiry"].includes(t.topic) ? "contact" : t.topic === "Milestone reward" ? "reward_support" : "support",
+        kind: ["General question", "Business inquiry"].includes(t.topic)
+          ? "contact"
+          : t.topic === "Milestone reward"
+            ? "reward_support"
+            : "support",
         ticketId: t._id,
         to: t.email,
-        subject: ["General question", "Business inquiry"].includes(t.topic) ? "Take The Wall — Your inquiry" : t.topic === "Milestone reward" ? "Take The Wall — Rewards" : "Take The Wall — Support",
+        subject: ["General question", "Business inquiry"].includes(t.topic)
+          ? "Take The Wall — Your inquiry"
+          : t.topic === "Milestone reward"
+            ? "Take The Wall — Rewards"
+            : "Take The Wall — Support",
         body,
       });
       await audit(ctx, actor, "SUPPORT_REPLY_SENT", t._id);
@@ -851,6 +931,9 @@ export const publish = mutation({
       currentActivationSequence: sequence,
       updatedAt: now,
     });
+    await ctx.scheduler.runAfter(0, internal.wallSubscriptions.queue, {});
+    await ctx.scheduler.runAfter(0, internal.milestoneAlerts.queue, {});
+    await ctx.scheduler.runAfter(0, internal.rewards.maintain, {});
     if (a.countTowardMilestones) {
       const number = (site?.totalTakeovers ?? 0) + 1;
       const payload = {
@@ -890,7 +973,7 @@ export const publish = mutation({
       await enqueue(ctx, "activation_email", id);
       await enqueue(ctx, "takeover_activated", id);
     }
-    await queueAdminTakeoverEmail(ctx,id);
+    await queueAdminTakeoverEmail(ctx, id);
     await audit(
       ctx,
       actor,
@@ -906,20 +989,47 @@ export const publish = mutation({
 });
 
 export const getNotificationSettings = query({
- args:{},returns:v.object({enabled:v.boolean(),recipient:v.string(),revision:v.number()}),
- handler:async(ctx)=>{await requireAdmin(ctx);return notificationSettings(ctx);},
+  args: {},
+  returns: v.object({
+    enabled: v.boolean(),
+    recipient: v.string(),
+    revision: v.number(),
+  }),
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return notificationSettings(ctx);
+  },
 });
 export const saveNotificationSettings = mutation({
- args:{enabled:v.boolean(),recipient:v.string(),expectedRevision:v.number()},returns:v.null(),
- handler:async(ctx,a)=>{
-  const actor = await requireAdmin(ctx), before = await notificationSettings(ctx);
-  if (a.expectedRevision !== before.revision) throw new Error("Notification settings changed. Reload before saving.");
-  const recipient = validateEmail(a.recipient);
-  await limit(ctx,"notification-settings:"+actor,20);
-  const row = await ctx.db.query("notificationSettings").withIndex("by_key",q=>q.eq("key","current")).unique();
-  const after = {enabled:a.enabled,recipient,revision:before.revision+1};
-  if(row) await ctx.db.patch(row._id,after); else await ctx.db.insert("notificationSettings",{key:"current",...after});
-  await audit(ctx,actor,"NOTIFICATION_SETTINGS_UPDATED","notifications",{before,after});
-  return null;
- },
+  args: {
+    enabled: v.boolean(),
+    recipient: v.string(),
+    expectedRevision: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    const actor = await requireAdmin(ctx),
+      before = await notificationSettings(ctx);
+    if (a.expectedRevision !== before.revision)
+      throw new Error("Notification settings changed. Reload before saving.");
+    const recipient = validateEmail(a.recipient);
+    await limit(ctx, "notification-settings:" + actor, 20);
+    const row = await ctx.db
+      .query("notificationSettings")
+      .withIndex("by_key", (q) => q.eq("key", "current"))
+      .unique();
+    const after = {
+      enabled: a.enabled,
+      recipient,
+      revision: before.revision + 1,
+    };
+    if (row) await ctx.db.patch(row._id, after);
+    else
+      await ctx.db.insert("notificationSettings", { key: "current", ...after });
+    await audit(ctx, actor, "NOTIFICATION_SETTINGS_UPDATED", "notifications", {
+      before,
+      after,
+    });
+    return null;
+  },
 });

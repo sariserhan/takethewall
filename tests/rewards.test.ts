@@ -171,7 +171,7 @@ it("locks the OTP after five failures", async () => {
 it("expires unanswered claims and resumes at the future successor with overlapping rewards", async () => {
   const t = await setup();
   await activate(t, 1);
-  vi.advanceTimersByTime(7 * 86400_000 + 1);
+  vi.setSystemTime(Date.now() + (7 * 86400_000 + 1));
   await t.mutation(internal.rewards.maintain, {});
   expect((await t.query(api.rewards.overview, {})).milestones[0]).toMatchObject(
     { status: "awaiting_successor", candidateNumber: 2 },
@@ -200,7 +200,7 @@ it("does not expire submitted claims during internal review", async () => {
     declaration: "",
     acceptRules: true,
   });
-  vi.advanceTimersByTime(8 * 86400_000);
+  vi.setSystemTime(Date.now() + (8 * 86400_000));
   await t.mutation(internal.rewards.maintain, {});
   expect((await firstClaim(t)).status).toBe("under_review");
   expect(JSON.stringify(await t.query(api.rewards.overview, {}))).not.toContain(
@@ -220,7 +220,7 @@ it("keeps session credentials hashed and expires access after twelve hours", asy
   expect(
     (await t.run((ctx) => ctx.db.query("claimSessions").first()))?.hash,
   ).toBe(sha(session));
-  vi.advanceTimersByTime(12 * 3600_000 + 1);
+  vi.setSystemTime(Date.now() + (12 * 3600_000 + 1));
   await expect(t.query(api.rewards.portal, { session })).rejects.toThrow();
 });
 const adminIdentity = {
@@ -330,7 +330,7 @@ it.each(["paid", "admin"])(
       snapshot: { displayName: "Person 1", statsFrozen: false },
     });
     await activate(t, 2);
-    vi.advanceTimersByTime(120_001);
+    vi.setSystemTime(Date.now() + (150_001));
     await t.mutation(internal.rewards.maintain, {});
     m = (await t.query(api.rewards.overview, {})).milestones[0];
     expect(m.snapshot?.statsFrozen).toBe(true);
@@ -384,7 +384,7 @@ it("private chat requires the correct claim session and coalesces notifications"
     claimId: c._id,
     body: "Reply one",
   });
-  vi.advanceTimersByTime(1000);
+  vi.setSystemTime(Date.now() + (1000));
   await admin.mutation(api.admin.message, {
     claimId: c._id,
     body: "Reply two",
@@ -392,7 +392,7 @@ it("private chat requires the correct claim session and coalesces notifications"
   const state = await t.query(api.rewards.portal, { session });
   expect(state.messages.filter((m) => m.sender === "admin")).toHaveLength(2);
   await t.mutation(api.rewards.read, { session });
-  vi.advanceTimersByTime(600_001);
+  vi.setSystemTime(Date.now() + (600_001));
   await t.mutation(internal.rewards.maintain, {});
   expect(
     await t.run((ctx) =>
@@ -561,7 +561,7 @@ it("protects private documents across claims and cleans finalized claims after r
   expect((await t.run((ctx) => ctx.db.get(own)))!.deleteAt).toBe(
     Date.now() + 90 * 86400_000,
   );
-  vi.advanceTimersByTime(90 * 86400_000 + 1);
+  vi.setSystemTime(Date.now() + (90 * 86400_000 + 1));
   await t.mutation(internal.rewards.maintain, {});
   expect((await t.run((ctx) => ctx.db.get(own)))!.deletedAt).toBeTruthy();
   expect(await t.run((ctx) => ctx.storage.get(storage))).toBeNull();
@@ -612,12 +612,10 @@ it("configuration publishes authoritative future values and paginates same-time 
         createdAt: Date.now(),
       });
   });
-  const first = JSON.parse(
-    await admin.query(api.admin.list, { section: "audit" }),
-  );
-  const next = JSON.parse(
-    await admin.query(api.admin.list, { section: "audit", cursor: first.next }),
-  );
+  const first = (
+    await admin.query(api.admin.list, { section: "audit" }));
+  const next = (
+    await admin.query(api.admin.list, { section: "audit", cursor: first.next ?? undefined }));
   expect(first.rows).toHaveLength(50);
   expect(next.rows).toHaveLength(11);
   expect(new Set([...first.rows, ...next.rows].map((r) => r._id)).size).toBe(

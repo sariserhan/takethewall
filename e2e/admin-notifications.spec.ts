@@ -164,7 +164,7 @@ test("admin edits the notification recipient and toggle without leaving /admin",
                 : path === "admin:identity"
                   ? "admin@example.com"
                   : path === "admin:overview"
-                    ? JSON.stringify({ milestones: [] })
+                    ? ({ milestones: [] })
                     : path === "admin:getNotificationSettings"
                       ? settings
                       : path === "admin:getSettings"

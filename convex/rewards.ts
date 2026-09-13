@@ -37,14 +37,14 @@ export const publicMilestone = v.object({
   sequence: v.array(sequenceRow),
 });
 export const overview = query({
-  args: {},
+  args: { summary: v.optional(v.boolean()), number: v.optional(v.number()) },
   returns: v.object({
     currentNumber: v.number(),
     numberingOffset: v.optional(v.number()),
     promotionEnabled: v.boolean(),
     milestones: v.array(publicMilestone),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const config = await settings(ctx);
     const site = await ctx.db
       .query("siteStats")
@@ -66,12 +66,15 @@ export const overview = query({
         });
     const milestones = await Promise.all(
       definitions
+        .filter(
+          (m) => args.number === undefined || m.takeoverNumber === args.number,
+        )
         .sort((a, b) => a.takeoverNumber - b.takeoverNumber)
         .map(async (m) => {
           const r = reached.find((x) => x.milestoneNumber === m.takeoverNumber);
           const candidate = r?.candidateNumber ?? m.takeoverNumber;
           const sequence = [];
-          if (r) {
+          if (r && !args.summary) {
             for (let n = Math.max(1, candidate - 3); n <= candidate + 3; n++) {
               const t = await ctx.db
                 .query("takeovers")
@@ -87,7 +90,9 @@ export const overview = query({
                 : [];
               sequence.push({
                 number: n,
-                ...(t?.takeoverNumber !== undefined && site?.numberingOffset ? { auditSequenceNumber: t.takeoverNumber } : {}),
+                ...(t?.takeoverNumber !== undefined && site?.numberingOffset
+                  ? { auditSequenceNumber: t.takeoverNumber }
+                  : {}),
                 displayName: t?.displayName ?? t?.domain ?? null,
                 publicTakeoverId: t?.publicTakeoverId ?? null,
                 auditHash: t?.auditHash ?? null,
@@ -98,7 +103,12 @@ export const overview = query({
             }
           }
           let trophy = r?.snapshot ?? null;
-          if (trophy && !trophy.statsFrozen && r?.winnerTakeoverId) {
+          if (
+            !args.summary &&
+            trophy &&
+            !trophy.statsFrozen &&
+            r?.winnerTakeoverId
+          ) {
             const t = await ctx.db.get(r.winnerTakeoverId);
             if (t)
               trophy = {
@@ -128,7 +138,9 @@ export const overview = query({
     );
     return {
       currentNumber: (site?.totalTakeovers ?? 0) + (site?.numberingOffset ?? 0),
-      ...(site?.numberingOffset ? { numberingOffset: site.numberingOffset } : {}),
+      ...(site?.numberingOffset
+        ? { numberingOffset: site.numberingOffset }
+        : {}),
       promotionEnabled: config.promotionEnabled,
       milestones,
     };
@@ -433,7 +445,7 @@ export const maintain = internalMutation({
     for (const r of paid) {
       if (!r.snapshot?.statsFrozen && r.winnerTakeoverId) {
         const t = await ctx.db.get(r.winnerTakeoverId);
-        if (t?.replacedAt && now >= t.replacedAt + 120_000)
+        if (t?.replacedAt && now >= t.replacedAt + 150_000)
           await ctx.db.patch(r._id, {
             snapshot: {
               ...r.snapshot!,

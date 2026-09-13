@@ -1,4 +1,5 @@
 "use client";
+import { publicConvexClient } from "@/lib/convex-client";
 import { trackVerifiedTakeover } from "@/lib/visitorping-client";
 import { RegionLabel } from "./region-label";
 import { ResumeCheckout } from "./resume-checkout";
@@ -14,7 +15,6 @@ import Image from "next/image";
 import { Arrow } from "./arrow";
 import {
   ConvexProvider,
-  ConvexReactClient,
   useQuery,
   useConvexConnectionState,
 } from "convex/react";
@@ -25,9 +25,8 @@ import { captureReturn, wallEvent } from "@/lib/client-events";
 import { PurchaseSheet } from "./purchase-sheet";
 import type { FunctionReturnType } from "convex/server";
 type WallData = FunctionReturnType<typeof api.wall.current>;
-const url = process.env.NEXT_PUBLIC_CONVEX_URL;
 export default function Wall() {
-  const [convex] = useState(() => (url ? new ConvexReactClient(url) : null));
+  const [convex] = useState(publicConvexClient);
   return convex ? (
     <ConvexProvider client={convex}>
       <Connected />

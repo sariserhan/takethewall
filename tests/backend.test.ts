@@ -1,3 +1,4 @@
+import { flushAnalytics, deliverDue } from "./backend-work-helpers";
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../convex/schema";
@@ -121,7 +122,7 @@ describe("ownership and payments", () => {
   it("atomically activates, replaces, sequences and starts zero counters", async () => {
     const t = make();
     const a = await active(t);
-    vi.advanceTimersByTime(3000);
+    vi.setSystemTime(Date.now() + (3000));
     const b = await active(t);
     const old = await t.run((ctx) => ctx.db.get(a.takeoverId));
     expect(old).toMatchObject({ status: "replaced", endReason: "purchase" });
@@ -215,7 +216,7 @@ describe("ownership and payments", () => {
     ).toMatchObject({
       state: "active",
     });
-    vi.advanceTimersByTime(2500);
+    vi.setSystemTime(Date.now() + (2500));
     await active(t);
     expect(
       await t.mutation(internal.purchases.confirmation, args),
@@ -226,7 +227,7 @@ describe("ownership and payments", () => {
     expect(
       await t.mutation(internal.purchases.confirmation, { tokenHash: "wrong" }),
     ).toMatchObject({ state: "invalid", owner: null });
-    vi.advanceTimersByTime(49 * 3600_000);
+    vi.setSystemTime(Date.now() + (49 * 3600_000));
     expect(
       await t.mutation(internal.purchases.confirmation, args),
     ).toMatchObject({
@@ -255,17 +256,19 @@ describe("attribution and abuse controls", () => {
       internal.analytics.record,
       event(p.takeoverId, { pageId: "reload", eventId: "new" }),
     );
+    await flushAnalytics(t);
     expect(await t.query(api.wall.current, {})).toMatchObject({
       totalVisitors: 1,
       visitorsToday: 1,
       owner: { impressions: 2, uniqueVisitors: 1 },
       regions: [{ regionCode: "US", impressions: 2 }],
     });
-    vi.advanceTimersByTime(86400_000);
+    vi.setSystemTime(Date.now() + (86400_000));
     await t.mutation(
       internal.analytics.record,
       event(p.takeoverId, { pageId: "tomorrow" }),
     );
+    await flushAnalytics(t);
     expect(await t.query(api.wall.current, {})).toMatchObject({
       totalVisitors: 1,
       visitorsToday: 1,
@@ -276,6 +279,7 @@ describe("attribution and abuse controls", () => {
       internal.analytics.record,
       event(next.takeoverId, { pageId: "tomorrow" }),
     );
+    await flushAnalytics(t);
     expect(await t.query(api.wall.current, {})).toMatchObject({
       totalVisitors: 1,
       visitorsToday: 1,
@@ -289,6 +293,7 @@ describe("attribution and abuse controls", () => {
     await t.mutation(internal.analytics.record, e);
     await t.mutation(internal.analytics.record, e);
     await t.mutation(internal.analytics.record, { ...e, eventId: "another" });
+    await flushAnalytics(t);
     expect(await t.query(api.wall.current, {})).toMatchObject({
       owner: { clicks: 2 },
     });
@@ -297,16 +302,17 @@ describe("attribution and abuse controls", () => {
     const t = make(),
       p = await active(t),
       e = event(p.takeoverId);
-    vi.advanceTimersByTime(1000);
+    vi.setSystemTime(Date.now() + (1000));
     await active(t);
     await t.mutation(internal.analytics.record, e);
     expect(await t.query(api.wall.current, {})).toMatchObject({
       owner: { impressions: 0 },
     });
+    await flushAnalytics(t);
     expect(await t.run((ctx) => ctx.db.get(p.takeoverId))).toMatchObject({
       impressions: 1,
     });
-    vi.advanceTimersByTime(121_000);
+    vi.setSystemTime(Date.now() + (121_000));
     await expect(
       t.mutation(internal.analytics.record, { ...e, pageId: "late" }),
     ).rejects.toThrow();
@@ -330,6 +336,7 @@ describe("attribution and abuse controls", () => {
     expect(
       await t.mutation(internal.analytics.record, event(p.takeoverId)),
     ).toBe(false);
+    await flushAnalytics(t);
     expect(await t.query(api.wall.current, {})).toMatchObject({
       totalVisitors: 0,
     });
@@ -384,7 +391,7 @@ describe("attribution and abuse controls", () => {
       ownerHash: "two",
     });
     await t.mutation(internal.uploads.finish, { key: "used", storageId });
-    vi.advanceTimersByTime(49 * 3600_000);
+    vi.setSystemTime(Date.now() + (49 * 3600_000));
     await t.mutation(internal.operations.cleanup, {});
     expect(await t.run((ctx) => ctx.storage.getUrl(unreferenced))).toBeNull();
     expect(await t.run((ctx) => ctx.storage.getUrl(storageId))).not.toBeNull();
@@ -395,7 +402,7 @@ describe("moderation and delivery", () => {
     const t = make(),
       a = await active(t);
     await t.mutation(internal.analytics.record, event(a.takeoverId));
-    vi.advanceTimersByTime(1000);
+    vi.setSystemTime(Date.now() + (1000));
     const b = await active(t);
     const historic = await t.run((ctx) => ctx.db.get(a.takeoverId));
     const args = {
@@ -427,24 +434,24 @@ describe("moderation and delivery", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("unavailable")));
     vi.stubEnv("RESEND_API_KEY", "test");
     vi.stubEnv("RESEND_FROM", "Take The Wall <notify@takethewall.com>");
-    await t.action(internal.jobs.dispatch, {});
+    await deliverDue(t);
     expect(await t.query(api.wall.current, {})).toMatchObject({
       owner: { id: p.takeoverId },
     });
     const jobs = await t.run((ctx) => ctx.db.query("jobs").collect());
     const email = jobs.find((j) => j.kind === "activation_email")!;
     expect(email).toMatchObject({ state: "pending", attempts: 1 });
-    vi.advanceTimersByTime(31_000);
+    vi.setSystemTime(Date.now() + (31_000));
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 200 })),
     );
-    await t.action(internal.jobs.dispatch, {});
+    await deliverDue(t);
     expect(await t.run((ctx) => ctx.db.get(email._id))).toMatchObject({
       state: "sent",
       attempts: 2,
     });
-    await t.action(internal.jobs.dispatch, {});
+    await deliverDue(t);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("retires legacy VisitorPing jobs without sending while email retries and payment counts remain intact", async () => {
@@ -467,7 +474,7 @@ describe("moderation and delivery", () => {
     );
     vi.stubEnv("VISITORPING_SITE_KEY", "vp_ABCD2345");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-    await t.action(internal.jobs.dispatch, {});
+    await deliverDue(t);
     const jobs = await t.run((ctx) => ctx.db.query("jobs").collect());
     expect(jobs.find((j) => j.kind === "takeover_activated")).toMatchObject({
       state: "sent",
@@ -499,7 +506,7 @@ it("cleans confirmed abandoned purchases but retains unresolved Stripe sessions"
     sessionId: "cs_unresolved",
     checkoutUrl: "https://checkout.stripe.com/test",
   });
-  vi.advanceTimersByTime(73 * 3600_000);
+  vi.setSystemTime(Date.now() + (73 * 3600_000));
   await t.mutation(internal.operations.cleanup, {});
   expect(await t.run((ctx) => ctx.db.get(abandoned.purchaseId))).toBeNull();
   expect(
@@ -510,7 +517,7 @@ it("cleans confirmed abandoned purchases but retains unresolved Stripe sessions"
     sessionId: "cs_unresolved",
     livemode: false,
   });
-  vi.advanceTimersByTime(49 * 3600_000);
+  vi.setSystemTime(Date.now() + (49 * 3600_000));
   await t.mutation(internal.operations.cleanup, {});
   expect(await t.run((ctx) => ctx.db.get(unresolved.purchaseId))).toBeNull();
 });
@@ -625,6 +632,7 @@ it("funnel counts measured page loads, unique checkout creation and paid activat
       excluded: true,
     }),
   );
+  await flushAnalytics(t);
   const date = new Date().toISOString().slice(0, 10);
   await expect(
     t.query(api.funnel.report, { from: date, to: date }),
@@ -797,8 +805,8 @@ it("admin payment labels and timeline use recorded facts without exposing checko
   vi.stubEnv("ADMIN_USER_IDS", "admin-test");
   const t = make(), p = await pending(t), admin = t.withIdentity({ subject: "admin-test" });
   await t.mutation(internal.purchases.attach, { purchaseId: p.purchaseId, sessionId: "cs_timeline", checkoutUrl: "" });
-  const list = JSON.parse(await admin.query(api.admin.list, { section: "takeovers" }));
-  expect(list.rows.find((r: { _id: string }) => r._id === p.takeoverId).paymentStatus).toBe("Awaiting payment");
+  const list = (await admin.query(api.admin.list, { section: "takeovers" }));
+  expect(list.rows.find(r => r._id === p.takeoverId)).toMatchObject({paymentStatus: "Awaiting payment"});
   await expect(t.query(api.deliveryAdmin.timeline, { takeoverId: p.takeoverId })).rejects.toThrow();
   await t.mutation(internal.deliveryAdmin.recordStripeCheck, { takeoverId: p.takeoverId, sessionId: "cs_timeline", environment: "test", actor: "admin-test", status: "processing" });
   await enqueueTimelineJob();
@@ -856,7 +864,7 @@ it("admin filters match payment status and environment without exposing records 
   vi.stubEnv("ADMIN_USER_IDS","admin-test");
   const t=make(),p=await pending(t),admin=t.withIdentity({subject:"admin-test"});
   await expect(t.query(api.admin.list,{section:"takeovers",paymentStatus:"Awaiting payment"})).rejects.toThrow();
-  const read=async (paymentStatus:string,environment:"test"|"production")=>JSON.parse(await admin.query(api.admin.list,{section:"takeovers",paymentStatus,environment}));
+  const read=async (paymentStatus:string,environment:"test"|"production")=>(await admin.query(api.admin.list,{section:"takeovers",paymentStatus,environment}));
   expect((await read("Awaiting payment","test")).rows.map((r:{_id:string})=>r._id)).toEqual([p.takeoverId]);
   expect((await read("Paid","test")).rows).toEqual([]);
   expect((await read("Awaiting payment","production")).rows).toEqual([]);

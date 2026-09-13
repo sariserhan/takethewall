@@ -1,3 +1,4 @@
+import { internal } from "./_generated/api";
 import { emailAllowed } from "./emailPolicy";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -89,7 +90,10 @@ export const queue = internalMutation({
       )
       .take(50);
     for (const s of rows) {
-      if (!(await emailAllowed(ctx, s.email, "milestone_alert"))) continue;
+      if (!(await emailAllowed(ctx, s.email, "milestone_alert"))) {
+        await ctx.db.patch(s._id, { active: false });
+        continue;
+      }
       await mail(ctx, {
         key: `milestone-alert:${s._id}:${next.takeoverNumber}:${s.generation}`,
         kind: "milestone_alert",
@@ -102,6 +106,8 @@ export const queue = internalMutation({
       });
       await ctx.db.patch(s._id, { lastNotified: next.takeoverNumber });
     }
+    if (rows.length === 50)
+      await ctx.scheduler.runAfter(1000, internal.milestoneAlerts.queue, {});
     return rows.length;
   },
 });

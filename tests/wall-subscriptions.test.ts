@@ -1,3 +1,4 @@
+import { deliverDue } from "./backend-work-helpers";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../convex/schema";
@@ -287,7 +288,7 @@ it("records the actual provider send with a branded image and one-click unsubscr
   vi.stubEnv("RESEND_API_KEY", "mock-key");
   const send = vi.fn(async () => Response.json({ id: "wall-provider-id" }));
   vi.stubGlobal("fetch", send);
-  await t.action(internal.mail.dispatch, {});
+  await deliverDue(t, "mail");
   expect(send).toHaveBeenCalledTimes(1);
   const request = send.mock.calls[0] as unknown as [string, { body: string }];
   const payload = JSON.parse(request[1].body);

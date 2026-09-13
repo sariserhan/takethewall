@@ -1,3 +1,6 @@
+import { scheduleDelivery } from "./deliverySchedule";
+import type { ActionCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { checkoutResumeToken } from "../lib/owner-secrets";
 import { policyFor } from "./emailPolicy";
 import { emailAllowed } from "./emailPolicy";
@@ -42,8 +45,8 @@ export const claim = internalMutation({
       const takeover = await ctx.db.get(j.takeoverId);
       if (!takeover?.activatedAt || takeover.replacedAt === undefined)
         return false;
-      if (Date.now() <= takeover.replacedAt + 120_000) {
-        await ctx.db.patch(j._id, { nextAt: takeover.replacedAt + 120_001 });
+      if (Date.now() <= takeover.replacedAt + 150_000) {
+        await ctx.db.patch(j._id, { nextAt: takeover.replacedAt + 150_001 });
         return false;
       }
       const site = await ctx.db
@@ -158,7 +161,9 @@ export const data = internalQuery({
       .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
       .unique();
     const access =
-      !["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind) && j.kind.endsWith("_email")
+      !["admin_takeover_email", "admin_payment_failure_email"].includes(
+        j.kind,
+      ) && j.kind.endsWith("_email")
         ? await ctx.db
             .query("ownerAccess")
             .withIndex("by_takeover", (q) => q.eq("takeoverId", t._id))
@@ -171,16 +176,20 @@ export const data = internalQuery({
             .withIndex("by_key", (q) => q.eq("key", "wall"))
             .unique()
         : null;
-    const notifications =
-      ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
-        ? await notificationSettings(ctx)
-        : null;
-    const destination =
-      ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
-        ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
-        : j.recoveryToReceipt
-          ? (p?.receiptEmail ?? "")
-          : (p?.buyerEmail ?? "");
+    const notifications = [
+      "admin_takeover_email",
+      "admin_payment_failure_email",
+    ].includes(j.kind)
+      ? await notificationSettings(ctx)
+      : null;
+    const destination = [
+      "admin_takeover_email",
+      "admin_payment_failure_email",
+    ].includes(j.kind)
+      ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
+      : j.recoveryToReceipt
+        ? (p?.receiptEmail ?? "")
+        : (p?.buyerEmail ?? "");
     const resumeAllowed =
       j.kind !== "checkout_resume_email" ||
       (!!p?.resumeSeed &&
@@ -239,12 +248,13 @@ export const data = internalQuery({
       activatedAt: t.activatedAt ?? 0,
       ...(t.replacedAt !== undefined ? { replacedAt: t.replacedAt } : {}),
       ...(t.endReason ? { endReason: t.endReason } : {}),
-      email:
-        ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
-          ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
-          : j.kind === "owner_access_email"
-            ? ((j.recoveryToReceipt ? p?.receiptEmail : p?.buyerEmail) ?? "")
-            : (p?.buyerEmail ?? ""),
+      email: ["admin_takeover_email", "admin_payment_failure_email"].includes(
+        j.kind,
+      )
+        ? (j.adminRecipient ?? "serhan.sari@yahoo.com")
+        : j.kind === "owner_access_email"
+          ? ((j.recoveryToReceipt ? p?.receiptEmail : p?.buyerEmail) ?? "")
+          : (p?.buyerEmail ?? ""),
       environment: p?.environment ?? process.env.WALL_ENVIRONMENT ?? "test",
     };
   },
@@ -292,6 +302,9 @@ export const finish = internalMutation({
           updatedAt: Date.now(),
         });
     }
+    const updated = await ctx.db.get(a.id);
+    if (updated?.state === "pending")
+      await scheduleDelivery(ctx, "jobs", updated._id, updated.nextAt);
     return null;
   },
 });
@@ -319,184 +332,199 @@ export const replay = internalMutation({
       attempts: 0,
       nextAt: Date.now(),
     });
+    await scheduleDelivery(ctx, "jobs", j._id);
     return null;
   },
 });
+export async function sendOne(ctx: ActionCtx, id: Id<"jobs">) {
+  if (!(await ctx.runMutation(internal.jobs.claim, { id }))) return;
+  try {
+    const raw = await ctx.runQuery(internal.jobs.data, { id });
+    if (!raw) return;
+    if (
+      !["admin_takeover_email", "admin_payment_failure_email"].includes(
+        raw.kind,
+      ) &&
+      raw.kind.endsWith("_email") &&
+      (process.env.CLAIM_TOKEN_SECRET?.length ?? 0) >= 32
+    )
+      await ctx.runMutation(internal.owners.ensureAccess, {
+        takeoverId: raw.takeoverId,
+      });
+    const j = raw.kind.endsWith("_email")
+      ? await ctx.runQuery(internal.jobs.data, { id })
+      : raw;
+    if (!j) return;
+    let response: Response;
+    let emailSubject = "";
+    if (j.kind.endsWith("_email")) {
+      if (
+        !j.email ||
+        !j.deliveryAllowed ||
+        (["admin_takeover_email", "admin_payment_failure_email"].includes(
+          j.kind,
+        ) &&
+          (!j.adminNotificationEnabled ||
+            j.environment !== "production" ||
+            process.env.WALL_ENVIRONMENT !== "production")) ||
+        (j.kind === "weekly_digest_email" && !j.digestAllowed)
+      ) {
+        await ctx.runMutation(internal.jobs.finish, { id, ok: true });
+        return;
+      }
+      if (!process.env.RESEND_API_KEY)
+        throw new Error("Email provider is not configured");
+      if (Date.now() - j.timestamp > 23 * 3600_000) {
+        await ctx.runMutation(internal.jobs.finish, {
+          id,
+          ok: false,
+          permanent: true,
+          error:
+            "Email delivery window elapsed; reconcile provider before manual delivery",
+        });
+        return;
+      }
+      if (j.kind === "owner_access_email" && !j.dashboardUrl)
+        throw new Error("Owner access is not configured");
+      const message =
+        j.kind === "owner_access_email"
+          ? {
+              subject: "Your private owner dashboard",
+              text: "Your private link shows your takeover performance and weekly email preferences. Keep this link private; use the share button inside the dashboard for a public link.",
+            }
+          : emailMessage(j);
+      if (
+        ["admin_takeover_email", "admin_payment_failure_email"].includes(
+          j.kind,
+        ) &&
+        !j.adminNotice
+      )
+        throw new Error("Missing activation snapshot");
+      const rendered =
+        j.kind === "checkout_resume_email"
+          ? emailTemplate(
+              `${j.environment === "production" ? "" : "[TEST] "}Resume your Take The Wall checkout`,
+              `You requested a link to continue your $3.99 checkout. Your saved content is ready. Payment has not been confirmed. Nothing is reserved or published until payment is verified. This checkout expires ${new Date(j.resumeExpiresAt!).toUTCString()}.`,
+              {
+                eyebrow: "YOUR SAVED CHECKOUT",
+                cta: { label: "Resume checkout", url: j.resumeUrl! },
+                footnote:
+                  "Keep this link private. It opens your saved checkout. If you already paid, we’ll check your payment instead of asking you to pay again.",
+              },
+            )
+          : ["admin_takeover_email", "admin_payment_failure_email"].includes(
+                j.kind,
+              )
+            ? emailTemplate(j.adminNotice!.subject, j.adminNotice!.body, {
+                eyebrow:
+                  j.kind === "admin_payment_failure_email"
+                    ? "PAYMENT NEEDS ATTENTION"
+                    : "WALL TAKEOVER NOTIFICATION",
+                cta: {
+                  label: "Open admin dashboard",
+                  url: ownerBaseUrl() + "/admin",
+                },
+                footnote:
+                  j.kind === "admin_payment_failure_email"
+                    ? "Payment failure snapshot. A later retry may have recovered publication; check Stripe status before acting."
+                    : "Activation snapshot. Content and ownership may have changed since this notification.",
+              })
+            : j.kind === "replacement_email"
+              ? finalOwnerEmail(j.finalReport!, j.dashboardUrl)
+              : j.kind === "weekly_digest_email"
+                ? weeklyOwnerEmail(
+                    j.digest!,
+                    j.dashboardUrl!,
+                    j.unsubscribeUrl!,
+                  )
+                : emailTemplate(
+                    message.subject,
+                    message.text,
+                    j.dashboardUrl
+                      ? {
+                          cta: {
+                            label: "Open your private dashboard",
+                            url: j.dashboardUrl,
+                          },
+                        }
+                      : {},
+                  );
+      emailSubject = rendered.subject;
+      await ctx.runMutation(internal.emailDirectory.track, {
+        key: j.key,
+        email: j.email,
+        kind: j.kind,
+        subject: rendered.subject,
+        state: "sending",
+        createdAt: j.timestamp,
+      });
+      response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": j.key,
+        },
+        body: JSON.stringify({
+          ...(j.sender ?? senderForMail(j)),
+          to: [j.email],
+          ...rendered,
+          ...(j.kind === "weekly_digest_email"
+            ? {
+                headers: {
+                  "List-Unsubscribe": `<${j.oneClickUnsubscribeUrl}>`,
+                  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                },
+              }
+            : {}),
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } else {
+      await ctx.runMutation(internal.jobs.finish, { id, ok: true });
+      return;
+    }
+    if (j.kind.endsWith("_email")) {
+      const result = response.ok
+        ? await response
+            .clone()
+            .json()
+            .catch(() => null)
+        : null;
+      await ctx.runMutation(internal.emailDirectory.track, {
+        key: j.key,
+        email: j.email,
+        kind: j.kind,
+        subject: emailSubject,
+        state: response.ok ? "accepted" : "failed",
+        createdAt: j.timestamp,
+        ...(typeof result?.id === "string" ? { providerId: result.id } : {}),
+      });
+    }
+    if (!response.ok) {
+      await ctx.runMutation(internal.jobs.finish, {
+        id,
+        ok: false,
+        error: `Provider HTTP ${response.status}`,
+        permanent:
+          response.status >= 400 &&
+          response.status < 500 &&
+          ![408, 409, 429].includes(response.status),
+      });
+    } else await ctx.runMutation(internal.jobs.finish, { id, ok: true });
+  } catch {
+    await ctx.runMutation(internal.jobs.finish, {
+      id,
+      ok: false,
+      error: "Provider unavailable or configuration missing",
+    });
+  }
+}
 export const dispatch = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    const ids = await ctx.runQuery(internal.jobs.due, { now: Date.now() });
-    for (const id of ids) {
-      if (!(await ctx.runMutation(internal.jobs.claim, { id }))) continue;
-      try {
-        const raw = await ctx.runQuery(internal.jobs.data, { id });
-        if (!raw) continue;
-        if (
-          !["admin_takeover_email", "admin_payment_failure_email"].includes(raw.kind) &&
-          raw.kind.endsWith("_email") &&
-          (process.env.CLAIM_TOKEN_SECRET?.length ?? 0) >= 32
-        )
-          await ctx.runMutation(internal.owners.ensureAccess, {
-            takeoverId: raw.takeoverId,
-          });
-        const j = raw.kind.endsWith("_email")
-          ? await ctx.runQuery(internal.jobs.data, { id })
-          : raw;
-        if (!j) continue;
-        let response: Response;
-        let emailSubject = "";
-        if (j.kind.endsWith("_email")) {
-          if (
-            !j.email ||
-            !j.deliveryAllowed ||
-            (["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind) &&
-              (!j.adminNotificationEnabled ||
-                j.environment !== "production" ||
-                process.env.WALL_ENVIRONMENT !== "production")) ||
-            (j.kind === "weekly_digest_email" && !j.digestAllowed)
-          ) {
-            await ctx.runMutation(internal.jobs.finish, { id, ok: true });
-            continue;
-          }
-          if (!process.env.RESEND_API_KEY)
-            throw new Error("Email provider is not configured");
-          if (Date.now() - j.timestamp > 23 * 3600_000) {
-            await ctx.runMutation(internal.jobs.finish, {
-              id,
-              ok: false,
-              permanent: true,
-              error:
-                "Email delivery window elapsed; reconcile provider before manual delivery",
-            });
-            continue;
-          }
-          if (j.kind === "owner_access_email" && !j.dashboardUrl)
-            throw new Error("Owner access is not configured");
-          const message =
-            j.kind === "owner_access_email"
-              ? {
-                  subject: "Your private owner dashboard",
-                  text: "Your private link shows your takeover performance and weekly email preferences. Keep this link private; use the share button inside the dashboard for a public link.",
-                }
-              : emailMessage(j);
-          if (["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind) && !j.adminNotice)
-            throw new Error("Missing activation snapshot");
-          const rendered =
-            j.kind === "checkout_resume_email"
-              ? emailTemplate(
-                  `${j.environment === "production" ? "" : "[TEST] "}Resume your Take The Wall checkout`,
-                  `You requested a link to continue your $3.99 checkout. Your saved content is ready. Payment has not been confirmed. Nothing is reserved or published until payment is verified. This checkout expires ${new Date(j.resumeExpiresAt!).toUTCString()}.`,
-                  {
-                    eyebrow: "YOUR SAVED CHECKOUT",
-                    cta: { label: "Resume checkout", url: j.resumeUrl! },
-                    footnote:
-                      "Keep this link private. It opens your saved checkout. If you already paid, we’ll check your payment instead of asking you to pay again.",
-                  },
-                )
-              : ["admin_takeover_email", "admin_payment_failure_email"].includes(j.kind)
-                ? emailTemplate(j.adminNotice!.subject, j.adminNotice!.body, {
-                    eyebrow: j.kind === "admin_payment_failure_email" ? "PAYMENT NEEDS ATTENTION" : "WALL TAKEOVER NOTIFICATION",
-                    cta: {
-                      label: "Open admin dashboard",
-                      url: ownerBaseUrl() + "/admin",
-                    },
-                    footnote:
-                      j.kind === "admin_payment_failure_email" ? "Payment failure snapshot. A later retry may have recovered publication; check Stripe status before acting." : "Activation snapshot. Content and ownership may have changed since this notification.",
-                  })
-                : j.kind === "replacement_email"
-                  ? finalOwnerEmail(j.finalReport!, j.dashboardUrl)
-                  : j.kind === "weekly_digest_email"
-                    ? weeklyOwnerEmail(
-                        j.digest!,
-                        j.dashboardUrl!,
-                        j.unsubscribeUrl!,
-                      )
-                    : emailTemplate(
-                        message.subject,
-                        message.text,
-                        j.dashboardUrl
-                          ? {
-                              cta: {
-                                label: "Open your private dashboard",
-                                url: j.dashboardUrl,
-                              },
-                            }
-                          : {},
-                      );
-          emailSubject = rendered.subject;
-          await ctx.runMutation(internal.emailDirectory.track, {
-            key: j.key,
-            email: j.email,
-            kind: j.kind,
-            subject: rendered.subject,
-            state: "sending",
-            createdAt: j.timestamp,
-          });
-          response = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-              "Idempotency-Key": j.key,
-            },
-            body: JSON.stringify({
-              ...(j.sender ?? senderForMail(j)),
-              to: [j.email],
-              ...rendered,
-              ...(j.kind === "weekly_digest_email"
-                ? {
-                    headers: {
-                      "List-Unsubscribe": `<${j.oneClickUnsubscribeUrl}>`,
-                      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-                    },
-                  }
-                : {}),
-            }),
-            signal: AbortSignal.timeout(10_000),
-          });
-        } else {
-          await ctx.runMutation(internal.jobs.finish, { id, ok: true });
-          continue;
-        }
-        if (j.kind.endsWith("_email")) {
-          const result = response.ok
-            ? await response
-                .clone()
-                .json()
-                .catch(() => null)
-            : null;
-          await ctx.runMutation(internal.emailDirectory.track, {
-            key: j.key,
-            email: j.email,
-            kind: j.kind,
-            subject: emailSubject,
-            state: response.ok ? "accepted" : "failed",
-            createdAt: j.timestamp,
-            ...(typeof result?.id === "string"
-              ? { providerId: result.id }
-              : {}),
-          });
-        }
-        if (!response.ok) {
-          await ctx.runMutation(internal.jobs.finish, {
-            id,
-            ok: false,
-            error: `Provider HTTP ${response.status}`,
-            permanent:
-              response.status >= 400 &&
-              response.status < 500 &&
-              ![408, 409, 429].includes(response.status),
-          });
-        } else await ctx.runMutation(internal.jobs.finish, { id, ok: true });
-      } catch {
-        await ctx.runMutation(internal.jobs.finish, {
-          id,
-          ok: false,
-          error: "Provider unavailable or configuration missing",
-        });
-      }
-    }
+    await ctx.runMutation(internal.delivery.recover, {});
     return null;
   },
 });

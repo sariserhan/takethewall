@@ -1,3 +1,4 @@
+import { internal } from "./_generated/api";
 import { emailAllowed } from "./emailPolicy";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -148,13 +149,28 @@ export const queue = internalMutation({
     if (process.env.WALL_ENVIRONMENT !== "production") return 0;
     const site = await getSite(ctx),
       now = Date.now();
-    const subscribers = await ctx.db
+    const daily = await ctx.db
       .query("wallSubscribers")
-      .withIndex("by_due", (q) => q.eq("active", true).lte("nextAt", now))
+      .withIndex("by_frequency_due", (q) =>
+        q.eq("active", true).eq("frequency", "daily").lte("nextAt", now),
+      )
       .take(20);
+    const every = await ctx.db
+      .query("wallSubscribers")
+      .withIndex("by_sequence", (q) =>
+        q
+          .eq("active", true)
+          .eq("frequency", "every")
+          .lt("lastSequence", site.currentActivationSequence),
+      )
+      .take(20);
+    const subscribers = [...daily, ...every];
     let count = 0;
     for (const s of subscribers) {
-      if (!(await emailAllowed(ctx, s.email, "wall_change"))) continue;
+      if (!(await emailAllowed(ctx, s.email, "wall_change"))) {
+        await ctx.db.patch(s._id, { active: false });
+        continue;
+      }
       const rows = await ctx.db
         .query("takeovers")
         .withIndex("by_activationSequence", (q) =>
@@ -215,6 +231,12 @@ export const queue = internalMutation({
         nextAt: s.frequency === "daily" ? nextDaily(now) : now + 60_000,
       });
     }
+    if (
+      daily.length === 20 ||
+      every.length === 20 ||
+      subscribers.some((s) => s.frequency === "every")
+    )
+      await ctx.scheduler.runAfter(1000, internal.wallSubscriptions.queue, {});
     return count;
   },
 });
