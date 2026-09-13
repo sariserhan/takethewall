@@ -580,7 +580,10 @@ test("current takeover toolbar link follows the live owner", async ({page}) => {
 
 test("free entry is available from the footer with a contact email template", async ({page}) => {
  await fixture(page);await page.goto("/");
- await page.getByRole("navigation",{name:"Information",exact:true}).getByRole("link",{name:"Free entry",exact:true}).click();
+ const info=page.getByRole("navigation",{name:"Information",exact:true});
+ await expect(info.getByRole("link",{name:"Free entry",exact:true})).toHaveCount(0);
+ await info.getByRole("link",{name:"Reward Rules & Free Entry",exact:true}).click();
+ await page.getByRole("dialog",{name:"Reward Rules",exact:true}).getByRole("link",{name:"View free entry instructions"}).click();
  const dialog=page.getByRole("dialog",{name:"Free entry",exact:true});
  await expect(dialog).toBeVisible();
  await expect(dialog).toContainText("contact@takethewall.com");

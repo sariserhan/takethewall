@@ -51,8 +51,8 @@ export function PrizeExplainer({
           )}
         </p>
         <p className="free-entry-callout">
-          No purchase necessary.{" "}
-          <Link href="/?info=free-entry">Enter free by email →</Link>
+          No purchase necessary ·{" "}
+          <Link href="/?info=free-entry">Free entry →</Link>
         </p>
         <Link href="/?info=how-prizes-work">How prizes work →</Link>
       </div>
