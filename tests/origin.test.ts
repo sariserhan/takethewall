@@ -87,3 +87,24 @@ it("uses a loopback Host when Next normalizes the request hostname", () => {
   req.headers.set("host", "evil.example:4000");
   expect(() => sameOrigin(req)).toThrow();
 });
+
+it("accepts an exact browser-facing loopback Host through local port forwarding", () => {
+  const req = request(
+    "http://localhost:3025/api/wall-vote",
+    "http://localhost:4000",
+  );
+  req.headers.set("host", "localhost:4000");
+  expect(() => sameOrigin(req)).not.toThrow();
+  req.headers.set("origin", "http://localhost:3001");
+  expect(() => sameOrigin(req)).toThrow("Invalid request origin");
+  req.headers.set("origin", "https://evil.example");
+  expect(() => sameOrigin(req)).toThrow("Invalid request origin");
+});
+it("does not accept public hosts through the local forwarding exception", () => {
+  const req = request(
+    "http://localhost:3025/api/wall-vote",
+    "https://evil.example",
+  );
+  req.headers.set("host", "evil.example");
+  expect(() => sameOrigin(req)).toThrow("Invalid request origin");
+});

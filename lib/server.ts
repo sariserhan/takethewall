@@ -70,18 +70,15 @@ export function sameOrigin(req: Request) {
   const target = new URL(req.url);
   const localHosts = ["localhost", "127.0.0.1", "[::1]"];
   const loopback = localHosts.includes(target.hostname);
-  // Next can normalize the request URL hostname to localhost. Only recover
-  // the actual Host when it is itself loopback and has the same server port.
+  // Next or local port forwarding can normalize the request URL hostname
+  // and port. A loopback Host preserves the browser-facing origin. Requiring
+  // Origin to match it exactly still rejects requests from other local ports.
   const host = req.headers.get("host");
   let localOrigin = target.origin;
   if (loopback && host) {
     try {
       const incoming = new URL(`${target.protocol}//${host}`);
-      if (
-        incoming.host === host &&
-        localHosts.includes(incoming.hostname) &&
-        incoming.port === target.port
-      )
+      if (incoming.host === host && localHosts.includes(incoming.hostname))
         localOrigin = incoming.origin;
     } catch {
       /* Invalid Host cannot expand the allowed origin. */
