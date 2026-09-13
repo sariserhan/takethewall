@@ -1,5 +1,9 @@
 "use client";
 import dynamic from "next/dynamic";
+import {
+  setInteractionMode,
+  useInteractionMode,
+} from "./wall-interaction-mode";
 import { setBlacklight, useBlacklight } from "./wall-blacklight";
 import { useEffect, useState } from "react";
 import { Dialog } from "./dialog";
@@ -21,6 +25,7 @@ export type CreativePanel =
 export type CreativeData = WallSnapshot & { id: string; message: string };
 export function WallCreativeTools({ data }: { data: CreativeData | null }) {
   const blacklight = useBlacklight();
+  const interaction = useInteractionMode();
   const [panel, setPanel] = useState<CreativePanel | null>(null),
     [sky, setSky] = useState("clear"),
     [era, setEra] = useState("present");
@@ -49,8 +54,22 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
         <button
           className="wall-action"
           key={name}
-          aria-pressed={name === "Blacklight" ? blacklight : undefined}
-          onClick={() => name === "Blacklight" ? setBlacklight(!blacklight) : setPanel(name)}
+          aria-pressed={
+            name === "Blacklight"
+              ? blacklight
+              : name === "Thermal"
+                ? interaction === "thermal"
+                : name === "Theremin"
+                  ? interaction === "theremin"
+                  : undefined
+          }
+          onClick={() => {
+            if (name === "Blacklight") setBlacklight(!blacklight);
+            else if (name === "Thermal" || name === "Theremin") {
+              const mode = name === "Thermal" ? "thermal" : "theremin";
+              setInteractionMode(interaction === mode ? "off" : mode);
+            } else setPanel(name);
+          }}
         >
           <CreativeIcon name={name} />
           {name}

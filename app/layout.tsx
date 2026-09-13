@@ -1,3 +1,4 @@
+import { WallInteractions } from "@/components/wall-interactions";
 import { WallBlacklight } from "@/components/wall-blacklight";
 import { WallPreferences } from "@/components/wall-preferences";
 import { siteUrl } from "@/lib/site-url";
@@ -31,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body><WallPreferences /><WallBlacklight />{children}</body>
+      <body><WallPreferences /><WallBlacklight /><WallInteractions />{children}</body>
     </html>
   );
 }

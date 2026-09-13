@@ -392,10 +392,10 @@ test("Creative experiments provide local visuals, opt-in audio and printable bri
  await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('.wall-atmosphere i').first().evaluate(el=>getComputedStyle(el).animationName)).toBe('none');await page.emulateMedia({reducedMotion:'no-preference'});
  dialog=await open('Atmosphere');await dialog.getByRole('button',{name:'Clear / off',exact:true}).click();await page.keyboard.press('Escape');await expect(page.locator('.wall-atmosphere')).toHaveCount(0);
  dialog=await open('Decade Warp');for(const [label,era] of [['1984 · Monochrome','1984'],['1996 · Early web','1996'],['2077 · Neon future','2077'],['Present day','present']]){await dialog.getByRole('button',{name:label,exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-wall-era',era);}await page.keyboard.press('Escape');
- dialog=await open('Thermal');const thermal=dialog.locator('canvas');const blank=await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL());await thermal.focus();await page.keyboard.press('ArrowRight');expect(await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).not.toBe(blank);await dialog.getByRole('button',{name:'Clear trail'}).click();expect(await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).toBe(blank);await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Thermal',exact:true}).click();const thermal=page.locator('.page-thermal');await expect(thermal).toBeVisible();const blank=await thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL());await page.mouse.move(150,300);await expect.poll(()=>thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).not.toBe(blank);await page.getByRole('button',{name:'Clear trail'}).click();await expect.poll(()=>thermal.evaluate((c:HTMLCanvasElement)=>c.toDataURL())).toBe(blank);await page.keyboard.press('Escape');
  await page.locator('.experiment-menu-controls').getByRole('button',{name:'Blacklight',exact:true}).click();await expect(page.locator('html')).toHaveAttribute('data-wall-blacklight','on');await expect(page.getByRole('dialog',{name:'Blacklight',exact:true})).toHaveCount(0);await page.screenshot({path:`/tmp/ttw-blacklight-${info.project.name}.png`});await page.keyboard.press('Escape');await expect(page.locator('html')).toHaveAttribute('data-wall-blacklight','off');
  dialog=await open('Morse');await expect(dialog).toContainText('Radio silent.');await dialog.getByRole('button',{name:'Play Morse'}).click();await expect(dialog).toContainText('Transmitting…');await dialog.getByRole('button',{name:'Stop',exact:true}).click();await expect(dialog).toContainText('Radio silent.');await page.keyboard.press('Escape');
- dialog=await open('Theremin');await dialog.getByRole('button',{name:'Start instrument'}).click();await expect(dialog).toContainText('Instrument ready');await dialog.getByRole('application').focus();await page.keyboard.press('ArrowRight');await dialog.getByRole('button',{name:'Stop instrument'}).click();await expect(dialog).toContainText('Sound off.');await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Theremin',exact:true}).click();const instrument=page.getByRole('complementary',{name:'Theremin controls'});await instrument.getByRole('button',{name:'Start instrument'}).click();await expect(instrument.getByRole('button',{name:'Mute instrument'})).toBeVisible();await page.mouse.move(170,310);await instrument.getByRole('button',{name:'Mute instrument'}).click();await expect(instrument).toContainText('Sound off');await page.keyboard.press('Escape');
  dialog=await open('Origami');
  for(const paper of ['A4','Letter']){
  await dialog.getByLabel('Paper size').selectOption(paper);await dialog.getByRole('button',{name:'Generate paper brick'}).click();
@@ -424,4 +424,21 @@ test("Blacklight follows navigation and focus without blocking the page",async({
  await page.getByRole('button',{name:/Exit Blacklight/}).click();await expect(shade).toHaveCount(0);
  expect(await page.evaluate(()=>localStorage.getItem('ttw-blacklight'))).toBe('off');
  await page.reload();await expect(page.locator('html')).toHaveAttribute('data-wall-blacklight','off');
+});
+
+test("Page-wide Thermal and Theremin preserve navigation and restore muted", async({page},info)=>{
+ await fixture(page);await page.goto('/');await page.locator('.experiments-menu > summary').click();
+ await page.getByRole('button',{name:'Thermal',exact:true}).click();await expect(page.locator('dialog[open]')).toHaveCount(0);
+ const trail=page.locator('.page-thermal');await expect(trail).toHaveCSS('pointer-events','none');
+ await page.evaluate(()=>window.scrollTo(0,0));await page.mouse.move(160,320,{steps:12});
+ await page.screenshot({path:`/tmp/ttw-thermal-page-${info.project.name}.png`});
+ const keep=page.locator('.keep-or-yeet').getByRole('button',{name:/^KEEP/});await keep.click();await expect(keep).toHaveAttribute('aria-pressed','true');
+ const contrast=await new AxeBuilder({page}).withRules(['color-contrast']).analyze();expect(contrast.violations).toEqual([]);
+ await page.goto('/about');await expect(page.locator('html')).toHaveAttribute('data-wall-interaction','thermal');await page.getByRole('button',{name:/Exit Thermal/}).click();await expect(trail).toHaveCount(0);
+ await page.goto('/');await page.locator('.experiments-menu > summary').click();await page.getByRole('button',{name:'Blacklight',exact:true}).click();
+ await page.getByRole('button',{name:'Theremin',exact:true}).click();await expect(page.locator('.blacklight-shade')).toHaveCount(0);await expect(page.locator('html')).toHaveAttribute('data-wall-interaction','theremin');
+ await expect(page.locator('dialog[open]')).toHaveCount(0);await page.getByRole('button',{name:'Start instrument',exact:true}).click();await expect(page.getByRole('button',{name:'Mute instrument',exact:true})).toBeVisible();
+ await page.mouse.move(180,400);await expect.poll(()=>page.locator('.page-theremin').evaluate(el=>(el as HTMLElement).style.getPropertyValue('--theremin-x'))).toBe('180px');
+ await page.reload();await expect(page.locator('html')).toHaveAttribute('data-wall-interaction','theremin');await expect(page.getByRole('button',{name:'Start instrument',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Mute instrument',exact:true})).toHaveCount(0);
+ await page.goto('/about');await page.getByRole('button',{name:/Exit Theremin/}).click();await expect(page.locator('.page-theremin')).toHaveCount(0);expect(await page.evaluate(()=>localStorage.getItem('ttw-interaction'))).toBe('off');
 });

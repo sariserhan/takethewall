@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { EffectLayer } from "./effect-layer";
+import { setInteractionMode } from "./wall-interaction-mode";
 const changeEvent = "ttw-blacklight-change";
 function subscribe(callback: () => void) {
   window.addEventListener(changeEvent, callback);
@@ -14,6 +15,7 @@ export function useBlacklight() {
   );
 }
 export function setBlacklight(on: boolean) {
+  if (on) setInteractionMode("off");
   document.documentElement.dataset.wallBlacklight = on ? "on" : "off";
   try {
     localStorage.setItem("ttw-blacklight", on ? "on" : "off");
@@ -22,27 +24,6 @@ export function setBlacklight(on: boolean) {
 }
 export function WallBlacklight() {
   const enabled = useBlacklight();
-  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    // Native modal dialogs sit above all ordinary z-index layers. Place the
-    // flashlight in the active dialog so its exit button stays usable too.
-    const update = () => {
-      const dialogs =
-        document.querySelectorAll<HTMLDialogElement>("dialog[open]");
-      const host = dialogs.item(dialogs.length - 1) ?? null;
-      setPortalHost((previous) => (previous === host ? previous : host));
-    };
-    const observer = new MutationObserver(update);
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ["open"],
-    });
-    update();
-    return () => observer.disconnect();
-  }, [enabled]);
   const exit = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     try {
@@ -147,7 +128,5 @@ export function WallBlacklight() {
       </aside>
     </>
   );
-  return portalHost?.isConnected && portalHost.hasAttribute("open")
-    ? createPortal(light, portalHost)
-    : light;
+  return <EffectLayer>{light}</EffectLayer>;
 }
