@@ -26,6 +26,9 @@ http.route({
       const { op, args } = JSON.parse(text);
       let result: unknown;
       switch (op) {
+        case "visitorPingAlert":
+          result = await ctx.runMutation(internal.visitorPingWebhook.receive, args);
+          break;
         case "checkoutControls":
           result = await ctx.runQuery(api.checkoutControls.state, {});
           break;

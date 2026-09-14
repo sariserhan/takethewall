@@ -1,3 +1,4 @@
+import { visitorPingAlert } from "./visitorPingWebhookModel";
 import { websiteGeography } from "./geographyModel";
 import { designAssets } from "./designAssets";
 import { demoValues, demoPresentation } from "./demoValues";
@@ -236,6 +237,9 @@ export default defineSchema({
     auditHash: v.string(),
   }).index("by_number", ["takeoverNumber"]),
 
+  visitorPingWebhookDeliveries: defineTable({
+    ...visitorPingAlert.fields, receivedAt: v.number(),
+  }).index("by_receivedAt", ["receivedAt"]),
   websiteGeographyReports: defineTable({
     key: v.literal("website"),
     siteId: v.string(),

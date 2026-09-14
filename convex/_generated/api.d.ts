@@ -59,6 +59,8 @@ import type * as rewardSchema from "../rewardSchema.js";
 import type * as rewards from "../rewards.js";
 import type * as support from "../support.js";
 import type * as uploads from "../uploads.js";
+import type * as visitorPingWebhook from "../visitorPingWebhook.js";
+import type * as visitorPingWebhookModel from "../visitorPingWebhookModel.js";
 import type * as visitorping from "../visitorping.js";
 import type * as wall from "../wall.js";
 import type * as wallSubscriptions from "../wallSubscriptions.js";
@@ -124,6 +126,8 @@ declare const fullApi: ApiFromModules<{
   rewards: typeof rewards;
   support: typeof support;
   uploads: typeof uploads;
+  visitorPingWebhook: typeof visitorPingWebhook;
+  visitorPingWebhookModel: typeof visitorPingWebhookModel;
   visitorping: typeof visitorping;
   wall: typeof wall;
   wallSubscriptions: typeof wallSubscriptions;
