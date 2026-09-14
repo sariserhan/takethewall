@@ -14,6 +14,7 @@ type Arrival = {
   city: string;
   country: string;
   visitors?: number;
+  views?: number;
   label?: string;
 };
 const place = (row: Arrival) =>
@@ -33,7 +34,7 @@ export function WallRadar() {
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seen = useRef<Set<string> | null>(null);
   const rows: Arrival[] = mode === "cities"
-    ? (report?.cities ?? []).map(city => ({ id: "city:" + city.label, receivedAt: 0, city: city.city, country: city.country, visitors: city.visitors, label: city.label }))
+    ? (report?.cities ?? []).map(city => ({ id: "city:" + city.label, receivedAt: 0, city: city.city, country: city.country, visitors: city.visitors, views: city.views, label: city.label }))
     : held ?? live ?? [];
   useEffect(() => {
     const controller = new AbortController();
@@ -132,7 +133,7 @@ export function WallRadar() {
   return (
     <section
       className={styles.radar}
-      aria-label="Unique visitors today"
+      aria-label={mode === "cities" ? "Saved visits by city" : "Unique visitors today"}
       data-testid="radar"
     >
       <header className={styles.heading}>
@@ -162,7 +163,7 @@ export function WallRadar() {
           {held ? "Resume arrivals" : "Pause arrivals"}
         </button>}
         <span>
-          {mode === "cities" ? report ? `${report.uniqueVisitors} unique visitors · ${report.views} wall views · saved snapshot` : "Loading cities…" : `${rows.length} unique visitors shown today (UTC)${rows.length === 50 ? " · most recent 50" : ""}`}
+          {mode === "cities" ? report ? `${report.views} visits · ${report.uniqueVisitors} unique visitors · saved snapshot` : "Loading cities…" : `${rows.length} unique visitors shown today (UTC)${rows.length === 50 ? " · most recent 50" : ""}`}
         </span>
       </div>
       <p className={styles.note}>
@@ -239,7 +240,7 @@ export function WallRadar() {
               <>
                 <strong>{place(latest)}</strong>
                 <span>
-                  {mode === "cities" ? `${latest.visitors} ${latest.visitors === 1 ? "visitor" : "visitors"} in saved snapshot` : `First seen today · ${new Date(latest.receivedAt).toISOString().slice(11, 19)} UTC`}
+                  {mode === "cities" ? `${latest.views} ${latest.views === 1 ? "visit" : "visits"} · ${latest.visitors} unique ${latest.visitors === 1 ? "visitor" : "visitors"}` : `First seen today · ${new Date(latest.receivedAt).toISOString().slice(11, 19)} UTC`}
                 </span>
               </>
             ) : (
@@ -272,17 +273,17 @@ export function WallRadar() {
               {mode === "cities" ? report ? "No cities recorded yet today." : "No saved city report." : "No verified visitors yet today. New visits will appear here."}
             </p>
           ) : (
-            <ol aria-label={mode === "cities" ? "City visitor counts" : "Arrival feed"}>
+            <ol aria-label={mode === "cities" ? "Visits by city" : "Arrival feed"}>
               {mapped.map(({ row, precision }) => (
                 <li key={row.id}>
                   <button
                     aria-pressed={selected === row.id}
                     onClick={() => setSelected(row.id)}
                   >
-                    <strong>{row.city || "Location not recorded"}</strong>
-                    <span>{mode === "cities" ? `${row.visitors} ${row.visitors === 1 ? "visitor" : "visitors"} · ${row.label}` : row.country === "ZZ" ? "Location not recorded" : row.country}</span>
+                    <strong>{row.city || "Location not recorded"}{mode === "cities" ? ` · ${row.views} ${row.views === 1 ? "visit" : "visits"}` : ""}</strong>
+                    <span>{mode === "cities" ? `${row.visitors} unique ${row.visitors === 1 ? "visitor" : "visitors"} · ${row.label}` : row.country === "ZZ" ? "Location not recorded" : row.country}</span>
                     <small>
-                      {mode === "cities" ? "Saved snapshot · city total" : `${new Date(row.receivedAt).toISOString().replace("T", " ").slice(0, 19)} UTC · first seen today`}
+                      {mode === "cities" ? "Saved snapshot · includes repeat views" : `${new Date(row.receivedAt).toISOString().replace("T", " ").slice(0, 19)} UTC · first seen today`}
                     </small>
                     <small>{precision}</small>
                   </button>
