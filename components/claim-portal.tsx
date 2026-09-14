@@ -214,16 +214,18 @@ function Portal({ session }: { session: string }) {
             <textarea name="declaration" maxLength={5000} />
           </label>
           <label className="check-label">
-            <input name="accept" type="checkbox" required />I confirm the
-            information is accurate and accept{" "}
-            <a
-              href={`/rewards?version=${encodeURIComponent(data.rulesVersion)}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Reward Rules {data.rulesVersion}
-            </a>
-            .
+            <input name="accept" type="checkbox" required />
+            <span className="check-copy">
+              I confirm the information is accurate and accept{" "}
+              <a
+                href={`/rewards?version=${encodeURIComponent(data.rulesVersion)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Reward Rules {data.rulesVersion}
+              </a>
+              .
+            </span>
           </label>
           <button>Submit for review</button>
         </form>

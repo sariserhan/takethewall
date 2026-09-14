@@ -504,9 +504,7 @@ export function OwnerDashboardView() {
                     weeklyDigestEnabled: enabled,
                   });
                   setNotice(
-                    enabled
-                      ? "Weekly summaries enabled."
-                      : "Weekly summaries stopped.",
+                    enabled ? "Weekly summaries enabled." : "Weekly summaries stopped.",
                   );
                 } catch (e) {
                   setData(data);
@@ -516,7 +514,9 @@ export function OwnerDashboardView() {
                 }
               }}
             />
-            Email me weekly summaries while I own the wall
+            <span className="check-copy">
+              Email me weekly summaries while I own the wall
+            </span>
           </label>
           <h3>Milestone alerts</h3>
           <p>

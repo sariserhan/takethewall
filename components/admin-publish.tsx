@@ -109,7 +109,7 @@ export function AdminPublish() {
                   if (e.target.checked) setCounted(true);
                 }}
               />
-              Process a free email entry
+              <span className="check-copy">Process a free email entry</span>
             </label>
             {freeEntry && (
               <>
@@ -184,7 +184,7 @@ export function AdminPublish() {
                 checked={counted}
                 onChange={(e) => setCounted(e.target.checked)}
               />
-              Count toward milestones
+              <span className="check-copy">Count toward milestones</span>
             </label>
             <p>
               {counted

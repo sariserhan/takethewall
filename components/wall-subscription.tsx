@@ -74,7 +74,9 @@ export function WallSubscription() {
           </p>
           <label className="check-label">
             <input type="checkbox" name="consent" required />
-            Send me wall-change emails. I can unsubscribe at any time.
+            <span className="check-copy">
+              Send me wall-change emails. I can unsubscribe at any time.
+            </span>
           </label>
           <input
             aria-hidden="true"

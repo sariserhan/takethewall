@@ -30,6 +30,7 @@ export function MorseMessageField({
       </p>
       <button
         type="button"
+        className="morse-preview-button"
         onClick={() => setPreview(!preview)}
         aria-expanded={preview}
       >

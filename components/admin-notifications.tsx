@@ -48,11 +48,9 @@ export function AdminNotifications() {
             <input
               type="checkbox"
               checked={current.enabled}
-              onChange={(e) =>
-                setDraft({ ...current, enabled: e.target.checked })
-              }
+              onChange={(e) => setDraft({ ...current, enabled: e.target.checked })}
             />
-            Email me when someone takes the wall
+            <span className="check-copy">Email me when someone takes the wall</span>
           </label>
           <label>
             Notification recipient

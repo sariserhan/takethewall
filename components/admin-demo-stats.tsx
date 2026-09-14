@@ -117,7 +117,7 @@ function DemoForm({
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
           />
-          Show labeled demo stats
+          <span className="check-copy">Show labeled demo stats</span>
         </label>
         {Object.entries(labels).map(([key, label]) => (
           <label key={key}>
@@ -155,7 +155,7 @@ function DemoForm({
             checked={previewEnabled}
             onChange={(e) => setPreviewEnabled(e.target.checked)}
           />
-          Preview content too
+          <span className="check-copy">Preview content too</span>
         </label>
         {previewEnabled && (
           <fieldset>

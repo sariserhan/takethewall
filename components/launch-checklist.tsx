@@ -70,7 +70,7 @@ export function LaunchChecklist({ publicId }: { publicId: string }) {
               checked={shared}
               onChange={(e) => setShared(e.target.checked)}
             />
-            I shared my post
+            <span className="check-copy">I shared my post</span>
           </label>
         </li>
         <li>
@@ -101,7 +101,7 @@ export function LaunchChecklist({ publicId }: { publicId: string }) {
               checked={installed}
               onChange={(e) => setInstalled(e.target.checked)}
             />
-            I added my banner
+            <span className="check-copy">I added my banner</span>
           </label>
         </li>
       </ol>

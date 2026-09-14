@@ -551,7 +551,7 @@ test("homepage referrals keep the sharing owner and AMA has readable actions", a
  await expect(page.getByRole("heading",{name:"Owner 1",exact:true})).toBeVisible();
  await expect.poll(()=>events,{timeout:10000}).toEqual(["begin","complete"]);
  expect(new URL(page.url()).pathname).toBe("/");
- const ama=page.getByRole("region",{name:"Live micro-AMA"});
+ const ama=page.getByRole("region",{name:"Questions for the owner"});
  await expect(ama.getByRole("heading",{name:"What is this?"})).toHaveCSS("font-weight","700");
  const answer = ama.locator(".ama-answers details > p");
  await expect(answer).toBeHidden();

@@ -962,7 +962,7 @@ test("designer uploads appear immediately and independent button links survive p
  await ama.check();
  expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem("ttw-draft")!).amaEnabled)).toBe(true);
  await dialog.getByRole("button",{name:"PREVIEW YOUR TAKEOVER"}).click();
- await expect(dialog).toContainText("Live micro-AMA: On");
+ await expect(dialog).toContainText("Questions for the owner: On");
  await expect(dialog.locator(".takeover-preview .canvas-image img")).toHaveCount(3);
  await expect(dialog.locator(".takeover-preview .canvas-block a")).toHaveCount(0);
  await expect(dialog).toContainText("Draft saved in this tab");
@@ -1169,4 +1169,33 @@ test("example cards fit a narrow designer even on a desktop viewport", async ({p
   await designer.screenshot({path:`/tmp/design-cards-${info.project.name}.png`});
   await designer.getByRole("button",{name:"Use product launch"}).click();
   await expect(designer.locator(".designer-stage")).toBeVisible();
+});
+
+test("owner questions and Morse controls have aligned checkboxes and visible buttons", async ({page}, info) => {
+  await wallFixture(page);
+  await page.goto("/?take=1");
+  const dialog=page.getByRole("dialog",{name:"MAKE IT YOURS."});
+  await dialog.locator(".purchase-extras > summary").click();
+  await expect(dialog.getByRole("heading",{name:"Questions for the owner",exact:true})).toBeVisible();
+  const label=dialog.locator(".purchase-ama .check-label");
+  const checkbox=label.getByRole("checkbox");
+  await checkbox.check();
+  await expect(checkbox).toBeChecked();
+  const box=await checkbox.boundingBox(), copy=await label.locator(".check-copy").boundingBox();
+  expect(box!.width).toBe(18);
+  expect(box!.height).toBe(18);
+  expect(copy!.x-box!.x-box!.width).toBeGreaterThanOrEqual(9);
+  expect(Math.abs(box!.y-copy!.y)).toBeLessThan(5);
+  const preview=dialog.getByRole("button",{name:"Preview Morse",exact:true});
+  await expect(preview).toBeVisible();
+  expect((await preview.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await preview.click();
+  await expect(dialog.getByRole("button",{name:"Close Morse preview"})).toHaveAttribute("aria-expanded","true");
+  await dialog.getByRole("button",{name:"Close Morse preview"}).click();
+  await preview.scrollIntoViewIfNeeded();
+  await page.screenshot({path:`/tmp/checkbox-morse-${info.project.name}.png`});
+  await page.evaluate(()=>document.documentElement.dataset.wallTheme="obsidian");
+  await preview.hover();
+  expect(await preview.evaluate(el=>{const css=getComputedStyle(el);return css.color!==css.backgroundColor})).toBe(true);
+  await expect(checkbox).toBeChecked();
 });

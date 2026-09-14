@@ -44,7 +44,7 @@ export function AdminCommunity() {
               void run(() => configure({ feature, enabled: e.target.checked }))
             }
           />
-          {label}
+          <span className="check-copy">{label}</span>
         </label>
       ))}
       <p className="field-note">
@@ -178,7 +178,7 @@ function EventEditor({ initial }: { initial: EventValue | null }) {
             checked={enabled}
             onChange={(e) => setEnabled(e.target.checked)}
           />
-          Show event publicly
+          <span className="check-copy">Show event publicly</span>
         </label>
         <button disabled={busy}>Save community event</button>
         <p role="status">{message}</p>

@@ -292,11 +292,11 @@ export function PurchaseSheet({
                 <input
                   type="checkbox"
                   checked={draft.weeklyDigestEnabled}
-                  onChange={(e) =>
-                    change({ weeklyDigestEnabled: e.target.checked })
-                  }
+                  onChange={(e) => change({ weeklyDigestEnabled: e.target.checked })}
                 />
-                Email me a weekly stats summary while I own the wall.
+                <span className="check-copy">
+                  Email me a weekly stats summary while I own the wall.
+                </span>
               </label>
               <p className="field-note">
                 For your receipt, activation and replacement notices, plus your
@@ -484,22 +484,20 @@ export function PurchaseSheet({
                   />
                   <details className="purchase-extras">
                     <summary>
-                      Extra settings · Live micro-AMA & Morse message
+                      Extra settings · Owner questions & Morse message
                     </summary>
                     <section
                       className="purchase-ama"
                       aria-labelledby="purchase-ama-title"
                     >
-                      <h3 id="purchase-ama-title">Live micro-AMA</h3>
+                      <h3 id="purchase-ama-title">Questions for the owner</h3>
                       <label className="check-label">
                         <input
                           type="checkbox"
                           checked={draft.amaEnabled}
-                          onChange={(e) =>
-                            change({ amaEnabled: e.target.checked })
-                          }
+                          onChange={(e) => change({ amaEnabled: e.target.checked })}
                         />
-                        Accept questions while I own the wall
+                        <span className="check-copy">Accept questions while I own the wall</span>
                       </label>
                       <p className="field-note">
                         Visitors can ask about your content once your takeover

@@ -50,7 +50,7 @@ export function TakeoverPreview({
       </div>
       {finalReview && (
         <p className="preview-review-note">
-          <strong>Live micro-AMA: {draft.amaEnabled ? "On" : "Off"}</strong>
+          <strong>Questions for the owner: {draft.amaEnabled ? "On" : "Off"}</strong>
           {draft.amaEnabled
             ? " — Visitors can ask questions during your reign. Answer from your owner dashboard."
             : " — You can enable it later in your owner dashboard."}

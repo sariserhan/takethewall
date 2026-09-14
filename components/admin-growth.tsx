@@ -33,16 +33,14 @@ export function AdminGrowth() {
               await toggleHall({ enabled: e.target.checked });
             } catch (e) {
               setError(
-                e instanceof Error
-                  ? e.message
-                  : "Could not update Hall of Fame.",
+                e instanceof Error ? e.message : "Could not update Hall of Fame.",
               );
             } finally {
               setSaving(false);
             }
           }}
         />
-        Show Hall of Fame publicly
+        <span className="check-copy">Show Hall of Fame publicly</span>
       </label>
       <p className="field-note">
         Independent of Wall History. Hiding it removes the homepage section and
@@ -99,7 +97,7 @@ export function AdminGrowth() {
             }
           }}
         />
-        Show Wall History publicly
+        <span className="check-copy">Show Wall History publicly</span>
       </label>
       <p className="field-note">
         When off, the archive, public history links, and its sitemap entry are

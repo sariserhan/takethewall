@@ -63,8 +63,9 @@ export function MilestoneAlerts() {
           </label>
           <label className="check-label">
             <input type="checkbox" name="consent" required />
-            Email me approaching milestone alerts. I can unsubscribe at any
-            time.
+            <span className="check-copy">
+              Email me approaching milestone alerts. I can unsubscribe at any time.
+            </span>
           </label>
           <input
             aria-hidden="true"

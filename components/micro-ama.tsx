@@ -27,11 +27,11 @@ export function MicroAma({
     [busy, setBusy] = useState(false);
   if (!data) return null;
   return (
-    <section className="micro-ama" aria-label="Live micro-AMA">
-      <p className="eyebrow">LIVE MICRO-AMA</p>
+    <section className="micro-ama" aria-label="Questions for the owner">
+      <p className="eyebrow">QUESTIONS FOR THE OWNER</p>
       <h2>Ask {name} anything.</h2>
       <p>
-        Your question is private until the owner answers. The AMA closes when
+        Your question is private until the owner answers. Questions close when
         the wall changes hands.
       </p>
       <form
@@ -105,7 +105,7 @@ export function MicroAma({
           </details>
         ))}
       </div>
-      <ReportContent takeoverId={takeoverId} name={name + " — AMA"} />
+      <ReportContent takeoverId={takeoverId} name={name + " — Questions for the owner"} />
     </section>
   );
 }
@@ -121,7 +121,7 @@ export function OwnerAma() {
     [busy, setBusy] = useState(false);
   async function refresh() {
     const r = await fetch("/api/ama", { cache: "no-store" });
-    if (!r.ok) throw new Error("AMA inbox unavailable. Refresh to retry.");
+    if (!r.ok) throw new Error("Question inbox unavailable. Refresh to retry.");
     setData(await r.json());
   }
   useEffect(() => {
@@ -133,7 +133,7 @@ export function OwnerAma() {
         const data = await r.json();
         if (alive) setData(data);
       } catch {
-        if (alive) setMessage("AMA inbox unavailable. Refresh to retry.");
+        if (alive) setMessage("Question inbox unavailable. Refresh to retry.");
       }
     };
     void poll();
@@ -159,10 +159,10 @@ export function OwnerAma() {
   }
   return (
     <section className="owner-ama">
-      <h2>Live micro-AMA</h2>
+      <h2>Questions for the owner</h2>
       <p>
-        Only answered questions are published. Enabling questions does not send
-        emails.
+        Let visitors ask about your content while you own the wall. Only the
+        questions you answer are published.
       </p>
       <label className="check-label">
         <input
@@ -173,7 +173,7 @@ export function OwnerAma() {
             void act({ action: "toggle", enabled: e.target.checked })
           }
         />
-        Accept questions during this reign
+        <span className="check-copy">Accept questions during this reign</span>
       </label>
       <p className="field-note">
         New unanswered questions are grouped into an email every five minutes.
