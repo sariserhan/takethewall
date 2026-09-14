@@ -248,7 +248,7 @@ function WallView({
         <header className="masthead">
           <MagneticTitle />
           <div className="strap">
-            <p>Your content takes over this page for $4.99.</p>
+            <p>One wall. One owner. Who’s next?</p>
             <span className="connection">
               <i className={connected ? "online" : ""} />
               {connected ? "LIVE" : "CONNECTING"}

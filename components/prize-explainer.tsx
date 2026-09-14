@@ -34,25 +34,55 @@ export function PrizeExplainer({
         </p>
       )}
       <div className="prize-intro">
-        <span className="eyebrow">YOUR PURCHASE & THE PRIZES</span>
-        <h2 id="prize-title">$4.99 BUYS YOUR TIME ON THE WALL.</h2>
-        <p>Your content stays until the next takeover replaces it.</p>
-        <p className="prize-claim-summary">
-          {next ? (
-            <>
-              Takeover <strong>#{format(next.number)}</strong> starts the claim
-              for the <strong>${format(next.rewardUsd)} prize</strong>.
-            </>
-          ) : (
-            <>
-              All prize milestones have been reached. Follow their winner pages
-              below.
-            </>
-          )}
+        <span className="eyebrow">YOUR WALL PLACEMENT & CASH PRIZES</span>
+        <h2 id="prize-title">
+          {next
+            ? next.performance
+              ? "TWO WAYS TO QUALIFY FOR A CASH PRIZE."
+              : "REACH A MILESTONE. QUALIFY FOR A CASH PRIZE."
+            : "YOUR TIME ON THE WALL."}
+        </h2>
+        <p>
+          Put your content here for $4.99 plus applicable tax. It stays until
+          the next takeover replaces it.
+        </p>
+        {next ? (
+          <>
+            <p className="prize-claim-summary">
+              <strong>
+                Reward A · ${format(next.rewardUsd)} · Reach the milestone
+              </strong>
+              <br />
+              The qualifying takeover at #{format(next.number)} starts a claim
+              for this cash prize.
+            </p>
+            {next.performance && (
+              <p className="prize-claim-summary">
+                <strong>
+                  Reward B · ${format(next.performance.rewardUsd)} · Bring the
+                  most visitors
+                </strong>
+                <br />
+                Share your referral link. The eligible entrant with the most
+                verified referrals in this milestone’s cohort starts a separate
+                cash-prize claim.
+              </p>
+            )}
+          </>
+        ) : (
+          <p>
+            All prize milestones have been reached. Follow their winner pages
+            below.
+          </p>
+        )}
+        <p>
+          Prizes require eligibility verification. Purchasing does not guarantee
+          a prize.
         </p>
         <p className="free-entry-callout">
           No purchase necessary ·{" "}
-          <Link href="/?info=free-entry">Free entry →</Link>
+          <Link href="/?info=free-entry">Free entry</Link> ·{" "}
+          <Link href="/?info=rewards">Reward Rules</Link>
         </p>
         <Link href="/?info=how-prizes-work">How prizes work →</Link>
       </div>
@@ -62,8 +92,9 @@ export function PrizeExplainer({
             {demo ? "DEMO · " : ""}NEXT PRIZE MILESTONE · #{format(next.number)}
           </span>
           <strong>
-            {next.performance ? "2 × " : ""}${format(next.rewardUsd)}{" "}
-            {next.performance ? "REWARDS" : "REWARD"}
+            {next.performance
+              ? `$${format(next.rewardUsd)} + $${format(next.performance.rewardUsd)} CASH PRIZES`
+              : `$${format(next.rewardUsd)} CASH PRIZE`}
           </strong>
           {next.performance && (
             <p>
@@ -102,7 +133,10 @@ export function PrizeExplainer({
         </div>
       )}
       {next && (
-        <div className="reward-paths" aria-label="Ways to earn a reward">
+        <div
+          className="reward-paths"
+          aria-label="Ways to qualify for a cash prize"
+        >
           <article>
             <span className="eyebrow">REWARD A · MILESTONE PLACEMENT</span>
             <h3>REACH #{format(next.number)}</h3>
