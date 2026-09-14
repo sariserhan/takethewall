@@ -133,3 +133,22 @@ it("uses the historical snapshot once and includes every unmatched visit in the 
   expect(wall.radarCities!.cities.find(city => city.city === "Fort Washington")).toMatchObject({ views: 35 });
   expect(wall.radarCities!.cities.find(city => city.country === "ZZ")).toMatchObject({ views: 1 });
 });
+
+it("initializes lifetime views from history and adds repeat views once across UTC days", async () => {
+  const { t, event } = await setup();
+  await t.run(async ctx => {
+    await ctx.db.insert("dailyStats", { date: "2026-09-13", visitors: 2, impressions: 7, clicks: 0, takeovers: 0 });
+  });
+  expect((await t.query(api.wall.current, {}))?.totalViews).toBe(7);
+  await t.mutation(internal.analytics.record, event);
+  await t.mutation(internal.analytics.record, { ...event, source: "visitorping" });
+  await flushAnalytics(t);
+  expect((await t.query(api.wall.current, {}))?.totalViews).toBe(8);
+  vi.setSystemTime(new Date("2026-09-15T12:00:00Z"));
+  await t.mutation(internal.analytics.record, { ...event, pageId: "tomorrow", issuedAt: Date.now(), expiresAt: Date.now() + 300000 });
+  await flushAnalytics(t);
+  const wall = await t.query(api.wall.current, {});
+  expect(wall).toMatchObject({ totalViews: 9, viewsToday: 1, totalVisitors: 1 });
+  await flushAnalytics(t);
+  expect((await t.query(api.wall.current, {}))?.totalViews).toBe(9);
+});

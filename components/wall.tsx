@@ -308,15 +308,14 @@ function WallView({
             value={numbers(viewsToday)}
           />
           <Metric
-            label="UNIQUE VISITORS · ALL TIME"
-            action={<StatDetails label="Visitor totals" title="Website visitor totals" rows={[
+            label="VISITS · ALL TIME"
+            action={<StatDetails label="Visit totals" title="Website visit totals" rows={[
+              { label: "Visits · all time", value: numbers(data?.totalViews) },
               { label: "Unique visitors · all time", value: numbers(data?.totalVisitors) },
               { label: "Unique visitors · today (UTC)", value: numbers(realToday) },
               { label: "Views · today (UTC)", value: numbers(viewsToday) },
-            ]}><p>All-time visitors are distinct browsers recorded across the website’s lifetime. Today’s visitors are counted separately for the current UTC day; these two totals should not be added together.</p></StatDetails>}
-            value={numbers(
-              data?.totalVisitors,
-            )}
+            ]}><p>All-time visits count recorded wall views, including repeat visits from the same browser. Today’s views are already included in that total. Unique visitors are shown separately.</p></StatDetails>}
+            value={numbers(data?.totalViews)}
           />
           <Metric
             label="COUNTED TAKEOVERS"

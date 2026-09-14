@@ -1,3 +1,4 @@
+import { historicalViews } from "./visitTotals";
 import { radarCityReport, readRadarCities } from "./radarCityModel";
 import { query, internalMutation, internalQuery } from "./_generated/server";
 import { demoValues, demoPresentation } from "./demoValues";
@@ -13,6 +14,7 @@ export const current = query({
       demoPresentation: v.union(v.null(), demoPresentation),
       previousOwnerName: v.union(v.string(), v.null()),
       totalVisitors: v.number(),
+      totalViews: v.optional(v.number()),
       totalTakeovers: v.number(),
       numberingOffset: v.optional(v.number()),
       visitorsToday: v.number(),
@@ -68,6 +70,7 @@ export const current = query({
           : previous.displayName || previous.domain || "House placement"
         : null,
       totalVisitors: s.totalVisitors,
+      totalViews: s.totalViews ?? await historicalViews(ctx),
       totalTakeovers: s.totalTakeovers + (s.numberingOffset ?? 0),
       ...(s.numberingOffset ? { numberingOffset: s.numberingOffset } : {}),
       visitorsToday: d?.visitors ?? 0,

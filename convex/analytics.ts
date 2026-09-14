@@ -1,3 +1,4 @@
+import { historicalViews } from "./visitTotals";
 import { addCityDelta, afterCitySnapshot, applyCityDelta } from "./radarCityModel";
 import { createVisit, enrichVisit } from "./visitLedger";
 import { syncHall } from "./hallModel";
@@ -187,6 +188,7 @@ export const flush = internalMutation({
     });
     await ctx.db.patch(site._id, {
       totalVisitors: site.totalVisitors + b.siteVisitors,
+      totalViews: (site.totalViews ?? await historicalViews(ctx)) + b.impressions,
       updatedAt: Math.max(site.updatedAt, Date.now()),
     });
     await ctx.db.patch(d._id, {

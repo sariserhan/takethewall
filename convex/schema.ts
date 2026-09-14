@@ -435,6 +435,7 @@ export default defineSchema({
     auditMigrationHash: v.optional(v.string()),
     auditHash: v.optional(v.string()),
     totalVisitors: v.number(),
+    totalViews: v.optional(v.number()),
     totalTakeovers: v.number(),
     numberingOffset: v.optional(v.number()),
     updatedAt: v.number(),
