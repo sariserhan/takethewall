@@ -328,7 +328,7 @@ export function PurchaseSheet({
                 className="button pay"
                 disabled={busy || ownerChanged || !controls || controls.paused}
               >
-                {busy ? "Preparing checkout…" : "PAY $4.99 & TAKE THE WALL"}
+                {busy ? "Preparing checkout…" : "CONTINUE TO PAYMENT"}
                 <Arrow />
               </button>
             </div>

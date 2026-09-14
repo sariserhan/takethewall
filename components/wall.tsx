@@ -315,12 +315,26 @@ function WallView({
             </span>
             <strong>
               {demoPreviousOwner ||
-                (data ? (data.previousOwnerName ?? "None yet") : "—")}
+                (data ? (data.previousOwnerName ?? "First reign") : "—")}
             </strong>
+            {data && !data.previousOwnerName && !demoPreviousOwner && (
+              <small className="stat-empty-hint">The next takeover starts the history.</small>
+            )}
           </div>
         </section>
+          {owner && !trying && !presentation && (
+            <div className="owner-identity-strip">
+              <span className="owner-live-status"><i aria-hidden="true" /> CURRENT OWNER{owner.takeoverNumber ? ` · #${owner.takeoverNumber}` : ""}</span>
+              {owner.publicId ? <Link className="owner-identity-name" href={`/takeover/${owner.publicId}`}>{owner.displayName || owner.domain}</Link> : <strong className="owner-identity-name">{owner.displayName || owner.domain}</strong>}
+              {owner.outboundLinkEnabled && owner.websiteUrl && (
+                <a className="owner-identity-link" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={e => {if(e.button===1) void wallEvent(owner.id,"click");}}>
+                  {owner.domain || "Visit owner"} <Arrow />
+                </a>
+              )}
+            </div>
+          )}
         <section ref={adRef} className={`owner-section${owner?.canvasDesign && !presentation && !trying ? " has-wall-design" : ""}`} aria-label="Current owner">
-          <p className="eyebrow">
+          {(!owner || presentation) && <p className="eyebrow">
             CURRENT TAKEOVER{" "}
             {presentation
               ? "DEMO PREVIEW"
@@ -329,8 +343,8 @@ function WallView({
                 : owner?.kind === "admin_placement"
                   ? "ADMIN PLACEMENT"
                   : "HOUSE PLACEMENT"}
-          </p>
-          <p
+          </p>}
+          {(!owner || trying || presentation || changed) && <p
             className={`eyebrow ownership-label${changed ? " takeover-arrived" : ""}`}
             aria-live="polite"
           >
@@ -341,7 +355,7 @@ function WallView({
               : changed
                 ? "THE WALL WAS JUST TAKEN"
                 : "THIS WALL CURRENTLY BELONGS TO"}
-          </p>
+          </p>}
           {trying ? <TryMine onClose={() => setTrying(false)} onPrepare={() => { setTrying(false); setDraftVersion(v=>v+1); setOpen(true); }} /> : presentation ? (
             <div className="owner-ad demo-owner">
               <span className="demo-badge">Demo content</span>

@@ -64,7 +64,7 @@ export function WhisperRoom({
         {historyStatus === "LoadingFirstPage" ? (
           <p>Loading room…</p>
         ) : !rows.length ? (
-          <p>No whispers yet. Start the conversation.</p>
+          <div className="conversation-empty"><strong>Start the conversation.</strong><p>No whispers yet. Share a thought or ask what others think of this wall.</p><small>Messages stay with this takeover until the wall changes hands.</small></div>
         ) : (
           rows.map((r) => (
             <p key={r.id}>

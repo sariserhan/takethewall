@@ -41,6 +41,8 @@ export function ReferralLeaderboard({
             </span>
             <small>Provisional · Subject to verification</small>
           </>
+        ) : data?.state === "live" ? (
+          <><b>The lead is open.</b><span>No verified referrals yet — no leader.</span><small>Share your owner-dashboard referral link to get started.</small></>
         ) : (
           empty
         )}
@@ -88,7 +90,7 @@ export function ReferralLeaderboard({
           </ol>
         </>
       ) : (
-        <p>{empty}</p>
+        <div className="referral-empty"><p>{empty}</p>{data?.state === "live" && <p>Share the referral link in your owner dashboard. Eligible verified visits build your score here.</p>}</div>
       )}
       <p>
         {data?.state === "closed"

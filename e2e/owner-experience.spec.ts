@@ -129,7 +129,7 @@ test("desktop/mobile preview is reviewed before creating checkout", async ({
   await expect(sheet.getByLabel("Display name")).toHaveValue("Raven Studio");
   await sheet.getByRole("button", { name: "PREVIEW YOUR TAKEOVER" }).click();
   await sheet
-    .getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" })
+    .getByRole("button", { name: "CONTINUE TO PAYMENT" })
     .click();
   expect(calls).toBe(1);
   await expect(sheet.getByRole("alert")).toContainText(
@@ -582,7 +582,7 @@ test("returning owner gets a reviewable checkout draft and chooses share formats
   );
 
   await expect(
-    dialog.getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" }),
+    dialog.getByRole("button", { name: "CONTINUE TO PAYMENT" }),
   ).toBeVisible();
   expect(payments).toBe(0);
 });
@@ -860,7 +860,7 @@ test("replacement email shortcut opens a prefilled draft without creating a paym
   );
 
   await expect(
-    dialog.getByRole("button", { name: "PAY $4.99 & TAKE THE WALL" }),
+    dialog.getByRole("button", { name: "CONTINUE TO PAYMENT" }),
   ).toBeVisible();
   expect(payments).toBe(0);
 });
@@ -898,7 +898,7 @@ test("wall designer saves independent device layouts and keeps controls outside 
   const parsed=JSON.parse(saved);expect(parsed.blocks.at(-1).mobile.x).toBe(4);
   await dialog.getByRole("button",{name:"PREVIEW YOUR TAKEOVER"}).click();
   await expect(dialog.getByLabel("Takeover preview").getByLabel("Owner designed wall")).toBeVisible();
-  await expect(dialog.getByRole("button",{name:"PAY $4.99 & TAKE THE WALL"})).toBeVisible();
+  await expect(dialog.getByRole("button",{name:"CONTINUE TO PAYMENT"})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });
 
@@ -1102,6 +1102,14 @@ test("publishing improvements preserve designs, collapse extras and collect opti
   await expect(dialog.locator('[aria-current="step"]')).toHaveText("2 Preview");
   await expect(dialog.locator(".placement-duration")).toContainText("No minimum duration");
   await expect(dialog.getByRole("region", {name:"Takeover preview"})).toBeVisible();
+  const proceed = dialog.getByRole("button", {name:"CONTINUE TO PAYMENT"});
+  await expect(proceed).toBeVisible();
+  if (info.project.name === "mobile") {
+    const panel = await dialog.boundingBox();
+    expect(panel!.width).toBeGreaterThan(page.viewportSize()!.width - 24);
+    await proceed.scrollIntoViewIfNeeded();
+    expect((await proceed.boundingBox())!.height).toBeGreaterThanOrEqual(52);
+  }
   await page.screenshot({path:`/tmp/publishing-preview-${info.project.name}.png`});
   await dialog.getByRole("button", {name:"Close dialog",exact:true}).click();
   const feedback = page.getByRole("dialog", {name:"BEFORE YOU GO…"});

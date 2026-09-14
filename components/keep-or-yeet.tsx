@@ -82,6 +82,7 @@ export function KeepOrYeet({ takeoverId, name }: { takeoverId: Id<"takeovers">; 
       <div className="vote-bar" aria-hidden="true">
         <span style={{ width: (total ? keep : 0) + "%" }} />
       </div>
+      {!total && <p className="vote-empty-hint">Be the first to react to this wall.</p>}
       <p className="field-note">
         {total.toLocaleString("en-US")} {total === 1 ? "vote" : "votes"} · One
         changeable vote per browser for this takeover.

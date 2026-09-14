@@ -390,7 +390,7 @@ test("Whisper previews the latest three messages below voting and resets with th
  state.changeOwner();
  await expect(page.getByRole("dialog",{name:"Whispers about Owner 1",exact:true})).toHaveCount(0);
  await expect(preview.getByRole("heading",{name:"Whispers about Owner 2"})).toBeVisible();
- await expect(preview).toContainText("No whispers yet. Start the conversation.");
+ await expect(preview).toContainText("Start the conversation.");
  await expect(preview.getByLabel("Your whisper",{exact:true})).toHaveValue("");
 });
 
@@ -685,4 +685,21 @@ test("audience row aligns desktop cards and stacks on mobile", async ({page}, in
   // Use a tall capture after verifying the actual phone viewport, so both cards fit in the image.
   if(info.project.name === "mobile") await page.setViewportSize({width:390,height:1600});
   await row.screenshot({path:`/tmp/audience-row-${info.project.name}.png`});
+});
+
+
+test("owner identity and empty conversation remain clear", async ({page}, info) => {
+  await fixture(page);
+  await page.goto("/");
+  const identity=page.locator(".owner-identity-strip");
+  await expect(identity).toContainText("CURRENT OWNER");
+  await expect(identity.getByRole("link",{name:"Owner 1",exact:true})).toHaveAttribute("href", /takeover\/ttw_/);
+  const empty=page.locator(".whisper-preview .conversation-empty");
+  await expect(empty).toContainText("Start the conversation.");
+  await expect(empty).toContainText("until the wall changes hands");
+  await empty.scrollIntoViewIfNeeded();
+  await page.screenshot({path:`/tmp/ui-empty-${info.project.name}.png`});
+  await identity.scrollIntoViewIfNeeded();
+  await page.screenshot({path:`/tmp/ui-owner-${info.project.name}.png`});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
