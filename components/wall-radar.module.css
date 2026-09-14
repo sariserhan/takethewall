@@ -192,3 +192,6 @@
     animation: none;
   }
 }
+.feed button[aria-pressed="true"] small {
+  color: #19352b;
+}
