@@ -534,8 +534,6 @@ function WallView({
             Your website, social profile, app, or message.
             <br />
             It stays until the next takeover replaces it.
-            <br />
-            $4.99 USD plus applicable tax; final total shown at checkout.
           </p>
           <button
             ref={purchaseRef}
