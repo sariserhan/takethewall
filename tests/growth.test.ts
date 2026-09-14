@@ -299,3 +299,27 @@ it("rejects unmatched, premature, stale and expired callbacks and owner self-ref
   vi.setSystemTime(Date.now() + 5100);
   expect(await t.mutation(internal.growth.receiveReferral, { publicId, tokenHash: "f".repeat(64), occurredAt: Date.now() })).toBe(false);
 });
+it.each([true, false])("credits tracked VisitorPing impressions once across both referral paths (direct first: %s)", async directFirst => {
+  const { t, source, publicId } = await setup();
+  const visitorHash = "c".repeat(64);
+  const view = { takeoverId: source.takeoverId, visitorHash: "analytics-browser", pageId: "referral-page", eventId: "referral-event", event: "impression" as const, region: "US", city: "New York", issuedAt: Date.now(), expiresAt: Date.now() + 300_000, excluded: false, referral: { publicId, visitorHash } };
+  // The fallback must work even after the ordinary view was already counted.
+  await t.mutation(internal.analytics.record, { ...view, source: "vercel" });
+  expect((await t.run(ctx => ctx.db.get(source.takeoverId)))?.shareVisitors ?? 0).toBe(0);
+  if (directFirst) await t.mutation(internal.growth.visit, { publicId, visitorHash });
+  await t.mutation(internal.analytics.record, { ...view, source: "visitorping" });
+  await t.mutation(internal.analytics.record, { ...view, source: "visitorping" });
+  await t.mutation(internal.growth.visit, { publicId, visitorHash });
+  expect((await t.run(ctx => ctx.db.get(source.takeoverId)))?.shareVisitors).toBe(1);
+  expect(await t.run(ctx => ctx.db.query("referralVisits").collect())).toHaveLength(1);
+});
+it("does not credit untracked, excluded, or owner self-referral VisitorPing impressions", async () => {
+  const { t, source, publicId } = await setup();
+  vi.stubEnv("CLAIM_TOKEN_SECRET", "c".repeat(40));
+  const access = await t.run(ctx => ensureOwnerAccess(ctx, source.takeoverId));
+  const base = { takeoverId: source.takeoverId, visitorHash: "analytics-browser", pageId: "plain-page", eventId: "plain-event", event: "impression" as const, source: "visitorping" as const, region: "US", issuedAt: Date.now(), expiresAt: Date.now() + 300_000, excluded: false };
+  await t.mutation(internal.analytics.record, base);
+  await t.mutation(internal.analytics.record, { ...base, pageId: "excluded-page", excluded: true, referral: { publicId, visitorHash: "d".repeat(64) } });
+  await t.mutation(internal.analytics.record, { ...base, pageId: "owner-page", referral: { publicId, visitorHash: "e".repeat(64), ownerTokenHash: access!.tokenHash } });
+  expect((await t.run(ctx => ctx.db.get(source.takeoverId)))?.shareVisitors ?? 0).toBe(0);
+});

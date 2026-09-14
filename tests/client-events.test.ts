@@ -143,3 +143,15 @@ it("tracks browser events once per visible impression or click intent, independe
   expect(track.mock.calls[1][1]).toEqual(metadata);
   expect(track.mock.calls[2][1]).toEqual(metadata);
 });
+it("preserves a plain tracked ref in the signed context request and rejects ambiguous links", async () => {
+  const ref = "ttw_" + "a".repeat(32);
+  vi.stubGlobal("window", { location: { pathname: "/", search: "?ref=" + ref } });
+  const fetcher = vi.fn().mockImplementation(async () => Response.json({ token: "signed", expiresAt: Date.now() + 300_000 }));
+  vi.stubGlobal("fetch", fetcher);
+  const { context } = await import("../lib/client-events");
+  await context("ownerA");
+  expect(JSON.parse(fetcher.mock.calls[0][1].body).referralPublicId).toBe(ref);
+  window.location.search = "?ref=" + ref + "&ref=" + ref;
+  await context("ownerA");
+  expect(JSON.parse(fetcher.mock.calls[1][1].body).referralPublicId).toBeUndefined();
+});

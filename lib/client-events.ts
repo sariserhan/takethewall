@@ -35,23 +35,26 @@ export function browserIdentity() {
   return { visitorId, pageId };
 }
 export async function context(takeoverId: string) {
-  const old = contexts.get(takeoverId);
+  const refs = new URLSearchParams(window.location.search ?? "").getAll("ref");
+  const referralPublicId = refs.length === 1 && /^ttw_[a-f0-9]{32}$/.test(refs[0]) ? refs[0] : undefined;
+  const contextKey = `${takeoverId}:${referralPublicId ?? ""}`;
+  const old = contexts.get(contextKey);
   if (old && old.expiresAt > Date.now() + 5000) return old;
-  const inflight = requests.get(takeoverId);
+  const inflight = requests.get(contextKey);
   if (inflight) return inflight;
   const task = fetch("/api/context", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ takeoverId, ...browserIdentity() }),
+    body: JSON.stringify({ takeoverId, ...browserIdentity(), ...(referralPublicId ? { referralPublicId } : {}) }),
   })
     .then(async (r) => {
       if (!r.ok) throw new Error("Context unavailable");
       const result = await r.json();
-      contexts.set(takeoverId, result);
+      contexts.set(contextKey, result);
       return result;
     })
-    .finally(() => requests.delete(takeoverId));
-  requests.set(takeoverId, task);
+    .finally(() => requests.delete(contextKey));
+  requests.set(contextKey, task);
   return task;
 }
 export async function wallEvent(

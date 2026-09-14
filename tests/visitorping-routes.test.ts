@@ -101,3 +101,18 @@ it("permits VisitorPing chat WebSockets without expanding script sources", async
     csp.split(";").find((s) => s.trim().startsWith("script-src")),
   ).not.toContain("realtime.visitorping.com");
 });
+it("signs tracked referral attribution with the direct path's browser identity", async () => {
+  const { readContext, keyed } = await import("../lib/server");
+  const { signReferralBrowser } = await import("../lib/referral-proof");
+  vi.mocked(backend).mockResolvedValue(owner);
+  const publicId = "ttw_" + "a".repeat(32);
+  const body = { takeoverId: owner.id, visitorId: "visitor-123456789", pageId: "page-123456789012", referralPublicId: publicId, referralVisitorHash: "spoofed" };
+  const first = await (await context(request(body))).json();
+  expect(readContext(first.token).referral).toEqual({ publicId, visitorHash: keyed("referral-visitor:" + body.visitorId) });
+  const req = request(body);
+  req.headers.set("cookie", "ttw-referral-browser=" + signReferralBrowser("b".repeat(64)));
+  const pinned = await (await context(req)).json();
+  expect(readContext(pinned.token).referral?.visitorHash).toBe("b".repeat(64));
+  const invalid = await (await context(request({ ...body, referralPublicId: "example.com" }))).json();
+  expect(readContext(invalid.token).referral).toBeUndefined();
+});

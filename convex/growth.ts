@@ -215,7 +215,7 @@ export const sitemap = internalQuery({
   },
 });
 
-async function recordReferral(ctx: MutationCtx, a: { publicId: string; visitorHash: string; ownerToken?: string; ownerTokenHash?: string }) {
+export async function recordReferral(ctx: MutationCtx, a: { publicId: string; visitorHash: string; ownerToken?: string; ownerTokenHash?: string }) {
 
     if (
       process.env.WALL_ENVIRONMENT !== "production" ||

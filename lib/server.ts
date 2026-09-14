@@ -177,6 +177,7 @@ export async function publicDestination(value: string) {
   return result;
 }
 export interface EventContext {
+  referral?: { publicId: string; visitorHash: string; ownerTokenHash?: string };
   takeoverId: string;
   visitorHash: string;
   pageId: string;

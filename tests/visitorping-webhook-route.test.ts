@@ -209,3 +209,11 @@ it("forwards only the opaque token hash for a tracked referral and retries stora
   expect((await POST(request({ event: "wall.referral", data }))).status).toBe(503);
   expect((await POST(request({ event: "wall.referral", data: { ...data, token: "fake" } }))).status).toBe(400);
 });
+it("forwards only signed referral attribution from a verified VisitorPing impression", async () => {
+  const { signContext } = await import("../lib/server");
+  const referral = { publicId: "ttw_" + "a".repeat(32), visitorHash: "b".repeat(64) };
+  const signed = { takeoverId: "takeover-identifier-123", visitorHash: "analytics-browser", pageId: "signed-page", region: "US", issuedAt: Date.now(), expiresAt: Date.now() + 300_000, excluded: false, referral };
+  const result = await POST(request({ event: "wall.impression", data: { context: signContext(signed), eventId: "valid-event-id-1234", location: { country: "US", city: "New York" }, referral: { publicId: "forged", visitorHash: "forged" } } }));
+  expect(result.status).toBe(200);
+  expect(mocks.backend).toHaveBeenCalledWith("event", expect.objectContaining({ referral, source: "visitorping" }));
+});

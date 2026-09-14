@@ -1,3 +1,4 @@
+import { recordReferral } from "./growth";
 import { historicalViews } from "./visitTotals";
 import { addCityDelta, afterCitySnapshot, applyCityDelta } from "./radarCityModel";
 import { createVisit, enrichVisit } from "./visitLedger";
@@ -34,6 +35,7 @@ export const record = internalMutation({
     issuedAt: v.number(),
     expiresAt: v.number(),
     excluded: v.boolean(),
+    referral: v.optional(v.object({ publicId: v.string(), visitorHash: v.string(), ownerTokenHash: v.optional(v.string()) })),
   },
   returns: v.boolean(),
   handler: async (ctx, a) => {
@@ -61,6 +63,10 @@ export const record = internalMutation({
       return false;
     await limit(ctx, "events:" + a.visitorHash, 90);
     if (a.event === "click") await limit(ctx, "clicks:" + a.visitorHash, 20);
+    // Referral fallback must run even when Vercel already recorded this view.
+    // The signed context carries the same identity as direct referral verification.
+    if (a.event === "impression" && a.source === "visitorping" && a.referral)
+      await recordReferral(ctx, a.referral);
     const eventKey =
       a.event === "impression"
         ? `impression:${a.takeoverId}:${a.pageId}`
