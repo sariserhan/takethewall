@@ -142,9 +142,17 @@ export default function EmbeddedPayment({
           </button>
         </div>
       ) : (
-        <EmbeddedCheckoutProvider stripe={stripe} options={options}>
-          <EmbeddedCheckout />
-        </EmbeddedCheckoutProvider>
+        <>
+          <p className="placement-duration">
+            <strong>Your wall stays live until someone replaces it.</strong>
+            <span>
+              No minimum duration. Review the final total below before paying.
+            </span>
+          </p>
+          <EmbeddedCheckoutProvider stripe={stripe} options={options}>
+            <EmbeddedCheckout />
+          </EmbeddedCheckoutProvider>
+        </>
       )}
       {!complete && (
         <div className="resume-checkout-email">

@@ -1,6 +1,7 @@
 "use client";
 import { withPrimaryImage } from "@/lib/wall-design";
 import type { DesignImage } from "@/lib/wall-design";
+import { CheckoutFeedback } from "./checkout-feedback";
 import { MorseMessageField } from "./morse-message-field";
 import { celebrations } from "@/lib/celebrations";
 import { useQuery } from "convex/react";
@@ -69,6 +70,8 @@ export function PurchaseSheet({
     "ready",
   );
   const [canvasUploading, setCanvasUploading] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackAsked, setFeedbackAsked] = useState(false);
   const controls = useQuery(api.checkoutControls.state);
   const [reviewedOwner, setReviewedOwner] = useState<string | null>(null);
   const [serverChanged, setServerChanged] = useState(false);
@@ -164,353 +167,400 @@ export function PurchaseSheet({
       setBusy(false);
     }
   }
+  function closeDraft() {
+    if (busy) return;
+    onClose();
+    if (
+      !checkout &&
+      !feedbackAsked &&
+      (draft.displayName ||
+        draft.websiteUrl ||
+        draft.description ||
+        draft.canvasDesign)
+    ) {
+      setFeedbackAsked(true);
+      setFeedbackOpen(true);
+    }
+  }
   return (
-    <Dialog
-      open={open}
-      onClose={() => {
-        if (!busy) onClose();
-      }}
-      title="MAKE IT YOURS."
-      wide
-    >
-      {!checkout && (
-        <div
-          className="draft-save-status"
-          data-state={draftSave}
-          role={draftSave === "failed" ? "alert" : "status"}
-        >
-          <strong>
-            {draftSave === "saved"
-              ? "Draft saved in this tab"
-              : draftSave === "failed"
-                ? "Draft could not be saved"
-                : "Your draft saves as you edit"}
-          </strong>
-          <span>
-            {draftSave === "failed"
-              ? "Keep this page open. Your edits are still here, but may be lost if you reload or close this tab."
-              : "You can close this panel and return in the same tab. Closing the tab or clearing browser data may remove your draft."}
-          </span>
-        </div>
-      )}
-      {controls?.paused && (
-        <p role="status" className="form-error">
-          New checkouts are temporarily paused. The current wall remains
-          visible. Already-open payments may still complete.
-        </p>
-      )}
-      {reviewing && controls && (
-        <div className="purchase-contact">
-          <p>
-            Current owner: <strong>{controls.ownerName}</strong>
-          </p>
-          {ownerChanged && (
-            <>
-              <p role="alert">
-                The wall changed while you were reviewing. Check the new owner
-                before continuing. Checkout does not reserve the wall.
-              </p>
-              {!checkout && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReviewedOwner(controls.ownerId);
-                    setServerChanged(false);
-                    setError("");
-                  }}
-                >
-                  I reviewed the current owner
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
-      {checkout ? (
-        open && (
-          <EmbeddedPayment
-            session={checkout}
-            onClose={(verified) => {
-              if (verified) {
-                setCheckout(null);
-                setDraft(empty);
-                setReviewing(false);
+    <>
+      <Dialog open={open} onClose={closeDraft} title="MAKE IT YOURS." wide>
+        <ol className="purchase-steps" aria-label="Publishing steps">
+          {["Design", "Preview", "Pay"].map((label, index) => (
+            <li
+              key={label}
+              aria-current={
+                index === (checkout ? 2 : reviewing ? 1 : 0)
+                  ? "step"
+                  : undefined
               }
-              onClose();
-            }}
-          />
-        )
-      ) : reviewing ? (
-        <form className="purchase-review" onSubmit={submit}>
-          <p className="sheet-intro">
-            Check your content, then add your email to continue to payment. The
-            base price is $4.99 USD plus applicable tax. Stripe shows the final
-            total and eligible local-currency options before you pay.
-          </p>
-          <TakeoverPreview draft={draft} finalReview />
-          <fieldset disabled={busy} className="purchase-contact">
-            <legend>Where should we send your receipt?</legend>
-            <label>
-              Buyer email
-              <input
-                type="email"
-                maxLength={254}
-                autoComplete="email"
-                placeholder="you@example.com"
-                required
-                value={draft.buyerEmail}
-                onChange={(e) => change({ buyerEmail: e.target.value })}
-              />
-            </label>
-            <label className="check-label">
-              <input
-                type="checkbox"
-                checked={draft.weeklyDigestEnabled}
-                onChange={(e) =>
-                  change({ weeklyDigestEnabled: e.target.checked })
-                }
-              />
-              Email me a weekly stats summary while I own the wall.
-            </label>
-            <p className="field-note">
-              For your receipt, activation and replacement notices, plus your
-              private owner dashboard. Private. No account. No marketing.
-            </p>
-          </fieldset>
-          {error && (
-            <p role="alert" className="form-error">
-              {error}
-            </p>
-          )}
-          <div className="review-actions">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setReviewing(false)}
             >
-              Edit content
-            </button>
-            <button
-              type="submit"
-              className="button pay"
-              disabled={busy || ownerChanged || !controls || controls.paused}
-            >
-              {busy ? "Preparing checkout…" : "PAY $4.99 & TAKE THE WALL"}
-              <Arrow />
-            </button>
+              <span>{index + 1}</span> {label}
+            </li>
+          ))}
+        </ol>
+        {!checkout && (
+          <div
+            className="draft-save-status"
+            data-state={draftSave}
+            role={draftSave === "failed" ? "alert" : "status"}
+          >
+            <strong>
+              {draftSave === "saved"
+                ? "Draft saved in this tab"
+                : draftSave === "failed"
+                  ? "Draft could not be saved"
+                  : "Your draft saves as you edit"}
+            </strong>
+            <span>
+              {draftSave === "failed"
+                ? "Keep this page open. Your edits are still here, but may be lost if you reload or close this tab."
+                : "You can close this panel and return in the same tab. Closing the tab or clearing browser data may remove your draft."}
+            </span>
           </div>
-          <p className="field-note">
-            By paying, you accept the <Link href="/?info=terms">Terms</Link> and{" "}
-            <Link href="/?info=rewards">Reward Rules</Link>. No guaranteed
-            duration, audience or prize.
+        )}
+        {controls?.paused && (
+          <p role="status" className="form-error">
+            New checkouts are temporarily paused. The current wall remains
+            visible. Already-open payments may still complete.
           </p>
-        </form>
-      ) : (
-        <>
-          <p className="sheet-intro">
-            One payment. Your ad goes live. Until someone else takes it.
-          </p>
-          <div className="purchase-grid">
-            <form onSubmit={submit} className="purchase-form">
-              <fieldset disabled={busy}>
-                <legend>WHAT DO YOU WANT TO PUT ON THE WALL?</legend>
-                <div className="content-choices">
-                  {(["website", "app", "social", "personal"] as const).map(
-                    (category) => (
-                      <button
-                        type="button"
-                        aria-pressed={draft.category === category}
-                        key={category}
-                        onClick={() =>
-                          change({
-                            category,
-                            contentType:
-                              category === "personal" ? "personal" : "link",
-                          })
-                        }
-                      >
-                        {
-                          {
-                            website: "Website",
-                            app: "App",
-                            social: "Social",
-                            personal: "Me / Message",
-                          }[category]
-                        }
-                      </button>
-                    ),
-                  )}
-                </div>
-                {draft.contentType === "personal" && (
-                  <details className="celebration-templates">
-                    <summary>Start with a celebration template</summary>
-                    <p>
-                      Choose a starting message, then personalize it before
-                      previewing.
-                    </p>
-                    <div className="owner-share-actions">
-                      {celebrations.map((t) => (
+        )}
+        {reviewing && controls && (
+          <div className="purchase-contact">
+            <p>
+              Current owner: <strong>{controls.ownerName}</strong>
+            </p>
+            {ownerChanged && (
+              <>
+                <p role="alert">
+                  The wall changed while you were reviewing. Check the new owner
+                  before continuing. Checkout does not reserve the wall.
+                </p>
+                {!checkout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReviewedOwner(controls.ownerId);
+                      setServerChanged(false);
+                      setError("");
+                    }}
+                  >
+                    I reviewed the current owner
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {checkout ? (
+          open && (
+            <EmbeddedPayment
+              session={checkout}
+              onClose={(verified) => {
+                if (verified) {
+                  setCheckout(null);
+                  setDraft(empty);
+                  setReviewing(false);
+                }
+                onClose();
+              }}
+            />
+          )
+        ) : reviewing ? (
+          <form className="purchase-review" onSubmit={submit}>
+            <p className="sheet-intro">
+              Check your content, then add your email to continue to payment.
+              The base price is $4.99 USD plus applicable tax. Stripe shows the
+              final total and eligible local-currency options before you pay.
+            </p>
+            <TakeoverPreview draft={draft} finalReview />
+            <fieldset disabled={busy} className="purchase-contact">
+              <legend>Where should we send your receipt?</legend>
+              <label>
+                Buyer email
+                <input
+                  type="email"
+                  maxLength={254}
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  required
+                  value={draft.buyerEmail}
+                  onChange={(e) => change({ buyerEmail: e.target.value })}
+                />
+              </label>
+              <label className="check-label">
+                <input
+                  type="checkbox"
+                  checked={draft.weeklyDigestEnabled}
+                  onChange={(e) =>
+                    change({ weeklyDigestEnabled: e.target.checked })
+                  }
+                />
+                Email me a weekly stats summary while I own the wall.
+              </label>
+              <p className="field-note">
+                For your receipt, activation and replacement notices, plus your
+                private owner dashboard. Private. No account. No marketing.
+              </p>
+            </fieldset>
+            {error && (
+              <p role="alert" className="form-error">
+                {error}
+              </p>
+            )}
+            <p className="placement-duration">
+              <strong>Your wall stays live until someone replaces it.</strong>
+              <span>
+                No minimum duration. Another takeover could replace yours
+                seconds later.
+              </span>
+            </p>
+            <div className="review-actions">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setReviewing(false)}
+              >
+                Edit content
+              </button>
+              <button
+                type="submit"
+                className="button pay"
+                disabled={busy || ownerChanged || !controls || controls.paused}
+              >
+                {busy ? "Preparing checkout…" : "PAY $4.99 & TAKE THE WALL"}
+                <Arrow />
+              </button>
+            </div>
+            <p className="field-note">
+              By paying, you accept the <Link href="/?info=terms">Terms</Link>{" "}
+              and <Link href="/?info=rewards">Reward Rules</Link>. No guaranteed
+              duration, audience or prize.
+            </p>
+          </form>
+        ) : (
+          <>
+            <p className="sheet-intro">
+              One payment. Your ad goes live. Until someone else takes it.
+            </p>
+            <div className="purchase-grid">
+              <form onSubmit={submit} className="purchase-form">
+                <fieldset disabled={busy}>
+                  <legend>WHAT DO YOU WANT TO PUT ON THE WALL?</legend>
+                  <div className="content-choices">
+                    {(["website", "app", "social", "personal"] as const).map(
+                      (category) => (
                         <button
-                          key={t.label}
                           type="button"
+                          aria-pressed={draft.category === category}
+                          key={category}
                           onClick={() =>
                             change({
-                              displayName: t.displayName,
-                              description: t.description,
+                              category,
+                              contentType:
+                                category === "personal" ? "personal" : "link",
                             })
                           }
                         >
-                          {t.label}
+                          {
+                            {
+                              website: "Website",
+                              app: "App",
+                              social: "Social",
+                              personal: "Me / Message",
+                            }[category]
+                          }
                         </button>
-                      ))}
-                    </div>
-                  </details>
-                )}
-                <label>
-                  Display name{" "}
-                  {draft.contentType !== "personal" && (
-                    <span className="field-hint">
-                      Optional; defaults to the domain
-                    </span>
-                  )}
-                  <input
-                    maxLength={60}
-                    required={draft.contentType === "personal"}
-                    value={draft.displayName}
-                    onChange={(e) => change({ displayName: e.target.value })}
-                  />
-                </label>
-                {draft.contentType !== "personal" && (
-                  <>
-                    <label>
-                      {draft.category === "app"
-                        ? "App Store / Google Play URL"
-                        : draft.category === "social"
-                          ? "Profile/channel URL"
-                          : "Website URL"}
-                      <input
-                        type="url"
-                        autoComplete="url"
-                        placeholder="https://your-website.com"
-                        required
-                        value={draft.websiteUrl}
-                        onChange={(e) => change({ websiteUrl: e.target.value })}
-                      />
-                    </label>
-                  </>
-                )}
-                <ImageUpload
-                  label={
-                    draft.category === "personal"
-                      ? "Optional avatar/image"
-                      : draft.category === "app"
-                        ? "App icon"
-                        : draft.category === "social"
-                          ? "Image/avatar"
-                          : "Logo"
-                  }
-                  disabled={busy}
-                  onPending={setUploading}
-                  onUploaded={(result) =>
-                    change({
-                      ...result,
-                      canvasDesign: withPrimaryImage(
-                        draft.canvasDesign,
-                        draft.displayName,
                       ),
-                    })
-                  }
-                />
-                <label>
-                  {draft.contentType === "personal"
-                    ? "Optional message"
-                    : "Description"}{" "}
-                  <span className="field-hint">
-                    {[...draft.description].length}/120
-                  </span>
-                  <textarea
-                    rows={3}
-                    maxLength={120}
-                    placeholder="Make your 120 characters count."
-                    value={draft.description}
-                    onChange={(e) => change({ description: e.target.value })}
-                  />
-                </label>
-                <WallDesigner
-                  primaryImage={draft.logoUrl}
-                  value={draft.canvasDesign}
-                  images={draft.canvasImages}
-                  title={draft.displayName}
-                  message={draft.description}
-                  onPending={setCanvasUploading}
-                  onChange={(canvasDesign, canvasImages) =>
-                    change({ canvasDesign, canvasImages })
-                  }
-                />
-                <section
-                  className="purchase-ama"
-                  aria-labelledby="purchase-ama-title"
-                >
-                  <h3 id="purchase-ama-title">Live micro-AMA</h3>
-                  <label className="check-label">
+                    )}
+                  </div>
+                  {draft.contentType === "personal" && (
+                    <details className="celebration-templates">
+                      <summary>Start with a celebration template</summary>
+                      <p>
+                        Choose a starting message, then personalize it before
+                        previewing.
+                      </p>
+                      <div className="owner-share-actions">
+                        {celebrations.map((t) => (
+                          <button
+                            key={t.label}
+                            type="button"
+                            onClick={() =>
+                              change({
+                                displayName: t.displayName,
+                                description: t.description,
+                              })
+                            }
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                  <label>
+                    Display name{" "}
+                    {draft.contentType !== "personal" && (
+                      <span className="field-hint">
+                        Optional; defaults to the domain
+                      </span>
+                    )}
                     <input
-                      type="checkbox"
-                      checked={draft.amaEnabled}
-                      onChange={(e) => change({ amaEnabled: e.target.checked })}
+                      maxLength={60}
+                      required={draft.contentType === "personal"}
+                      value={draft.displayName}
+                      onChange={(e) => change({ displayName: e.target.value })}
                     />
-                    Accept questions while I own the wall
                   </label>
-                  <p className="field-note">
-                    Visitors can ask about your content once your takeover goes
-                    live. Answer from your private owner dashboard; only
-                    questions you answer appear publicly below the wall.
+                  {draft.contentType !== "personal" && (
+                    <>
+                      <label>
+                        {draft.category === "app"
+                          ? "App Store / Google Play URL"
+                          : draft.category === "social"
+                            ? "Profile/channel URL"
+                            : "Website URL"}
+                        <input
+                          type="url"
+                          autoComplete="url"
+                          placeholder="https://your-website.com"
+                          required
+                          value={draft.websiteUrl}
+                          onChange={(e) =>
+                            change({ websiteUrl: e.target.value })
+                          }
+                        />
+                      </label>
+                    </>
+                  )}
+                  <ImageUpload
+                    label={
+                      draft.category === "personal"
+                        ? "Optional avatar/image"
+                        : draft.category === "app"
+                          ? "App icon"
+                          : draft.category === "social"
+                            ? "Image/avatar"
+                            : "Logo"
+                    }
+                    disabled={busy}
+                    onPending={setUploading}
+                    onUploaded={(result) =>
+                      change({
+                        ...result,
+                        canvasDesign: withPrimaryImage(
+                          draft.canvasDesign,
+                          draft.displayName,
+                        ),
+                      })
+                    }
+                  />
+                  <label>
+                    {draft.contentType === "personal"
+                      ? "Optional message"
+                      : "Description"}{" "}
+                    <span className="field-hint">
+                      {[...draft.description].length}/120
+                    </span>
+                    <textarea
+                      rows={3}
+                      maxLength={120}
+                      placeholder="Make your 120 characters count."
+                      value={draft.description}
+                      onChange={(e) => change({ description: e.target.value })}
+                    />
+                  </label>
+                  <WallDesigner
+                    primaryImage={draft.logoUrl}
+                    value={draft.canvasDesign}
+                    images={draft.canvasImages}
+                    title={draft.displayName}
+                    message={draft.description}
+                    onPending={setCanvasUploading}
+                    onChange={(canvasDesign, canvasImages) =>
+                      change({ canvasDesign, canvasImages })
+                    }
+                  />
+                  <details className="purchase-extras">
+                    <summary>
+                      Extra settings · Live micro-AMA & Morse message
+                    </summary>
+                    <section
+                      className="purchase-ama"
+                      aria-labelledby="purchase-ama-title"
+                    >
+                      <h3 id="purchase-ama-title">Live micro-AMA</h3>
+                      <label className="check-label">
+                        <input
+                          type="checkbox"
+                          checked={draft.amaEnabled}
+                          onChange={(e) =>
+                            change({ amaEnabled: e.target.checked })
+                          }
+                        />
+                        Accept questions while I own the wall
+                      </label>
+                      <p className="field-note">
+                        Visitors can ask about your content once your takeover
+                        goes live. Answer from your private owner dashboard;
+                        only questions you answer appear publicly below the
+                        wall.
+                      </p>
+                      <p className="field-note">
+                        New questions are grouped into email notifications every
+                        five minutes. You can turn this off in your dashboard
+                        anytime.
+                      </p>
+                    </section>
+                    <MorseMessageField
+                      value={draft.morseMessage}
+                      fallback={draft.description || draft.displayName}
+                      onChange={(morseMessage) => change({ morseMessage })}
+                    />
+                  </details>
+                </fieldset>
+                {error && (
+                  <p className="form-error" role="alert">
+                    {error}
                   </p>
-                  <p className="field-note">
-                    New questions are grouped into email notifications every
-                    five minutes. You can turn this off in your dashboard
-                    anytime.
-                  </p>
-                </section>
-                <MorseMessageField
-                  value={draft.morseMessage}
-                  fallback={draft.description || draft.displayName}
-                  onChange={(morseMessage) => change({ morseMessage })}
-                />
-              </fieldset>
-              {error && (
-                <p className="form-error" role="alert">
-                  {error}
+                )}
+                <button
+                  className="button pay"
+                  disabled={
+                    busy ||
+                    uploading ||
+                    canvasUploading ||
+                    !controls ||
+                    controls.paused
+                  }
+                  type="submit"
+                >
+                  {busy ? "Preparing checkout…" : "PREVIEW YOUR TAKEOVER"}
+                  <Arrow />
+                </button>
+                <p className="field-note">
+                  Checkout does not reserve a takeover number. Your number is
+                  assigned when payment activates your wall, in successful
+                  activation order. Reaching a milestone starts a claim, subject
+                  to availability and eligibility; it does not guarantee a
+                  payout. By paying, you accept the{" "}
+                  <Link href="/terms">Terms</Link> and{" "}
+                  <Link href="/rewards">Reward Rules</Link>. No guaranteed
+                  duration, audience, impressions or clicks. No refunds for a
+                  short reign or low traffic.
                 </p>
-              )}
-              <button
-                className="button pay"
-                disabled={
-                  busy ||
-                  uploading ||
-                  canvasUploading ||
-                  !controls ||
-                  controls.paused
-                }
-                type="submit"
-              >
-                {busy ? "Preparing checkout…" : "PREVIEW YOUR TAKEOVER"}
-                <Arrow />
-              </button>
-              <p className="field-note">
-                Checkout does not reserve a takeover number. Your number is
-                assigned when payment activates your wall, in successful
-                activation order. Reaching a milestone starts a claim, subject
-                to availability and eligibility; it does not guarantee a payout.
-                By paying, you accept the <Link href="/terms">Terms</Link> and{" "}
-                <Link href="/rewards">Reward Rules</Link>. No guaranteed
-                duration, audience, impressions or clicks. No refunds for a
-                short reign or low traffic.
-              </p>
-            </form>
-            <TakeoverPreview draft={draft} />
-          </div>
-        </>
-      )}
-    </Dialog>
+              </form>
+              <TakeoverPreview draft={draft} />
+            </div>
+          </>
+        )}
+      </Dialog>
+      <CheckoutFeedback
+        open={feedbackOpen}
+        stage={reviewing ? "preview" : "design"}
+        onClose={() => setFeedbackOpen(false)}
+      />
+    </>
   );
 }

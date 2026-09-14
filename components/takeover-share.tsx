@@ -1,4 +1,5 @@
 "use client";
+import { LaunchChecklist } from "./launch-checklist";
 import Image from "next/image";
 import Link from "next/link";
 import { siteUrl } from "@/lib/site-url";
@@ -44,6 +45,7 @@ export function TakeoverShare({
   };
   return (
     <section className="growth-share" aria-label="Share this takeover">
+      {!editorial && <LaunchChecklist key={publicId} publicId={publicId} />}
       <h2>{editorial ? "Social post kit" : "Share my takeover"}</h2>
       {previousOwnerName && (
         <p className="replacement-story">

@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
 import { WallCanvas } from "./wall-canvas";
 import {
+  withPrimaryImage,
   designImageKeys,
   designTemplate,
   newDesignBlock,
@@ -210,6 +211,64 @@ export default function WallDesigner({
           </button>
         </div>
       </div>
+      {!d && (
+        <section className="design-examples" aria-label="Example wall designs">
+          <h4>Start with a look. Make it yours.</h4>
+          <p>
+            Example designs, not live takeovers. Applying a look keeps your
+            name, message and uploaded image.
+          </p>
+          <div className="design-example-grid">
+            {[
+              {
+                key: "launch",
+                label: "Product launch",
+                heading: "MEET YOUR NEXT BIG IDEA.",
+                text: "A home for what you’re building.",
+              },
+              {
+                key: "poster",
+                label: "Bold poster",
+                heading: "IMPOSSIBLE TO IGNORE.",
+                text: "Your message. Front and center.",
+              },
+              {
+                key: "message",
+                label: "Personal message",
+                heading: "THIS MOMENT IS YOURS.",
+                text: "Celebrate someone. Say something.",
+              },
+            ].map((example) => (
+              <button
+                key={example.key}
+                type="button"
+                className="design-example"
+                data-look={example.key}
+                disabled={pending}
+                onClick={() => {
+                  const template = JSON.stringify(
+                    designTemplate(example.key, title, message),
+                  );
+                  commit(
+                    primaryImage ? withPrimaryImage(template, title) : template,
+                  );
+                  setSelected("");
+                }}
+              >
+                <span className="design-example-art" aria-hidden="true">
+                  <b>{example.heading}</b>
+                  <span>{example.text}</span>
+                  <i>{example.key === "message" ? "♥" : "Discover more ↗"}</i>
+                </span>
+                <span className="design-example-caption">
+                  Use {example.label.toLowerCase()}{" "}
+                  <span aria-hidden="true">↗</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       <div className="designer-actions" aria-label="Design history">
         <button
           type="button"

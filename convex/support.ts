@@ -1,3 +1,7 @@
+import {
+  checkoutFeedbackReasons,
+  type CheckoutFeedbackReason,
+} from "../lib/checkout-feedback";
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { limit } from "./model";
@@ -79,6 +83,37 @@ export const reportContent = internalMutation({
       status: "open",
       createdAt: Date.now(),
       updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+// Anonymous feedback is visible only through the existing administrator inbox.
+export const checkoutFeedback = internalMutation({
+  args: {
+    reason: v.string(),
+    stage: v.union(v.literal("design"), v.literal("preview")),
+    details: v.string(),
+    ipHash: v.string(),
+    honeypot: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    await limit(ctx, "checkout-feedback:" + a.ipHash, 3, 3600_000);
+    await limit(ctx, "checkout-feedback:global", 100, 3600_000);
+    if (a.honeypot) return null;
+    if (!checkoutFeedbackReasons.includes(a.reason as CheckoutFeedbackReason))
+      throw new Error("Choose a feedback reason.");
+    const details = plainText(a.details, 500, false, true);
+    const now = Date.now();
+    await ctx.db.insert("supportTickets", {
+      name: "Anonymous checkout feedback",
+      email: "",
+      topic: "Checkout feedback",
+      message: `Stage: ${a.stage}\nReason: ${a.reason}${details ? "\n\n" + details : ""}`,
+      status: "open",
+      createdAt: now,
+      updatedAt: now,
     });
     return null;
   },

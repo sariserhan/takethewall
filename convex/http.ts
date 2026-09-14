@@ -122,6 +122,9 @@ http.route({
         case "contentReport":
           result = await ctx.runMutation(internal.support.reportContent, args);
           break;
+        case "checkoutFeedback":
+          result = await ctx.runMutation(internal.support.checkoutFeedback, args);
+          break;
         case "supportSubmit":
           result = await ctx.runMutation(internal.support.submit, args);
           break;

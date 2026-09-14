@@ -1367,3 +1367,44 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .prize-milestones .reward-milestone-pair > a > small {
   font-weight: 700;
 }
+
+/* A shorter publishing path, with optional tools kept out of the main flow. */
+.purchase-steps{display:flex;list-style:none;padding:0;margin:0 0 20px;gap:8px}
+.purchase-steps li{flex:1;display:flex;align-items:center;gap:8px;border-bottom:2px solid var(--rule);padding:10px 0;font-size:13px}
+.purchase-steps li[aria-current="step"]{border-color:var(--ink);font-weight:700}
+.purchase-steps li span{display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--rule);border-radius:50%}
+.purchase-steps li[aria-current="step"] span{background:var(--ink);color:var(--paper)}
+.placement-duration{display:flex;flex-direction:column;gap:6px;border-left:4px solid var(--ink);padding:12px 16px;margin:20px 0;font-size:14px;line-height:1.5}
+.purchase-extras{border-block:1px solid var(--rule);padding:16px 0;margin:16px 0}
+.purchase-extras>summary{font-weight:700;cursor:pointer;min-height:28px}
+.design-examples{margin:20px 0}.design-examples h4{font-size:18px;margin:0 0 8px}.design-examples>p{font-size:13px;line-height:1.5}
+.design-example-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.design-example{display:flex;flex-direction:column;padding:0!important;border:1px solid var(--rule)!important;background:var(--paper)!important;color:var(--ink)!important;text-align:left;cursor:pointer;min-width:0}
+.design-example:hover,.design-example:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.design-example-art{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;min-height:220px;width:100%;padding:22px 14px;text-align:center;box-sizing:border-box;background:#f4f3eb;color:#11110f}
+.design-example[data-look="launch"] .design-example-art{background:linear-gradient(135deg,#11110f,#203c35);color:#fff}
+.design-example[data-look="poster"] .design-example-art{background:#d8ff36;color:#11110f}
+.design-example-art b{font:clamp(22px,2.5vw,34px)/1.15 var(--display);max-width:14ch}
+.design-example-art>span{font-size:12px;line-height:1.4}.design-example-art i{font-size:11px;font-style:normal;background:#d8ff36;color:#11110f;padding:8px 14px}
+.design-example-caption{display:flex;justify-content:space-between;gap:10px;padding:14px;width:100%;box-sizing:border-box;font-size:13px;font-weight:700}
+.launch-checklist{border:1px solid var(--rule);padding:20px;margin:0 0 24px;background:var(--paper);color:var(--ink)}
+.launch-checklist h3{font:clamp(24px,3vw,36px)/1.2 var(--display);margin:10px 0}.launch-checklist p{line-height:1.5;font-size:14px}
+.launch-checklist ol{list-style:none;margin:20px 0;padding:0;display:grid;gap:18px}
+.launch-checklist li{display:grid;gap:12px;border-top:1px solid var(--rule);padding-top:16px;min-width:0}
+.launch-checklist li>strong{font-size:16px}.launch-checklist summary{cursor:pointer;font-weight:700;padding:10px 0}
+.launch-checklist input:not([type="checkbox"]),.launch-checklist textarea,.checkout-feedback select,.checkout-feedback textarea{box-sizing:border-box;width:100%;padding:12px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:inherit;font-size:16px;min-width:0}
+.launch-checklist button,.launch-checklist a.button,.checkout-feedback button{padding:12px 16px;min-height:44px;background:var(--ink);color:var(--paper);border:1px solid var(--ink);font:inherit;cursor:pointer;text-decoration:none;text-align:center}
+.launch-checklist button:hover,.launch-checklist a.button:hover{background:var(--accent);color:#11110f}
+.launch-checklist .check-label{font-size:13px;gap:10px}.launch-checklist small{font-size:12px;line-height:1.5}
+.checkout-feedback{display:grid;gap:16px}.checkout-feedback h3{font-size:20px;margin:0}.checkout-feedback label{display:grid;gap:8px}.checkout-feedback p{line-height:1.5;margin:0}
+@media(max-width:760px){
+  .purchase-grid>.takeover-preview{display:none}
+  .purchase-form>.pay{position:sticky;bottom:0;z-index:3;min-height:52px;box-shadow:0 -6px 16px #0002}
+  .purchase-review .review-actions{position:sticky;bottom:0;z-index:3;background:var(--paper);padding:10px 0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+  .purchase-review .review-actions button{min-height:48px;padding:10px;font-size:14px}
+  .purchase-form input,.purchase-form textarea,.purchase-form select,.purchase-contact input{font-size:16px}
+  .design-example-grid{grid-template-columns:1fr}
+  .design-example{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+  .design-example-art{min-height:155px;padding:14px;gap:10px}.design-example-art b{font-size:22px}.design-example-caption{align-self:center}
+  .launch-checklist{padding:16px}.purchase-steps{margin-top:8px}
+}

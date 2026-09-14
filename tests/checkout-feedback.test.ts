@@ -1,0 +1,31 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { convexTest } from "convex-test";
+import schema from "../convex/schema";
+import { api, internal } from "../convex/_generated/api";
+const modules = import.meta.glob("../convex/**/*.ts");
+beforeEach(() => vi.stubEnv("ADMIN_EMAILS", "admin@example.com"));
+afterEach(() => vi.unstubAllEnvs());
+const args = { reason: "Designing was difficult", stage: "design" as const, details: "I could not arrange the blocks on my phone.", ipHash: "test-visitor", honeypot: "" };
+it("stores anonymous feedback in the protected support inbox without contact data or email jobs", async () => {
+  const t = convexTest(schema, modules);
+  await t.mutation(internal.support.checkoutFeedback, args);
+  const tickets = await t.run(ctx => ctx.db.query("supportTickets").collect());
+  expect(tickets).toHaveLength(1);
+  expect(tickets[0]).toMatchObject({ topic: "Checkout feedback", email: "", name: "Anonymous checkout feedback", status: "open" });
+  expect(tickets[0].message).toContain(args.reason);
+  expect(tickets[0]).not.toHaveProperty("ipHash");
+  await expect(t.query(api.admin.ticket, { id: tickets[0]._id })).rejects.toThrow();
+  const admin = t.withIdentity({ subject: "admin", email: "admin@example.com", emailVerified: true });
+  expect((await admin.query(api.admin.ticket, { id: tickets[0]._id })).ticket?.message).toContain(args.details);
+  await expect(admin.mutation(api.admin.supportAction, { id: tickets[0]._id, reply: "Thanks!" })).rejects.toThrow("no reply email");
+});
+it("rejects invalid reasons, oversized comments, bots and repeated submissions", async () => {
+  const t = convexTest(schema, modules);
+  await expect(t.mutation(internal.support.checkoutFeedback, { ...args, reason: "unknown" })).rejects.toThrow();
+  await expect(t.mutation(internal.support.checkoutFeedback, { ...args, details: "x".repeat(501) })).rejects.toThrow();
+  await t.mutation(internal.support.checkoutFeedback, { ...args, honeypot: "bot", ipHash: "bot" });
+  expect(await t.run(ctx => ctx.db.query("supportTickets").collect())).toHaveLength(0);
+  for (let i = 0; i < 3; i++) await t.mutation(internal.support.checkoutFeedback, args);
+  await expect(t.mutation(internal.support.checkoutFeedback, args)).rejects.toThrow();
+  expect(await t.run(ctx => ctx.db.query("supportTickets").collect())).toHaveLength(3);
+});

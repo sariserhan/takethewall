@@ -56,7 +56,7 @@ async function wallFixture(page: Page, impressions = 120, canvasDesign?: string)
           demoStats: null,
           demoPresentation: null,
         };
-      if (path === "checkoutControls:state") return { paused: false };
+      if (path === "checkoutControls:state") return { paused: false, ownerId: owner.id, ownerName: owner.displayName };
       if (path === "wallVotes:totals") return { keep: 0, yeet: 0 };
       if (path === "whispers:history")
         return { page: [], isDone: true, continueCursor: "" };
@@ -108,7 +108,7 @@ test("desktop/mobile preview is reviewed before creating checkout", async ({
     });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: /TAKE THE WALL —/ }).click();
+  await page.getByRole("button", { name: /TAKE THE WALL —/ }).first().click();
   const sheet = page.getByRole("dialog", { name: "MAKE IT YOURS." });
   await sheet.getByRole("button", { name: "Me / Message" }).click();
   await sheet.getByLabel("Display name").fill("Raven Studio");
@@ -956,6 +956,7 @@ test("designer uploads appear immediately and independent button links survive p
  expect(d.blocks.filter((b:{type:string})=>b.type==="image")).toHaveLength(3);
  expect(d.blocks.map((b:{href?:string})=>b.href)).toContain("https://example.com/shop");
  expect(d.blocks.map((b:{href?:string})=>b.href)).toContain("https://example.org/contact");
+ await dialog.locator(".purchase-extras > summary").click();
  const ama = dialog.getByRole("checkbox",{name:"Accept questions while I own the wall",exact:true});
  await expect(ama).not.toBeChecked();
  await ama.check();
@@ -1077,4 +1078,76 @@ test("draft storage failure is visible and editing continues", async ({ page }) 
   await expect(dialog.locator(".designer-stage")).toBeVisible();
   await dialog.getByRole("button", {name:"Add heading",exact:true}).click();
   await expect(dialog.getByRole("textbox",{name:"Block text",exact:true})).toBeVisible();
+});
+
+test("publishing improvements preserve designs, collapse extras and collect optional exit feedback", async ({page}, info) => {
+  await wallFixture(page);
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  let submitted: unknown;
+  await page.route("**/api/checkout/feedback", route => { submitted = route.request().postDataJSON(); return route.fulfill({json:{ok:true}}); });
+  await page.goto("/?take=1");
+  const dialog = page.getByRole("dialog", {name:"MAKE IT YOURS."});
+  await dialog.getByRole("button", {name:"Me / Message", exact:true}).click();
+  await dialog.getByLabel("Display name").fill("My launch");
+  await dialog.getByLabel("Optional message").fill("Ready for the world.");
+  await expect(dialog.getByRole("region", {name:"Example wall designs"})).toBeVisible();
+  await expect(dialog.locator(".purchase-extras")).not.toHaveAttribute("open", "");
+  await dialog.getByRole("button", {name:"Use bold poster"}).click();
+  await expect(dialog.locator(".designer-stage")).toBeVisible();
+  const saved = await page.evaluate(() => JSON.parse(sessionStorage.getItem("ttw-draft")!));
+  expect(JSON.parse(saved.canvasDesign).background).toBe("#d8ff36");
+  expect(JSON.parse(saved.canvasDesign).blocks[0].text).toBe("My launch");
+  await dialog.getByRole("button", {name:"PREVIEW YOUR TAKEOVER"}).click();
+  await expect(dialog.locator('[aria-current="step"]')).toHaveText("2 Preview");
+  await expect(dialog.locator(".placement-duration")).toContainText("No minimum duration");
+  await expect(dialog.getByRole("region", {name:"Takeover preview"})).toBeVisible();
+  await page.screenshot({path:`/tmp/publishing-preview-${info.project.name}.png`});
+  await dialog.getByRole("button", {name:"Close dialog",exact:true}).click();
+  const feedback = page.getByRole("dialog", {name:"BEFORE YOU GO…"});
+  await expect(feedback).toBeVisible();
+  expect(submitted).toBeUndefined();
+  await feedback.getByLabel("Choose a reason").selectOption("Just exploring");
+  await feedback.getByRole("button", {name:"Send feedback"}).click();
+  await expect(feedback.getByRole("status")).toContainText("Thanks");
+  expect(submitted).toMatchObject({reason:"Just exploring",stage:"preview",details:""});
+  expect(submitted).not.toHaveProperty("buyerEmail");
+  await feedback.getByRole("button", {name:"Back to the wall"}).click();
+  await page.getByRole("button", {name:/TAKE THE WALL —/}).first().click();
+  await dialog.getByRole("button", {name:"Edit content"}).click();
+  await expect(dialog.getByLabel("Display name")).toHaveValue("My launch");
+  await expect(dialog.locator(".designer-stage")).toBeVisible();
+  await dialog.getByRole("button", {name:"Close dialog",exact:true}).click();
+  await expect(feedback).not.toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("launch checklist shares only the public referral URL and supplies a banner", async ({page}, info) => {
+  await wallFixture(page);
+  await page.route("**/api/status", r => r.fulfill({json:{state:"active", publicId, previousOwnerName:"Previous owner"}}));
+  const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf1sAAAAASUVORK5CYII=","base64");
+  await page.route("**/takeover/**/card*", r => r.fulfill({contentType:"image/png",body:png}));
+  await page.route("**/takeover/**/badge", r => r.fulfill({contentType:"image/png",body:png}));
+  await page.addInitScript(() => Object.defineProperty(navigator,"clipboard", {value:{writeText:async(value:string) => { (window as unknown as {copied:string}).copied=value; }}}));
+  await page.goto("/?purchase=private-test-token");
+  const dialog = page.getByRole("dialog", {name:"YOUR TAKEOVER IS PUBLISHED."});
+  const checklist = dialog.getByRole("region",{name:"Launch checklist"});
+  await expect(checklist).toBeVisible();
+  await checklist.getByRole("button",{name:"Copy my referral link"}).click();
+  const link = await page.evaluate(() => (window as unknown as {copied:string}).copied);
+  expect(new URL(link).pathname).toBe("/");
+  expect(new URL(link).searchParams.get("ref")).toBe(publicId);
+  expect(link).not.toContain("private-test-token");
+  const intent = new URL((await checklist.getByRole("link",{name:"Post to X"}).getAttribute("href"))!);
+  expect(intent.searchParams.get("url")).toBe(link);
+  await expect(checklist.getByRole("checkbox",{name:"I shared my post"})).not.toBeChecked();
+  await checklist.getByRole("checkbox",{name:"I shared my post"}).check();
+  await checklist.getByText("Get banner code",{exact:true}).click();
+  await checklist.getByRole("button",{name:"Copy banner code"}).click();
+  const code=await page.evaluate(() => (window as unknown as {copied:string}).copied);
+  expect(code).toContain("&amp;via=share");
+  expect(code).not.toContain("private-test-token");
+  await checklist.scrollIntoViewIfNeeded();
+  await page.screenshot({path:`/tmp/launch-checklist-${info.project.name}.png`});
+  expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
 });
