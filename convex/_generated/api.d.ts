@@ -32,6 +32,7 @@ import type * as emailDelivery from "../emailDelivery.js";
 import type * as emailDirectory from "../emailDirectory.js";
 import type * as emailPolicy from "../emailPolicy.js";
 import type * as funnel from "../funnel.js";
+import type * as geographyModel from "../geographyModel.js";
 import type * as growth from "../growth.js";
 import type * as hall from "../hall.js";
 import type * as hallModel from "../hallModel.js";
@@ -62,6 +63,7 @@ import type * as visitorping from "../visitorping.js";
 import type * as wall from "../wall.js";
 import type * as wallSubscriptions from "../wallSubscriptions.js";
 import type * as wallVotes from "../wallVotes.js";
+import type * as websiteGeography from "../websiteGeography.js";
 import type * as whispers from "../whispers.js";
 
 import type {
@@ -95,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   emailDirectory: typeof emailDirectory;
   emailPolicy: typeof emailPolicy;
   funnel: typeof funnel;
+  geographyModel: typeof geographyModel;
   growth: typeof growth;
   hall: typeof hall;
   hallModel: typeof hallModel;
@@ -125,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   wall: typeof wall;
   wallSubscriptions: typeof wallSubscriptions;
   wallVotes: typeof wallVotes;
+  websiteGeography: typeof websiteGeography;
   whispers: typeof whispers;
 }>;
 

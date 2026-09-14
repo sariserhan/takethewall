@@ -34,6 +34,7 @@ async function fixture(page: Page, ama = false) {
       };
     const queries = new Map<number, string>();
     const value = (path: string): unknown => {
+      if (path === "websiteGeography:report") return {failed:false,snapshot:{from:"2026-06-16T00:00:00Z",to:"2026-09-14T00:00:00Z",fetchedAt:1789344000000,historyDays:90,uniqueVisitors:49,truncated:false,countries:[{countryCode:"US",visitors:34},{countryCode:"GB",visitors:4}]}};
       if (path === "ama:current" && ama) return {answers:[{id:"question-1",question:"What is this?",answer:"A community for sharing useful projects and asking the owner questions."}]};
       if (path === "whispers:history") return { page: whispers.get(owner) ?? [], isDone: true, continueCursor: "" };
       if (path === "whispers:messages" || path === "auditTrail:checkpoints") return [];
@@ -595,4 +596,29 @@ test("free entry is available from the footer with a contact email template", as
  expect(new URL(page.url()).pathname).toBe("/");
  await dialog.getByRole("link",{name:"Read the Reward Rules"}).click();
  await expect(page.getByRole("dialog",{name:"Reward Rules",exact:true})).toContainText("Current free-entry contact: contact@takethewall.com");
+});
+
+
+test("globe shows website visitor countries independently of current owner", async ({page}, info) => {
+  const control=await fixture(page);
+  const errors: string[]=[]; page.on("pageerror",error=>errors.push(error.message));
+  await page.goto("/");
+  await page.getByRole("button",{name:"Globe",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Globe",exact:true});
+  await expect(dialog).toContainText("49 website visitors");
+  await expect(dialog).toContainText("available 90-day history");
+  await expect(dialog).toContainText("City data is not available");
+  const list=dialog.getByRole("list",{name:"Visitors by country"});
+  await expect(list).toContainText("United States");
+  await expect(list).toContainText("34 visitors");
+  await expect(list).not.toContainText("impressions");
+  await expect(dialog.locator(".earth-country")).toHaveCount(177);
+  await list.getByRole("button",{name:/United Kingdom/}).click();
+  await expect(dialog.locator(".globe-country-name")).toHaveText("United Kingdom");
+  await control.changeOwner();
+  await expect(dialog).toContainText("49 website visitors");
+  await expect(list).toContainText("34 visitors");
+  expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  await dialog.screenshot({path:`/tmp/website-globe-${info.project.name}.png`});
+  expect(errors).toEqual([]);
 });

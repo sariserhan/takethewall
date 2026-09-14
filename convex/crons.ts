@@ -20,6 +20,12 @@ crons.interval(
   {},
 );
 crons.interval(
+  "VisitorPing website geography",
+  { minutes: 30 },
+  internal.websiteGeography.refresh,
+  {},
+);
+crons.interval(
   "VisitorPing aggregate report",
   { minutes: 15 },
   internal.visitorping.refresh,

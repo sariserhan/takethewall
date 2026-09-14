@@ -91,3 +91,9 @@
 - [ ] **Shared Thermal:** only after opt-in coarse cursor collection, throttled/batched updates, short retention, abuse/cost limits, and exclusion of forms/checkout/private pages. Never fabricate live spectators.
 - [ ] **Owner Blacklight messages:** opt-in moderated public messages and removal handling; never reveal hidden records or private credentials.
 - [ ] **Paper brick production polish:** physically test cut/fold fit with A4 and Letter printers before promoting it as an assembly-tested product; consider direct downloadable PDF generation later.
+
+## Website audience geography
+
+- [x] Globe uses a shared website-wide VisitorPing report, country names and unique visitor counts, independently of wall ownership; refresh every 30 minutes with explicit retained date range.
+- [ ] **VisitorPing cities:** the live v1 API rejects `dimension=city` (verified 2026-09-14). Add a supported aggregate city endpoint including country, region, city, unique visitors and optionally coarse coordinates; do not infer visitor cities from country centroids.
+- [ ] **True all-time VisitorPing geography:** API currently reports 90-day retention, top 100 breakdown groups without pagination. Request a lifetime aggregate endpoint with globally deduplicated visitors and complete geography. Do not sum daily unique visitors or repeatedly add rolling snapshots. Until supported, the globe explicitly says “all available history.”

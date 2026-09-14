@@ -1,4 +1,6 @@
 "use client";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   geoArea,
@@ -12,11 +14,15 @@ import { RegionLabel } from "./region-label";
 type Country = Feature<Geometry, { name: string; code: string }>;
 const normalize = (code: string) =>
   code.toUpperCase() === "UK" ? "GB" : code.toUpperCase();
-export function WallGlobe({
-  regions,
-}: {
-  regions: { regionCode: string; impressions: number }[];
-}) {
+const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
+const countryName = (code: string) =>
+  code === "ZZ"
+    ? "Unknown location"
+    : (countryNames.of(normalize(code)) ?? code);
+export function WallGlobe() {
+  const report = useQuery(api.websiteGeography.report, {});
+  const snapshot = report?.snapshot;
+  const regions = snapshot?.countries ?? [];
   const [countries, setCountries] = useState<Country[]>([]),
     [error, setError] = useState(false);
   const [angle, setAngle] = useState(0),
@@ -67,16 +73,54 @@ export function WallGlobe({
     .clipAngle(90);
   const path = geoPath(projection);
   const counts = new Map(
-    regions.map((r) => [normalize(r.regionCode), r.impressions]),
+    regions.map((r) => [normalize(r.countryCode), r.visitors]),
   );
-  const sorted = [...regions].sort((a, b) => b.impressions - a.impressions);
+  const sorted = [...regions].sort((a, b) => b.visitors - a.visitors);
   return (
-    <section className="globe-view">
+    <section className="globe-view" aria-label="Website visitor geography">
+      <div className="globe-summary">
+        <span className="eyebrow">
+          THE WHOLE WEBSITE · ALL AVAILABLE HISTORY
+        </span>
+        <h3>Where our visitors come from</h3>
+        {snapshot ? (
+          <>
+            <strong>
+              {snapshot.uniqueVisitors.toLocaleString("en-US")} website visitors
+            </strong>
+            <p>
+              {snapshot.from.slice(0, 10)} – {snapshot.to.slice(0, 10)} UTC ·
+              VisitorPing’s available {snapshot.historyDays}-day history
+            </p>
+            <small>
+              Updated{" "}
+              {new Date(snapshot.fetchedAt)
+                .toISOString()
+                .slice(0, 16)
+                .replace("T", " ")}{" "}
+              UTC · Refreshes every 30 minutes
+            </small>
+          </>
+        ) : (
+          <p role="status">
+            {report === undefined
+              ? "Loading website geography…"
+              : report?.failed
+                ? "Website geography is temporarily unavailable. The next refresh will retry."
+                : "Website geography is waiting for its first refresh."}
+          </p>
+        )}
+        {snapshot && report?.failed && (
+          <p role="status">
+            The latest refresh failed. Showing the last successful report.
+          </p>
+        )}
+      </div>
       <svg
         className="earth-globe"
         viewBox="0 0 400 400"
         role="img"
-        aria-label="Earth with country borders and recorded audience countries"
+        aria-label="Earth with country borders and website visitor countries"
         onPointerDown={(e) => {
           drag.current = { x: e.clientX, y: e.clientY };
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -84,9 +128,10 @@ export function WallGlobe({
         }}
         onPointerMove={(e) => {
           if (!drag.current) return;
-          const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y;
-          setAngle(a => (a + dx * .5 + 360) % 360);
-          setTilt(t => Math.max(-80, Math.min(80, t - dy * .4)));
+          const dx = e.clientX - drag.current.x,
+            dy = e.clientY - drag.current.y;
+          setAngle((a) => (a + dx * 0.5 + 360) % 360);
+          setTilt((t) => Math.max(-80, Math.min(80, t - dy * 0.4)));
           drag.current = { x: e.clientX, y: e.clientY };
         }}
         onPointerUp={() => {
@@ -129,7 +174,7 @@ export function WallGlobe({
             <title>
               {c.properties.name}
               {counts.has(c.properties.code)
-                ? ` · ${counts.get(c.properties.code)} impressions`
+                ? ` · ${counts.get(c.properties.code)} visitors`
                 : ""}
             </title>
           </path>
@@ -167,17 +212,17 @@ export function WallGlobe({
         {spin ? "Pause rotation" : "Rotate automatically"}
       </button>
       <p>
-        Highlighted countries show the current owner’s recorded impressions, not
-        live visitor locations.
+        Highlighted countries show website visitors across all wall owners.
+        These are historical country totals, not live locations.
       </p>
       {sorted.length ? (
-        <ul>
+        <ul className="globe-country-list" aria-label="Visitors by country">
           {sorted.map((r) => (
-            <li key={r.regionCode}>
+            <li key={r.countryCode}>
               <button
                 onClick={() => {
                   const country = countries.find(
-                    (c) => c.properties.code === normalize(r.regionCode),
+                    (c) => c.properties.code === normalize(r.countryCode),
                   );
                   if (country) {
                     const [lon, lat] = geoCentroid(country);
@@ -188,8 +233,11 @@ export function WallGlobe({
                   }
                 }}
               >
-                <RegionLabel code={r.regionCode} /> ·{" "}
-                {r.impressions.toLocaleString("en-US")} impressions
+                <span>
+                  <RegionLabel code={r.countryCode} />{" "}
+                  {countryName(r.countryCode)}
+                </span>
+                <strong>{r.visitors.toLocaleString("en-US")} visitors</strong>
               </button>
             </li>
           ))}
@@ -200,7 +248,25 @@ export function WallGlobe({
           arrive.
         </p>
       )}
-      <small>Map: Natural Earth · country boundaries at world scale.</small>
+      {snapshot?.truncated && (
+        <p>Showing the top 100 country groups supplied by VisitorPing.</p>
+      )}
+      <p className="field-note">
+        City data is not available from VisitorPing’s current API. A visitor can
+        appear in more than one country; country counts are not added together
+        to produce the website total.
+      </p>
+      <small>
+        Source:{" "}
+        <a
+          href="https://visitorping.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          VisitorPing
+        </a>{" "}
+        · Known and likely bots excluded. Map: Natural Earth.
+      </small>
     </section>
   );
 }

@@ -30,8 +30,8 @@ export default function WallLabPanel({
         <Audit />
       </>
     );
+  if (panel === "Globe") return <WallGlobe />;
   if (!data) return <p>Waiting for the current wall…</p>;
-  if (panel === "Globe") return <WallGlobe regions={data.regions} />;
   if (panel === "Snapshot") return <Snapshot data={data} />;
   return null;
 }

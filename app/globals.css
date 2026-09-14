@@ -1434,3 +1434,11 @@ label.check-label>input:focus-visible{outline:2px solid var(--ink);outline-offse
 button.morse-preview-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;margin-top:12px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:600 14px/1.4 var(--body);cursor:pointer}
 button.morse-preview-button:is(:hover,:focus-visible){background:var(--accent);color:#11110f}
 button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:var(--ink)}
+
+.globe-summary{display:grid;gap:10px;text-align:left;border-bottom:1px solid var(--rule);padding-bottom:18px;margin-bottom:12px}
+.globe-summary h3{font:clamp(26px,4vw,36px)/1.15 var(--display);margin:0}.globe-summary>strong{font-size:22px}.globe-summary p{margin:0;font-size:13px;line-height:1.6}.globe-summary small{font-size:12px;line-height:1.5}
+.globe-country-list{list-style:none;padding:0;margin:20px 0;display:grid;gap:8px}
+.globe-country-list li>button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+.globe-country-list li>button>span{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.globe-country-list li>button>strong{white-space:nowrap;font-size:13px}
+.globe-country-list li>button:is(:hover,:focus-visible){background:var(--accent);color:#11110f}
+.globe-view .field-note{color:#bdc9b2;font-size:12px;line-height:1.6}

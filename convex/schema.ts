@@ -1,3 +1,4 @@
+import { websiteGeography } from "./geographyModel";
 import { designAssets } from "./designAssets";
 import { demoValues, demoPresentation } from "./demoValues";
 import { rewardTables, emailSenderFields } from "./rewardSchema";
@@ -235,6 +236,14 @@ export default defineSchema({
     auditHash: v.string(),
   }).index("by_number", ["takeoverNumber"]),
 
+  websiteGeographyReports: defineTable({
+    key: v.literal("website"),
+    siteId: v.string(),
+    attempt: v.number(),
+    nextAt: v.number(),
+    failed: v.boolean(),
+    snapshot: v.optional(websiteGeography),
+  }).index("by_key", ["key"]),
   visitorPingReports: defineTable({
     key: v.literal("current"),
     attempt: v.number(),
