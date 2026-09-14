@@ -693,7 +693,8 @@ test("owner identity and empty conversation remain clear", async ({page}, info) 
   await page.goto("/");
   const identity=page.locator(".owner-identity-strip");
   await expect(identity).toContainText("CURRENT OWNER");
-  await expect(identity.getByRole("link",{name:"Owner 1",exact:true})).toHaveAttribute("href", /takeover\/ttw_/);
+  await expect(identity).toHaveText("CURRENT OWNER · #1");
+  await expect(page.locator(".owner-section").getByRole("heading", {name:"Owner 1",exact:true})).toBeVisible();
   const empty=page.locator(".whisper-preview .conversation-empty");
   await expect(empty).toContainText("Start the conversation.");
   await expect(empty).toContainText("until the wall changes hands");

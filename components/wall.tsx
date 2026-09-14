@@ -325,12 +325,6 @@ function WallView({
           {owner && !trying && !presentation && (
             <div className="owner-identity-strip">
               <span className="owner-live-status"><i aria-hidden="true" /> CURRENT OWNER{owner.takeoverNumber ? ` · #${owner.takeoverNumber}` : ""}</span>
-              {owner.publicId ? <Link className="owner-identity-name" href={`/takeover/${owner.publicId}`}>{owner.displayName || owner.domain}</Link> : <strong className="owner-identity-name">{owner.displayName || owner.domain}</strong>}
-              {owner.outboundLinkEnabled && owner.websiteUrl && (
-                <a className="owner-identity-link" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={e => {if(e.button===1) void wallEvent(owner.id,"click");}}>
-                  {owner.domain || "Visit owner"} <Arrow />
-                </a>
-              )}
             </div>
           )}
         <section ref={adRef} className={`owner-section${owner?.canvasDesign && !presentation && !trying ? " has-wall-design" : ""}`} aria-label="Current owner">
