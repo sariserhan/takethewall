@@ -79,9 +79,7 @@ export function PrizeExplainer({
           Prizes require eligibility verification. Purchasing does not guarantee
           a prize.
         </p>
-        <p className="free-entry-callout">
-          No purchase necessary ·{" "}
-          <Link href="/?info=free-entry">Free entry</Link> ·{" "}
+        <p>
           <Link href="/?info=rewards">Reward Rules</Link>
         </p>
         <Link href="/?info=how-prizes-work">How prizes work →</Link>
