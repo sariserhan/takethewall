@@ -45,8 +45,8 @@ Deploy the wall backend and receiver before the VisitorPing consumer. This imple
 
 On 2026-09-14 the authorized production backfill inserted 12 missing identities and preserved 1 existing entry. Production verification showed 13 Radar entries matching 13 daily unique browsers. Twelve locations remain unknown; legacy webhook cities were not guessed onto browser identities.
 
-## Radar city groups
+## One-time Radar city snapshot
 
-Radar opens on a city-group view from VisitorPing's `breakdowns?dimension=city` API, filtered to non-bot `wall_impression` events from the current UTC day. The server also requests the matching analytics total; it does not sum independently distinct city groups to invent a global unique count. The API key remains server-side and successful reports are shared through Next.js's five-minute data cache. The dialog refreshes its report once per minute, shows the provider cutoff time, and identifies truncated results.
+`lib/radar-city-snapshot.json` is a one-time city breakdown fetched from VisitorPing, scoped to non-bot `wall_impression` events on the recorded UTC date. The matching analytics total provides distinct visitors; independently deduplicated city groups are not summed. It contains only coarse city labels and aggregate counts.
 
-City groups drive the map and display counts without assigning cities to historical browser identities. The separate Live visitors view retains the unified identity ledger and global arrival sound behavior. Group totals are never added to live visitors, and unavailable reports show an error with access to the live view. This requires `VISITORPING_API_KEY` and `VISITORPING_SITE_ID` in the Next.js deployment environment.
+Radar reads this local snapshot with no runtime API request, polling, or refresh endpoint. It labels the saved cutoff explicitly and offers the independent Live visitors view for ongoing webhook/direct tracking. The saved city option disappears after its UTC date ends; live tracking remains. Snapshot groups are never assigned to individual historical browser identities or added to the live visitor total.

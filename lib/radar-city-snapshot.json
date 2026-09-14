@@ -1,0 +1,79 @@
+{
+  "date": "2026-09-14",
+  "to": "2026-09-14T21:11:55.077Z",
+  "uniqueVisitors": 13,
+  "views": 48,
+  "truncated": false,
+  "cities": [
+    {
+      "label": "Fort Washington, Maryland, US",
+      "city": "Fort Washington",
+      "country": "US",
+      "visitors": 2,
+      "views": 34
+    },
+    {
+      "label": "Santiago de Querétaro, Querétaro, MX",
+      "city": "Santiago de Querétaro",
+      "country": "MX",
+      "visitors": 2,
+      "views": 4
+    },
+    {
+      "label": "Leeds, England, GB",
+      "city": "Leeds",
+      "country": "GB",
+      "visitors": 1,
+      "views": 2
+    },
+    {
+      "label": "London, England, GB",
+      "city": "London",
+      "country": "GB",
+      "visitors": 2,
+      "views": 2
+    },
+    {
+      "label": "Boardman, Oregon, US",
+      "city": "Boardman",
+      "country": "US",
+      "visitors": 1,
+      "views": 1
+    },
+    {
+      "label": "Council Bluffs, Iowa, US",
+      "city": "Council Bluffs",
+      "country": "US",
+      "visitors": 1,
+      "views": 1
+    },
+    {
+      "label": "Lajinha, Minas Gerais, BR",
+      "city": "Lajinha",
+      "country": "BR",
+      "visitors": 1,
+      "views": 1
+    },
+    {
+      "label": "New York City, New York, US",
+      "city": "New York City",
+      "country": "US",
+      "visitors": 1,
+      "views": 1
+    },
+    {
+      "label": "Reading, England, GB",
+      "city": "Reading",
+      "country": "GB",
+      "visitors": 1,
+      "views": 1
+    },
+    {
+      "label": "San Jose, California, US",
+      "city": "San Jose",
+      "country": "US",
+      "visitors": 1,
+      "views": 1
+    }
+  ]
+}

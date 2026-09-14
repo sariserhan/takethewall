@@ -5,7 +5,7 @@ import { geoArea, geoCentroid, geoEquirectangular, geoPath } from "d3-geo";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import { useRadarVisitors } from "./use-radar-visitors";
 import { cityLookup, type CityCenter } from "@/lib/radar-geography";
-import type { RadarCityReport } from "@/lib/radar-city-report";
+import citySnapshot from "@/lib/radar-city-snapshot.json";
 import styles from "./wall-radar.module.css";
 type Country = Feature<Geometry, { name: string; code: string }>;
 type Arrival = {
@@ -20,31 +20,9 @@ const place = (row: Arrival) =>
   row.label || [row.city, row.country].filter(Boolean).join(", ") || "Location unavailable";
 export function WallRadar() {
   const live = useRadarVisitors();
-  const [mode, setMode] = useState<"cities" | "live">("cities");
-  const [report, setReport] = useState<RadarCityReport | null>(null);
-  const [reportError, setReportError] = useState("");
-  useEffect(() => {
-    const controller = new AbortController();
-    async function refresh() {
-      if (document.hidden) return;
-      try {
-        const response = await fetch("/api/radar/cities", { signal: controller.signal });
-        if (!response.ok) throw Error();
-        const data: RadarCityReport = await response.json();
-        if (data.date !== new Date().toISOString().slice(0, 10)) throw Error();
-        setReport(data); setReportError("");
-      } catch {
-        if (!controller.signal.aborted) {
-          setReportError("City report unavailable. You can still view live visitors.");
-          setReport(previous => previous?.date === new Date().toISOString().slice(0, 10) ? previous : null);
-        }
-      }
-    }
-    void refresh();
-    const timer = setInterval(() => void refresh(), 60000);
-    document.addEventListener("visibilitychange", refresh);
-    return () => { controller.abort(); clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
-  }, []);
+  const [requestedMode, setMode] = useState<"cities" | "live">("cities");
+  const report = citySnapshot.date === new Date().toISOString().slice(0, 10) ? citySnapshot : null;
+  const mode = report ? requestedMode : "live";
   const connection = useConvexConnectionState();
   const [held, setHeld] = useState<Arrival[] | null>(null);
   const [countries, setCountries] = useState<Country[]>([]),
@@ -161,10 +139,10 @@ export function WallRadar() {
         <div>
           <span className={styles.eyebrow}>RADAR · UNIQUE VISITORS TODAY</span>
           <h2>The world, dropping by.</h2>
-          <p>{mode === "cities" ? "Today’s wall visitors grouped by city, from VisitorPing." : "Today’s visitors, counted once per browser across both tracking sources."}</p>
+          <p>{mode === "cities" ? "Saved city breakdown from VisitorPing. New arrivals continue in Live visitors." : "Today’s visitors, counted once per browser across both tracking sources."}</p>
         </div>
         <span className={styles.status}>
-          {mode === "cities" ? "CITY REPORT" : held
+          {mode === "cities" ? "SAVED SNAPSHOT" : held
             ? "FEED PAUSED"
             : connection.isWebSocketConnected
               ? "LISTENING"
@@ -172,7 +150,7 @@ export function WallRadar() {
         </span>
       </header>
       <div className={styles.controls}>
-        <button aria-pressed={mode === "cities"} onClick={() => { setMode("cities"); setSelected(""); }}>Cities</button>
+        {report && <button aria-pressed={mode === "cities"} onClick={() => { setMode("cities"); setSelected(""); }}>Saved cities</button>}
         <button aria-pressed={mode === "live"} onClick={() => { setMode("live"); setSelected(""); }}>Live visitors</button>
         {mode === "live" && <button
           onClick={() => {
@@ -184,10 +162,9 @@ export function WallRadar() {
           {held ? "Resume arrivals" : "Pause arrivals"}
         </button>}
         <span>
-          {mode === "cities" ? report ? `${report.uniqueVisitors} unique visitors · ${report.views} wall views · today (UTC)` : "Loading cities…" : `${rows.length} unique visitors shown today (UTC)${rows.length === 50 ? " · most recent 50" : ""}`}
+          {mode === "cities" ? report ? `${report.uniqueVisitors} unique visitors · ${report.views} wall views · saved snapshot` : "Loading cities…" : `${rows.length} unique visitors shown today (UTC)${rows.length === 50 ? " · most recent 50" : ""}`}
         </span>
       </div>
-      {mode === "cities" && reportError && <p role="status" className={styles.note}>{reportError}{report ? " Showing the last successful report." : ""}</p>}
       <p className={styles.note}>
         Arrival sound is enabled across the wall, even when Radar is closed.
         Click or tap anywhere first to allow audio. Pausing this feed pauses its
@@ -262,7 +239,7 @@ export function WallRadar() {
               <>
                 <strong>{place(latest)}</strong>
                 <span>
-                  {mode === "cities" ? `${latest.visitors} ${latest.visitors === 1 ? "visitor" : "visitors"} today` : `First seen today · ${new Date(latest.receivedAt).toISOString().slice(11, 19)} UTC`}
+                  {mode === "cities" ? `${latest.visitors} ${latest.visitors === 1 ? "visitor" : "visitors"} in saved snapshot` : `First seen today · ${new Date(latest.receivedAt).toISOString().slice(11, 19)} UTC`}
                 </span>
               </>
             ) : (
@@ -289,10 +266,10 @@ export function WallRadar() {
           </p>
         </div>
         <div className={styles.feed}>
-          <h3>{mode === "cities" ? "Today’s cities" : "Today’s visitors"}</h3>
+          <h3>{mode === "cities" ? "Saved cities" : "Today’s visitors"}</h3>
           {!rows.length ? (
             <p>
-              {mode === "cities" ? report ? "No cities recorded yet today." : reportError ? "Switch to Live visitors while the city report is unavailable." : "Fetching today’s cities…" : "No verified visitors yet today. New visits will appear here."}
+              {mode === "cities" ? report ? "No cities recorded yet today." : "No saved city report." : "No verified visitors yet today. New visits will appear here."}
             </p>
           ) : (
             <ol aria-label={mode === "cities" ? "City visitor counts" : "Arrival feed"}>
@@ -305,7 +282,7 @@ export function WallRadar() {
                     <strong>{row.city || "Location not recorded"}</strong>
                     <span>{mode === "cities" ? `${row.visitors} ${row.visitors === 1 ? "visitor" : "visitors"} · ${row.label}` : row.country === "ZZ" ? "Location not recorded" : row.country}</span>
                     <small>
-                      {mode === "cities" ? "Today (UTC) · city total" : `${new Date(row.receivedAt).toISOString().replace("T", " ").slice(0, 19)} UTC · first seen today`}
+                      {mode === "cities" ? "Saved snapshot · city total" : `${new Date(row.receivedAt).toISOString().replace("T", " ").slice(0, 19)} UTC · first seen today`}
                     </small>
                     <small>{precision}</small>
                   </button>
@@ -315,7 +292,7 @@ export function WallRadar() {
           )}
         </div>
       </div>
-      {mode === "cities" && report && <p className={styles.note}>VisitorPing city report through {new Date(report.to).toISOString().slice(11, 19)} UTC · refreshed about every 5 minutes. {report.truncated ? "Showing the top 100 city groups. " : ""}City totals are not added to live visitors. A browser seen in multiple cities can appear in more than one city group.</p>}
+      {mode === "cities" && report && <p className={styles.note}>VisitorPing city report through {new Date(report.to).toISOString().slice(11, 19)} UTC · one-time snapshot; no API refreshes. {report.truncated ? "Showing the top 100 city groups. " : ""}City totals are not added to live visitors. A browser seen in multiple cities can appear in more than one city group.</p>}
       {mode === "live" && <p className={styles.note}>
         Sources: Vercel and <a href="https://visitorping.com/" target="_blank" rel="noopener noreferrer">VisitorPing</a>.
         Matching page views are merged using a shared signed identifier. Each
