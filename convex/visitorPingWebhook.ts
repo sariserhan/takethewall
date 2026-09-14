@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { visitorPingAlert } from "./visitorPingWebhookModel";
 import { parseVisitorPingAlert } from "../lib/visitorping-webhook";
@@ -31,5 +31,31 @@ export const cleanup = internalMutation({
     if (rows.length === 100)
       await ctx.scheduler.runAfter(0, internal.visitorPingWebhook.cleanup, {});
     return null;
+  },
+});
+
+// Only user-authorized coarse city/country are public; region and other fields stay private.
+export const radar = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      id: v.id("visitorPingWebhookDeliveries"),
+      receivedAt: v.number(),
+      city: v.string(),
+      country: v.string(),
+    }),
+  ),
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("visitorPingWebhookDeliveries")
+      .withIndex("by_event_receivedAt", (q) => q.eq("event", "visitor.arrival"))
+      .order("desc")
+      .take(50);
+    return rows.map((row) => ({
+      id: row._id,
+      receivedAt: row.receivedAt,
+      city: row.data.location.city,
+      country: row.data.location.country,
+    }));
   },
 });

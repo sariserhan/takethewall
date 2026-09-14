@@ -4,6 +4,7 @@ async function fixture(page: Page, ama = false) {
   let owner = 1,
     enabled = true;
   let update = () => {};
+  const arrivals = [{id:"arrival-0",receivedAt:Date.now()-300000,city:"London",country:"GB"}];
   const choices = new Map<number, "keep" | "yeet">();
   const whispers = new Map<number, { id: string; text: string; createdAt: number }[]>();
   await page.route("**/api/whisper", async r => {
@@ -34,6 +35,7 @@ async function fixture(page: Page, ama = false) {
       };
     const queries = new Map<number, string>();
     const value = (path: string): unknown => {
+      if (path === "visitorPingWebhook:radar") return arrivals;
       if (path === "websiteGeography:report") return {failed:false,snapshot:{from:"2026-06-16T00:00:00Z",to:"2026-09-14T00:00:00Z",fetchedAt:1789344000000,historyDays:90,uniqueVisitors:49,truncated:false,countries:[{countryCode:"US",visitors:34},{countryCode:"GB",visitors:4}]}};
       if (path === "ama:current" && ama) return {answers:[{id:"question-1",question:"What is this?",answer:"A community for sharing useful projects and asking the owner questions."}]};
       if (path === "whispers:history") return { page: whispers.get(owner) ?? [], isDone: true, continueCursor: "" };
@@ -144,6 +146,7 @@ async function fixture(page: Page, ama = false) {
     });
   });
   return {
+    arrive: (city: string, country: string) => { arrivals.unshift({id:"arrival-"+arrivals.length,receivedAt:Date.now(),city,country}); update(); },
     seedWhispers: () => { whispers.set(owner, [4,3,2,1].map(i=>({id:"msg-"+i,text:"Message "+i,createdAt:Date.now()-i*1000}))); update(); },
     changeOwner: () => {
       owner++;
@@ -703,4 +706,31 @@ test("owner identity and empty conversation remain clear", async ({page}, info) 
   await identity.scrollIntoViewIfNeeded();
   await page.screenshot({path:`/tmp/ui-owner-${info.project.name}.png`});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("Radar shows arrivals, pauses, resumes and supports mobile", async ({page}) => {
+ const state=await fixture(page);
+ const errors:string[]=[];
+ page.on("pageerror",e=>errors.push(e.message));
+ await page.goto("/");
+ await page.getByRole("button",{name:"Radar",exact:true}).click();
+ const radar=page.getByTestId("radar");
+ await expect(radar).toBeVisible();
+ await expect(radar.getByRole("button",{name:"Sound off",exact:true})).toHaveAttribute("aria-pressed","false");
+ await expect(radar.locator('[data-arrival-id="arrival-0"]')).toBeVisible();
+ await expect(radar.getByText("Approximate city center",{exact:true})).toBeVisible();
+ expect(await radar.locator('[data-arrival-id] circle').count()).toBe(1);
+ state.arrive("Paris","FR");
+ await expect(radar.getByRole("list",{name:"Arrival feed"}).getByText("Paris",{exact:true})).toBeVisible();
+ await expect(radar.locator('[data-arrival-id="arrival-1"] circle')).toHaveCount(2);
+ await radar.getByRole("button",{name:"Pause arrivals"}).click();
+ state.arrive("Unresolved town","US");
+ await expect(radar.getByText("Unresolved town",{exact:true})).toHaveCount(0);
+ await radar.getByRole("button",{name:"Resume arrivals"}).click();
+ await expect(radar.getByText("Country center · city not resolved",{exact:true})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});
+ await expect(radar).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ await page.screenshot({path:"/tmp/ttw-radar-mobile.png"});
+ expect(errors).toEqual([]);
 });

@@ -35,6 +35,7 @@ export function WallLab({ data }: { data: LabData | null }) {
       {(
         [
           "Globe",
+          "Radar",
           "Snapshot",
           "Audit",
           "QR Code",
@@ -67,6 +68,7 @@ function ToolIcon({ name }: { name: string }) {
     Retro: "M3 5h18v14H3Z M6 8h12v8H6Z M8 2l4 3 4-3",
     Globe:
       "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M3 12h18 M12 3c-6 5-6 13 0 18 6-5 6-13 0-18",
+    Radar: "M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 12l8-8 M12 11v2",
     Snapshot: "M3 7h5l2-3h4l2 3h5v13H3Z M16 13a4 4 0 1 0-8 0 4 4 0 0 0 8 0",
     Audit:
       "M10 8l3-3a4 4 0 0 1 6 6l-3 3 M14 16l-3 3a4 4 0 0 1-6-6l3-3 M8 16l8-8",

@@ -36,3 +36,16 @@ typecheck, build, then development backend push. Tests cover real mutation
 storage, authentication, invalid input, persistence failures, repeated deliveries,
 and retention. After registration, send a VisitorPing test event and verify a
 200 plus a new database row. Do not infer unique visitors from delivery counts.
+
+## Radar
+
+The Radar toolbar panel subscribes to the newest 50 arrival deliveries. Its
+public query returns only a delivery ID, receipt time, city and country. Region,
+company, source and other webhook fields remain private. Hot-lead events are
+excluded. Radar does not modify the all-time Globe or visitor totals.
+
+Pins use an offline GeoNames city gazetteer. Ambiguous or missing cities fall
+back to a labeled country center; unknown locations remain in the feed. Sound
+starts off. Pause holds the displayed snapshot while incoming data continues
+syncing; resuming does not replay arrival sounds. Initial history does not pulse.
+Reduced motion disables arrival ring animation.

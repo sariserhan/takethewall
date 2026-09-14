@@ -6,9 +6,10 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { WallSnapshot } from "@/lib/wall-snapshot";
 import { createWallSnapshot } from "@/lib/wall-snapshot";
+import { WallRadar } from "./wall-radar";
 import { WallGlobe } from "./wall-globe";
 export type LabPanel =
-  "Globe" | "Snapshot" | "Audit" | "QR Code";
+  "Globe" | "Radar" | "Snapshot" | "Audit" | "QR Code";
 export type LabData = WallSnapshot & {
   id: Id<"takeovers">;
   contentType: string;
@@ -30,6 +31,7 @@ export default function WallLabPanel({
         <Audit />
       </>
     );
+  if (panel === "Radar") return <WallRadar />;
   if (panel === "Globe") return <WallGlobe />;
   if (!data) return <p>Waiting for the current wall…</p>;
   if (panel === "Snapshot") return <Snapshot data={data} />;

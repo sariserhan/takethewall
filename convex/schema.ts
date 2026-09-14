@@ -239,7 +239,7 @@ export default defineSchema({
 
   visitorPingWebhookDeliveries: defineTable({
     ...visitorPingAlert.fields, receivedAt: v.number(),
-  }).index("by_receivedAt", ["receivedAt"]),
+  }).index("by_receivedAt", ["receivedAt"]).index("by_event_receivedAt", ["event", "receivedAt"]),
   websiteGeographyReports: defineTable({
     key: v.literal("website"),
     siteId: v.string(),
