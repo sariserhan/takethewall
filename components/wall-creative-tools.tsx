@@ -66,10 +66,16 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
                 ? interaction === "thermal"
                 : name === "Theremin"
                   ? interaction === "theremin"
-                  : undefined
+                  : name === "Atmosphere"
+                    ? sky !== "clear"
+                    : name === "Decade Warp"
+                      ? era !== "present"
+                      : undefined
           }
           onClick={() => {
-            if (name === "Blacklight") setBlacklight(!blacklight);
+            if (name === "Atmosphere" && sky !== "clear") setSky("clear");
+            else if (name === "Decade Warp" && era !== "present") setEra("present");
+            else if (name === "Blacklight") setBlacklight(!blacklight);
             else if (name === "Thermal" || name === "Theremin") {
               const mode = name === "Thermal" ? "thermal" : "theremin";
               setInteractionMode(interaction === mode ? "off" : mode);

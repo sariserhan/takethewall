@@ -8,7 +8,8 @@ import { WallCreativeTools } from "./wall-creative-tools";
 import { WallToolIcon } from "./wall-tool-icon";
 import { TryMine } from "./try-mine";
 import { MagneticTitle, PulseTool, WallExperiments } from "./wall-experiments";
-import { WallLab } from "./wall-lab";
+import { WallLab, StatToolButton } from "./wall-lab";
+import type { LabPanel } from "./wall-lab-panel";
 import { WallActions } from "./wall-actions";
 import { PopOutWall } from "./wall-companion";
 import { HackerTerminal } from "./hacker-terminal";
@@ -23,6 +24,8 @@ import { WallSubscription } from "./wall-subscription";
 import { MilestoneAlerts } from "./milestone-alerts";
 import { ReportContent } from "./report-content";
 import { WallCanvas } from "./wall-canvas";
+import { StatShare } from "./stat-share";
+import { StatDetails } from "./stat-details";
 import { StatHelp } from "./stat-help";
 import { contentCta } from "@/lib/content";
 import { HomepageMilestones } from "./milestones";
@@ -77,11 +80,16 @@ function Clock({ since }: { since: number }) {
   }, []);
   return <>{since && now ? duration(now - since) : "00:00:00"}</>;
 }
-function Metric({ label, value }: { label: string; value: React.ReactNode }) {
+function Metric({ label, value, action }: {
+  label: string;
+  value: React.ReactNode;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="metric">
-      <span>
+      <span className={action ? "stat-heading" : undefined}>
         <StatHelp label={label} />
+        {action}
       </span>
       <strong>{value}</strong>
     </div>
@@ -102,22 +110,16 @@ function WallView({
   data: WallData | undefined;
   connected: boolean;
 }) {
+  const [labPanel, setLabPanel] = useState<LabPanel | null>(null);
   const [draftVersion, setDraftVersion] = useState(0);
   const [trying, setTrying] = useState(false);
-  const [playgroundOpen, setPlaygroundOpen] = useState(false);
   const [open, setOpen] = useState(false),
     [confirmation, setConfirmation] = useState<Confirmation | null>(null),
     [statusError, setStatusError] = useState(false),
     [cancelled, setCancelled] = useState(false),
     [returnToken, setReturnToken] = useState<string | null>(null),
     [changed, setChanged] = useState(false);
-  const sample = data?.demoStats;
-  const presentation = data?.demoPresentation;
-  const demoPreviousOwner =
-    sample?.previousOwnerName ?? presentation?.previousOwnerName;
-  const demoTakeoverCount =
-    sample?.takeoverCount ?? presentation?.takeoverCount;
-  const since = presentation?.ownerSince ?? data?.owner.activatedAt ?? 0;
+  const since = data?.owner.activatedAt ?? 0;
   const owner = data?.owner,
     adRef = useRef<HTMLElement>(null),
     purchaseRef = useRef<HTMLButtonElement>(null),
@@ -174,7 +176,7 @@ function WallView({
     };
   }, [returnToken, owner?.id]);
   useEffect(() => {
-    if (!owner?.id || presentation || trying) return;
+    if (!owner?.id || trying) return;
     const id = owner.id;
     let visible = false;
     const attempt = () => {
@@ -199,7 +201,7 @@ function WallView({
       observer.disconnect();
       document.removeEventListener("visibilitychange", attempt);
     };
-  }, [owner?.id, presentation, trying]);
+  }, [owner?.id, trying]);
   useEffect(() => {
     if (!owner?.id) return;
     if (previous.current && previous.current !== owner.id) {
@@ -212,8 +214,6 @@ function WallView({
   }, [owner?.id]);
   const numbers = (n: number | undefined) =>
     n === undefined ? "—" : n.toLocaleString("en-US");
-  const combined = (real: number | undefined, demo: number | undefined) =>
-    real === undefined ? undefined : real + (demo ?? 0);
   const realToday = data
     ? data.utcDate === new Date().toISOString().slice(0, 10)
       ? data.visitorsToday
@@ -295,78 +295,78 @@ function WallView({
         <section className="site-metrics" aria-label="Site analytics">
           <Metric
             label="VISITORS TODAY (UTC)"
-            value={numbers(combined(realToday, sample?.visitorsToday))}
+            action={<StatToolButton name="Radar" onClick={() => setLabPanel("Radar")} />}
+            value={numbers(realToday)}
           />
           <Metric
             label="TOTAL VISITORS"
+            action={<StatDetails label="Visitor totals" title="Website visitor totals" rows={[
+              { label: "Recorded visitors · all time", value: numbers(data?.totalVisitors) },
+              { label: "Recorded visitors · today (UTC)", value: numbers(realToday) },
+            ]}><p>All-time visitors are distinct browsers recorded across the website’s lifetime. Today’s visitors are counted separately for the current UTC day; these two totals should not be added together.</p></StatDetails>}
             value={numbers(
-              combined(data?.totalVisitors, sample?.totalVisitors),
+              data?.totalVisitors,
             )}
           />
           <Metric
             label="COUNTED TAKEOVERS"
+            action={
+              <>
+                {owner?.publicId && (
+                  <Link className="stat-tool-button" aria-label="Current takeover" data-tooltip="Current takeover" href={`/takeover/${owner.publicId}`}>
+                    <WallToolIcon name="popout" /> Current takeover
+                  </Link>
+                )}
+                {!owner?.publicId && <StatDetails label="Current takeover" title="Current takeover" rows={[]}><p>The current takeover’s public page is not available yet.</p></StatDetails>}
+              </>
+            }
             value={
-              <>{numbers(combined(data?.totalTakeovers, demoTakeoverCount))}</>
+              <>{numbers(data?.totalTakeovers)}</>
             }
           />
           <div className="metric previous-owner-stat">
-            <span>
+            <span className="stat-heading">
               <StatHelp label="PREVIOUS OWNER" />
+              <StatToolButton name="Audit" onClick={() => setLabPanel("Audit")} />
             </span>
             <strong>
-              {demoPreviousOwner ||
-                (data ? (data.previousOwnerName ?? "First reign") : "—")}
+              {data ? (data.previousOwnerName ?? "First reign") : "—"}
             </strong>
-            {data && !data.previousOwnerName && !demoPreviousOwner && (
+            {data && !data.previousOwnerName && (
               <small className="stat-empty-hint">The next takeover starts the history.</small>
             )}
           </div>
         </section>
-          {owner && !trying && !presentation && (
+          {!trying && (
             <div className="owner-identity-strip">
-              <span className="owner-live-status"><i aria-hidden="true" /> CURRENT OWNER{owner.takeoverNumber ? ` · #${owner.takeoverNumber}` : ""}</span>
+              {owner && <span className="owner-live-status"><i aria-hidden="true" /> CURRENT OWNER{owner.takeoverNumber ? ` · #${owner.takeoverNumber}` : ""}</span>}
+              <button
+                type="button"
+                className="stat-tool-button stat-tool-text"
+                aria-controls="current-wall"
+                onClick={() => {
+                  setTrying(true);
+                  requestAnimationFrame(() => document.querySelector(".try-mine")?.scrollIntoView({ block: "center" }));
+                }}
+              >
+                <WallToolIcon name="preview" /> Try Mine
+              </button>
+              <PulseTool compact ownerId={owner?.id} name={owner?.displayName} />
             </div>
           )}
-        <section ref={adRef} className={`owner-section${owner?.canvasDesign && !presentation && !trying ? " has-wall-design" : ""}`} aria-label="Current owner">
-          {(!owner || presentation) && <p className="eyebrow">
-            CURRENT TAKEOVER{" "}
-            {presentation
-              ? "DEMO PREVIEW"
-              : owner?.takeoverNumber
-                ? `#${owner.takeoverNumber}`
-                : owner?.kind === "admin_placement"
-                  ? "ADMIN PLACEMENT"
-                  : "HOUSE PLACEMENT"}
-          </p>}
-          {(!owner || trying || presentation || changed) && <p
+        <section id="current-wall" ref={adRef} className={`owner-section${owner?.canvasDesign && !trying ? " has-wall-design" : ""}`} aria-label="Current owner">
+          {!owner && <p className="eyebrow">CURRENT TAKEOVER · LOADING</p>}
+          {(!owner || trying || changed) && <p
             className={`eyebrow ownership-label${changed ? " takeover-arrived" : ""}`}
             aria-live="polite"
           >
             {trying
               ? "TRY YOUR CONTENT ON THE WALL"
-              : presentation
-              ? "SAMPLE CONTENT — NOT THE CURRENT OWNER"
               : changed
                 ? "THE WALL WAS JUST TAKEN"
                 : "THIS WALL CURRENTLY BELONGS TO"}
           </p>}
-          {trying ? <TryMine onClose={() => setTrying(false)} onPrepare={() => { setTrying(false); setDraftVersion(v=>v+1); setOpen(true); }} /> : presentation ? (
-            <div className="owner-ad demo-owner">
-              <span className="demo-badge">Demo content</span>
-              <h2>{presentation.displayName}</h2>
-              <p>{presentation.description}</p>
-              {presentation.websiteUrl && (
-                <a
-                  className="visit"
-                  href={presentation.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                >
-                  Open demo link <Arrow />
-                </a>
-              )}
-            </div>
-          ) : owner?.canvasDesign ? (
+          {trying ? <TryMine onClose={() => setTrying(false)} onPrepare={() => { setTrying(false); setDraftVersion(v=>v+1); setOpen(true); }} /> : owner?.canvasDesign ? (
             <div className="canvas-owner-ad"><WallCanvas linksEnabled={owner.canvasLinksEnabled ?? owner.outboundLinkEnabled} design={owner.canvasDesign} images={owner.canvasImages} href={owner.outboundLinkEnabled ? owner.websiteUrl : undefined} onVisit={() => void wallEvent(owner.id,"click")} /></div>
           ) : owner ? (
             <a
@@ -443,6 +443,7 @@ function WallView({
         <section className="reign-metrics" aria-label="Current reign analytics">
           <Metric
             label="CURRENT REIGN"
+            action={<StatToolButton name="Snapshot" onClick={() => setLabPanel("Snapshot")} />}
             value={
               <>
                 <Clock since={since} />
@@ -464,25 +465,33 @@ function WallView({
           />
           <Metric
             label="IMPRESSIONS"
-            value={numbers(combined(owner?.impressions, sample?.impressions))}
+            action={<PopOutWall compact />}
+            value={numbers(owner?.impressions)}
           />
           <Metric
             label="UNIQUE VISITORS"
+            action={<StatShare name={owner?.displayName} />}
             value={numbers(
-              combined(owner?.uniqueVisitors, sample?.uniqueVisitors),
+              owner?.uniqueVisitors,
             )}
           />
           <Metric
             label="CLICKS"
-            value={numbers(combined(owner?.clicks, sample?.clicks))}
+            action={owner?.outboundLinkEnabled && owner.websiteUrl ? <a className="stat-tool-button" aria-label="Visit website" data-tooltip="Visit website" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={event => { if (event.button === 1) void wallEvent(owner.id, "click"); }}><WallToolIcon name="popout" /> Visit website</a> : <button type="button" className="stat-tool-button" aria-label="Visit website unavailable" data-tooltip="No website link" disabled title="The current owner has no enabled outbound link"><WallToolIcon name="popout" /> Visit website</button>}
+            value={numbers(owner?.clicks)}
           />
           <Metric
             label="CTR"
+            action={<StatDetails label="Calculation" title="Click-through rate calculation" rows={[
+              { label: "Displayed clicks", value: numbers(owner?.clicks) },
+              { label: "Displayed impressions", value: numbers(owner?.impressions) },
+              { label: "CTR", value: owner ? `${ctr(owner.impressions, owner.clicks).toFixed(2)}%` : "—" },
+            ]}><p>CTR = clicks ÷ impressions × 100. With no impressions, the rate is shown as 0%.</p></StatDetails>}
             value={
               owner
                 ? `${ctr(
-                    owner.impressions + (sample?.impressions ?? 0),
-                    owner.clicks + (sample?.clicks ?? 0),
+                    owner.impressions,
+                    owner.clicks,
                   )
                     .toFixed(2)
                     .replace(/\.00$/, "")}%`
@@ -490,14 +499,17 @@ function WallView({
             }
           />
           <div className="metric referral-prize-stat">
-            <span><StatHelp label="REFERRALS" /></span>
+            <span className="stat-heading"><StatHelp label="REFERRALS" />
+              {owner?.publicId ? <StatShare key={owner.publicId} publicId={owner.publicId} name={owner.displayName} /> : <button type="button" className="stat-tool-button" aria-label="Share referral unavailable" disabled><WallToolIcon name="share" />Share referral</button>}
+            </span>
             <strong>{owner ? numbers(owner.shareVisitors ?? 0) : "—"}</strong>
             <small className="referral-prize-label">Referral prize · Reward B</small>
-            <small className="referral-prize-hint">Share your link to compete</small>
+            <small className="referral-prize-hint">Share this takeover’s link to support its referral count</small>
           </div>
           <div className="regions">
-            <span className="eyebrow">
+            <span className="eyebrow stat-heading">
               <StatHelp label="TOP REGIONS" />
+              <StatToolButton name="Globe" onClick={() => setLabPanel("Globe")} />
             </span>
             {regions.length ? (
               <ul>
@@ -607,15 +619,11 @@ function WallView({
           }}
         />
         <TakeoverSound changed={changed} />
-        <PopOutWall />
-        <WallActions name={owner?.displayName} />
-        <button className="wall-action" onClick={() => { setTrying(true); requestAnimationFrame(()=>document.querySelector(".try-mine")?.scrollIntoView({block:"center"})); }}><WallToolIcon name="preview" /> Try Mine</button>
-        <PulseTool ownerId={owner?.id} name={owner?.displayName} />
-        {owner?.publicId && <Link className="wall-action" href={`/takeover/${owner.publicId}`}><WallToolIcon name="popout" /> Current takeover</Link>}
-        <WallLab data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors + (sample?.uniqueVisitors ?? 0), number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: !!sample?.uniqueVisitors } : null} />
-        <button className="experiments-menu" aria-expanded={playgroundOpen} aria-controls="playground-controls" onClick={() => setPlaygroundOpen(value => !value)}><WallToolIcon name="rave" /> Playground</button>
+        <WallActions />
+        <WallLab panel={labPanel} setPanel={setLabPanel} data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors, number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: false } : null} />
         </div>
-          <div id="playground-controls" className="experiment-menu-controls" hidden={!playgroundOpen}>
+          <div className="experiment-menu-controls" role="group" aria-labelledby="playground-title">
+            <h3 id="playground-title" className="eyebrow">Playground</h3>
             <WallExperiments />
             <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>

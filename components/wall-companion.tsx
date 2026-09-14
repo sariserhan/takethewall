@@ -6,7 +6,7 @@ import { ConvexProvider, useQuery } from "convex/react";
 import Image from "next/image";
 import { api } from "@/convex/_generated/api";
 import { publicConvexClient } from "@/lib/convex-client";
-export function PopOutWall() {
+export function PopOutWall({ compact = false }: { compact?: boolean }) {
   const popup = useRef<Window | null>(null);
   const [message, setMessage] = useState("");
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
@@ -20,7 +20,8 @@ export function PopOutWall() {
     <>
       {pipWindow && createPortal(<Companion />, pipWindow.document.body)}
       <button
-        className="popout-trigger"
+        className={compact ? "stat-tool-button" : "popout-trigger"}
+        aria-label="Pop out wall" data-tooltip={compact ? "Pop out wall" : undefined}
         onClick={async () => {
           setMessage("");
           if (popup.current && !popup.current.closed) {
@@ -75,12 +76,12 @@ export function PopOutWall() {
         <WallToolIcon name="popout" /> Pop out wall
       </button>
       {message && (
-        <p role="status">
+        <span role="status">
           {message}{" "}
           <a href="/companion" target="_blank" rel="noopener noreferrer">
             Open companion
           </a>
-        </p>
+        </span>
       )}
     </>
   );

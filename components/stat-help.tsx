@@ -8,7 +8,7 @@ const explanations: Record<string, string> = {
   "TOTAL VISITORS":
     "Distinct browsers recorded across the site's lifetime. This total carries on when the wall owner changes; it does not reset with a takeover.",
   "COUNTED TAKEOVERS":
-    "The public takeover sequence, including any documented starting offset. An offset does not represent completed takeovers. House placements do not count. Demo additions affect displayed progress only; they do not create real takeovers or trigger prizes.",
+    "The public takeover sequence, including any documented starting offset. An offset does not represent completed takeovers. House placements do not count.",
   "PREVIOUS OWNER":
     "The owner immediately before the current one. This shows only the most recent previous owner, rather than the full ownership history.",
   "CURRENT REIGN":
@@ -21,7 +21,7 @@ const explanations: Record<string, string> = {
     "Distinct browsers that viewed the current owner's content during this reign. Repeat views from the same browser count once. This starts over for each new owner.",
   CLICKS:
     "Recorded clicks on the current owner's outbound link during this reign. These are link clicks, not clicks on the Take the Wall purchase button.",
-  CTR: "Click-through rate: clicks divided by impressions, multiplied by 100. For example, 5 clicks from 100 impressions is a 5% CTR. When demo counts are enabled, this uses the combined counts.",
+  CTR: "Click-through rate: clicks divided by impressions, multiplied by 100. For example, 5 clicks from 100 impressions is a 5% CTR.",
   REFERRALS: "Compete for the referral prize (Reward B) by sharing your owner-dashboard referral link. The eligible entrant with the most verified referrals in the milestone cohort at the cutoff starts a prize claim; a payout is subject to verification and eligibility. Accepted distinct browser visits through this takeover’s shared referral link. Visitors must keep the page visible for at least 5 seconds and pass automated checks. Repeat visits and identifiable owner self-visits do not add credit. This total belongs to this takeover, not the whole site; reward eligibility is reviewed separately.",
   "TOP REGIONS":
     "Where views of the current owner's content came from, grouped by region. Percentages are shares of impressions, not unique people. Location is approximate; Unknown means a region could not be determined.",

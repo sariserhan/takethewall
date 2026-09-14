@@ -7,9 +7,12 @@ const Panel = dynamic(() => import("./wall-lab-panel"), {
   loading: () => <p>Loading tool…</p>,
   ssr: false,
 });
-export function WallLab({ data }: { data: LabData | null }) {
-  const [panel, setPanel] = useState<LabPanel | null>(null),
-    [dark, setDark] = useState(false);
+export function WallLab({ data, panel, setPanel }: {
+  data: LabData | null;
+  panel: LabPanel | null;
+  setPanel: (panel: LabPanel | null) => void;
+}) {
+  const [dark, setDark] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Read the stored browser preference after hydration.
     setDark(document.documentElement.dataset.wallTheme === "obsidian");
@@ -34,10 +37,6 @@ export function WallLab({ data }: { data: LabData | null }) {
       </button>
       {(
         [
-          "Globe",
-          "Radar",
-          "Snapshot",
-          "Audit",
           "QR Code",
         ] as LabPanel[]
       ).map((name) => (
@@ -59,6 +58,18 @@ export function WallLab({ data }: { data: LabData | null }) {
         {panel && <Panel key={panel} panel={panel} data={data} />}
       </Dialog>
     </>
+  );
+}
+
+export function StatToolButton({ name, onClick }: {
+  name: "Globe" | "Radar" | "Snapshot" | "Audit";
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="stat-tool-button" aria-label={name} data-tooltip={name} aria-haspopup="dialog" onClick={onClick}>
+      <ToolIcon name={name} />
+      {name}
+    </button>
   );
 }
 

@@ -156,14 +156,16 @@ export function WallExperiments() {
 export function PulseTool({
   ownerId,
   name,
+  compact = false,
 }: {
   ownerId?: string;
   name?: string;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button className="wall-action" onClick={() => setOpen(true)}>
+      <button type="button" className={compact ? "stat-tool-button" : "wall-action"} aria-label="Pulse" data-tooltip={compact ? "Pulse" : undefined} aria-haspopup="dialog" onClick={() => setOpen(true)}>
         <WallToolIcon name="pulse" /> Pulse
       </button>
       <Dialog open={open} onClose={() => setOpen(false)} title="Pulse">
