@@ -243,6 +243,7 @@ export default defineSchema({
   visitLedger: defineTable({
     key: v.string(), takeoverId: v.id("takeovers"), visitorHash: v.string(),
     cityBatchId: v.optional(v.id("analyticsBatches")),
+    cityBackfilled: v.optional(v.boolean()),
     occurredAt: v.number(), date: v.string(), country: v.string(), city: v.string(), cityKey: v.optional(v.string()),
     locationSource: v.union(v.literal("vercel"), v.literal("visitorping")),
     sources: v.array(v.union(v.literal("vercel"), v.literal("visitorping"))), freshReign: v.boolean(),

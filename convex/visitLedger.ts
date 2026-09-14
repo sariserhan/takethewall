@@ -1,3 +1,4 @@
+import savedCitySnapshot from "../lib/radar-city-snapshot.json";
 import { addCityDelta, applyCityDelta, cityKey } from "./radarCityModel";
 import { v } from "convex/values";
 import { internalMutation, query, type MutationCtx } from "./_generated/server";
@@ -40,8 +41,8 @@ export async function enrichVisit(ctx: MutationCtx, row: Doc<"visitLedger">, a: 
     await regionDelta(ctx, row.takeoverId, country, 1, Number(row.freshReign));
   }
   await ctx.db.patch(row._id, changes);
-  if (row.cityBatchId && (country !== row.country || city !== row.city)) {
-    const batch = await ctx.db.get(row.cityBatchId);
+  if ((row.cityBatchId || row.cityBackfilled) && (country !== row.country || city !== row.city)) {
+    const batch = row.cityBatchId ? await ctx.db.get(row.cityBatchId) : null;
     if (batch) {
       const cities = batch.cities ?? [];
       addCityDelta(cities, row.city, row.country, -1);
@@ -95,5 +96,25 @@ export const backfillRadar = internalMutation({
       });
     }
     return { inserted, existing, done: page.isDone, cursor: page.continueCursor };
+  },
+});
+
+// Repair a captured visit in the gap between the historical import and live city tracking.
+export const backfillCityVisit = internalMutation({
+  args: { visitId: v.id("visitLedger") },
+  returns: v.boolean(),
+  handler: async (ctx, { visitId }) => {
+    const visit = await ctx.db.get(visitId);
+    if (!visit || visit.cityBatchId || visit.cityBackfilled) return false;
+    if (visit.date !== savedCitySnapshot.date || visit.occurredAt <= Date.parse(savedCitySnapshot.to) || !visit.city || visit.country === "ZZ")
+      throw Error("Visit is outside the city backfill gap");
+    const daily = await ctx.db.query("dailyStats").withIndex("by_date", q => q.eq("date", visit.date)).unique();
+    const cities = await ctx.db.query("dailyCityViews").withIndex("by_date_key", q => q.eq("date", visit.date)).take(500);
+    const represented = savedCitySnapshot.views + cities.reduce((sum, row) => sum + Math.max(0, row.views), 0);
+    if (cities.length === 500 || !daily || represented >= daily.impressions)
+      throw Error("No unassigned city visit remains");
+    await ctx.db.patch(visitId, { cityBackfilled: true, cityKey: cityKey(visit.city, visit.country) });
+    await applyCityDelta(ctx, visit.date, { city: visit.city, country: visit.country, views: 1 });
+    return true;
   },
 });

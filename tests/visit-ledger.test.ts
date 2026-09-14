@@ -175,3 +175,33 @@ it("sorts city groups by latest visit, including repeats, without promoting dela
   await t.mutation(internal.analytics.record, { ...event, pageId: "london-three", source: "visitorping", city: "Mexico City", region: "MX", issuedAt: start + 120_000, expiresAt: start + 420_000 });
   expect(await cities()).toEqual(["Mexico City", "Sydney", "London"]);
 });
+it("backfills a known city gap once without increasing visits and permits later geography correction", async () => {
+  const { t, event } = await setup();
+  vi.setSystemTime(new Date("2026-09-14T21:12:20Z"));
+  const view = { ...event, city: "Ft. Washington", issuedAt: Date.now(), expiresAt: Date.now() + 300_000 };
+  await t.mutation(internal.analytics.record, view);
+  await flushAnalytics(t);
+  const visitId = await t.run(async ctx => {
+    const visit = (await ctx.db.query("visitLedger").first())!;
+    // Reproduce the stored visit from before live city accounting was deployed.
+    await ctx.db.patch(visit._id, { cityBatchId: undefined, cityKey: undefined });
+    for (const city of await ctx.db.query("dailyCityViews").collect()) await ctx.db.delete(city._id);
+    const day = (await ctx.db.query("dailyStats").first())!;
+    await ctx.db.patch(day._id, { impressions: 49 });
+    return visit._id;
+  });
+  const before = (await t.query(api.wall.current, {}))!;
+  expect(before.radarCities!.cities.find(row => row.country === "ZZ")?.views).toBe(1);
+  expect(await t.mutation(internal.visitLedger.backfillCityVisit, { visitId })).toBe(true);
+  expect(await t.mutation(internal.visitLedger.backfillCityVisit, { visitId })).toBe(false);
+  const after = (await t.query(api.wall.current, {}))!;
+  expect(after.viewsToday).toBe(before.viewsToday);
+  expect(after.totalViews).toBe(before.totalViews);
+  expect(after.radarCities!.cities.find(row => row.country === "ZZ")).toBeUndefined();
+  expect(after.radarCities!.cities.find(row => row.city === "Fort Washington")?.views).toBe(35);
+  await t.mutation(internal.analytics.record, { ...view, source: "visitorping", city: "Sydney", region: "AU" });
+  const corrected = (await t.query(api.wall.current, {}))!;
+  expect(corrected.radarCities!.cities.find(row => row.city === "Fort Washington")?.views).toBe(34);
+  expect(corrected.radarCities!.cities.find(row => row.city === "Sydney")?.views).toBe(1);
+  expect(corrected.viewsToday).toBe(49);
+});
