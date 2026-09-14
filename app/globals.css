@@ -1352,3 +1352,18 @@ select:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 .public-takeover .shared-takeover-stage{width:100%;max-width:none;box-sizing:border-box}.public-takeover>.editorial-overview{width:100%;max-width:none;margin:0;padding:28px 0;border-bottom:1px solid var(--rule)}.public-takeover>.editorial-overview p{max-width:80ch;line-height:1.7}
 
 .free-entry-callout{padding:12px 14px;border:1px solid var(--rule);font-size:13px;line-height:1.6}.free-entry-callout a{font-weight:700;text-decoration:underline}.free-entry-instructions .button{display:inline-flex;padding:14px 20px;margin:8px 0}.free-entry-instructions ul{padding-left:22px;line-height:1.8}.free-entry-instructions>p{line-height:1.7}
+
+/* Distinguish active cash prizes from upcoming and completed rewards. */
+.prize-explainer .prize-milestones .reward-milestone-pair > a[data-in-progress="true"] {
+  background: #ffe6a3;
+  color: #241a00;
+  border-color: #957018;
+  box-shadow: inset 0 3px 0 #957018;
+}
+.prize-explainer .prize-milestones .reward-milestone-pair > a[data-in-progress="true"]:is(:hover, :focus-visible) {
+  background: #ffda75;
+  color: #241a00;
+}
+.prize-milestones .reward-milestone-pair > a > small {
+  font-weight: 700;
+}

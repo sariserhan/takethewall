@@ -268,7 +268,10 @@ export function PrizeExplainer({
       <nav className="prize-milestones" aria-label="Prize milestones">
         {ordered.map((m) => (
           <div className="reward-milestone-pair" key={m.number}>
-            <Link href={`/${m.number}`}>
+            <Link
+              href={`/${m.number}`}
+              data-in-progress={m.status === "future" && m.number === next?.number}
+            >
               <span>#{format(m.number)}</span>
               <span className="reward-card-label">Milestone reward</span>
               <strong>${format(m.rewardUsd)}</strong>
@@ -281,7 +284,10 @@ export function PrizeExplainer({
               </small>
             </Link>
             {m.performance && (
-              <Link href={`/${m.number}/referral`}>
+              <Link
+                href={`/${m.number}/referral`}
+                data-in-progress={m.performance.status === "future" && m.number === next?.number}
+              >
                 <span>#{format(m.number)}</span>
                 <span className="reward-card-label">Referral reward</span>
                 <strong>${format(m.performance.rewardUsd)}</strong>
