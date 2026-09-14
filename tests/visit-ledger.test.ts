@@ -88,3 +88,48 @@ it("backfills missing daily browsers once without inventing locations or changin
   expect(enriched).toHaveLength(2);
   expect(enriched.find(row => row.id === oldId)).toMatchObject({ city: "Sydney", country: "AU" });
 });
+
+it.each([true, false])("keeps city visits equal to the daily counter when geography arrives before flush: %s", async beforeFlush => {
+  const { t, event } = await setup();
+  vi.setSystemTime(new Date("2026-09-15T12:00:00Z"));
+  const view = { ...event, issuedAt: Date.now(), expiresAt: Date.now() + 300000 };
+  const check = async (total: number) => {
+    const wall = (await t.query(api.wall.current, {}))!;
+    expect(wall.viewsToday).toBe(total);
+    expect(wall.radarCities!.views).toBe(total);
+    expect(wall.radarCities!.cities.reduce((sum, city) => sum + city.views, 0)).toBe(total);
+    return wall.radarCities!;
+  };
+  await t.mutation(internal.analytics.record, view);
+  await check(0); // Pending events do not get ahead of the daily counter.
+  if (!beforeFlush) await flushAnalytics(t);
+  await t.mutation(internal.analytics.record, { ...view, source: "visitorping", city: "Sydney", region: "AU" });
+  await flushAnalytics(t);
+  expect((await check(1)).cities).toEqual([{ city: "Sydney", country: "AU", label: "Sydney, AU", views: 1 }]);
+  await t.mutation(internal.analytics.record, { ...view, source: "visitorping", city: "Sydney", region: "AU" });
+  await check(1);
+  await t.mutation(internal.analytics.record, { ...view, city: "Sydney", region: "AU", pageId: "repeat-page" });
+  await flushAnalytics(t);
+  expect((await check(2)).cities[0].views).toBe(2);
+  expect((await t.query(api.wall.current, {}))!.visitorsToday).toBe(1);
+});
+it("uses the historical snapshot once and includes every unmatched visit in the remainder", async () => {
+  const { t, event } = await setup();
+  await t.mutation(internal.analytics.record, event);
+  await flushAnalytics(t);
+  await t.run(async ctx => {
+    const daily = await ctx.db.query("dailyStats").withIndex("by_date", q => q.eq("date", "2026-09-14")).unique();
+    await ctx.db.patch(daily!._id, { impressions: 49 });
+  });
+  let wall = (await t.query(api.wall.current, {}))!;
+  expect(wall.radarCities!.cities.reduce((sum, city) => sum + city.views, 0)).toBe(49);
+  expect(wall.radarCities!.cities.find(city => city.country === "ZZ")).toMatchObject({ views: 1 });
+  vi.setSystemTime(new Date("2026-09-14T22:00:00Z"));
+  await t.mutation(internal.analytics.record, { ...event, pageId: "later-page", city: "Ft. Washington", issuedAt: Date.now(), expiresAt: Date.now() + 300000 });
+  await flushAnalytics(t);
+  wall = (await t.query(api.wall.current, {}))!;
+  expect(wall.viewsToday).toBe(50);
+  expect(wall.radarCities!.cities.reduce((sum, city) => sum + city.views, 0)).toBe(50);
+  expect(wall.radarCities!.cities.find(city => city.city === "Fort Washington")).toMatchObject({ views: 35 });
+  expect(wall.radarCities!.cities.find(city => city.country === "ZZ")).toMatchObject({ views: 1 });
+});

@@ -1,3 +1,4 @@
+import { radarCityReport, readRadarCities } from "./radarCityModel";
 import { query, internalMutation, internalQuery } from "./_generated/server";
 import { demoValues, demoPresentation } from "./demoValues";
 import { v } from "convex/values";
@@ -16,6 +17,7 @@ export const current = query({
       numberingOffset: v.optional(v.number()),
       visitorsToday: v.number(),
       viewsToday: v.number(),
+      radarCities: v.optional(radarCityReport),
       utcDate: v.string(),
       regions: v.array(
         v.object({ regionCode: v.string(), impressions: v.number() }),
@@ -70,6 +72,7 @@ export const current = query({
       ...(s.numberingOffset ? { numberingOffset: s.numberingOffset } : {}),
       visitorsToday: d?.visitors ?? 0,
       viewsToday: d?.impressions ?? 0,
+      radarCities: await readRadarCities(ctx, utcDate, d?.impressions ?? 0, d?.visitors ?? 0),
       utcDate,
       regions: r.filter(x => x.impressions > 0).map((x) => ({
         regionCode: x.regionCode,

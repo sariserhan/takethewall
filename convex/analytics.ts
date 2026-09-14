@@ -1,3 +1,4 @@
+import { addCityDelta, afterCitySnapshot, applyCityDelta } from "./radarCityModel";
 import { createVisit, enrichVisit } from "./visitLedger";
 import { syncHall } from "./hallModel";
 import type { MutationCtx } from "./_generated/server";
@@ -75,6 +76,7 @@ export const record = internalMutation({
       return true;
     }
     const date = new Date(a.issuedAt).toISOString().slice(0, 10);
+    let visitId: Id<"visitLedger"> | undefined;
     let fresh = false,
       freshSite = false,
       freshDay = false,
@@ -117,7 +119,7 @@ export const record = internalMutation({
       fresh = !seen;
       freshSite = !lifetime;
       freshDay = !today;
-      await createVisit(ctx, { ...a, key: eventKey, occurredAt: a.issuedAt, freshReign: fresh });
+      visitId = await createVisit(ctx, { ...a, key: eventKey, occurredAt: a.issuedAt, freshReign: fresh });
     }
     // Independent buckets avoid a shared write for every incoming impression.
     const shard =
@@ -131,6 +133,9 @@ export const record = internalMutation({
       .unique();
     const impression = a.event === "impression" ? 1 : 0;
     const regions = batch?.regions ?? [];
+    const cities = batch?.cities ?? [];
+    const trackCity = !!visitId && afterCitySnapshot(a.issuedAt);
+    if (trackCity) addCityDelta(cities, (a.city ?? "").trim().slice(0,160), /^[A-Z]{2}$/.test(a.region) ? a.region : "ZZ", 1);
     const values = {
       impressions: (batch?.impressions ?? 0) + impression,
       uniqueVisitors: (batch?.uniqueVisitors ?? 0) + Number(fresh),
@@ -141,7 +146,9 @@ export const record = internalMutation({
         (batch?.funnelVisits ?? 0) +
         Number(funnelVisit && process.env.WALL_ENVIRONMENT === "production"),
       regions,
+      cities,
     };
+    let batchId = batch?._id;
     if (batch) await ctx.db.patch(batch._id, values);
     else {
       const id = await ctx.db.insert("analyticsBatches", {
@@ -150,12 +157,14 @@ export const record = internalMutation({
         shard,
         ...values,
       });
+      batchId = id;
       await ctx.scheduler.runAfter(
         10_000 + shard * 300,
         internal.analytics.flush,
         { id },
       );
     }
+    if (trackCity && visitId && batchId) await ctx.db.patch(visitId, { cityBatchId: batchId });
     return true;
   },
 });
@@ -191,6 +200,7 @@ export const flush = internalMutation({
           }
         : {}),
     });
+    for (const delta of b.cities ?? []) await applyCityDelta(ctx, b.date, delta);
     for (const delta of b.regions) {
       const r = await ctx.db
         .query("takeoverRegions")

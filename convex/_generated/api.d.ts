@@ -49,6 +49,7 @@ import type * as owners from "../owners.js";
 import type * as paymentIssues from "../paymentIssues.js";
 import type * as performanceRewards from "../performanceRewards.js";
 import type * as purchases from "../purchases.js";
+import type * as radarCityModel from "../radarCityModel.js";
 import type * as recovery from "../recovery.js";
 import type * as referralLeaderboard from "../referralLeaderboard.js";
 import type * as referralLeaderboardModel from "../referralLeaderboardModel.js";
@@ -117,6 +118,7 @@ declare const fullApi: ApiFromModules<{
   paymentIssues: typeof paymentIssues;
   performanceRewards: typeof performanceRewards;
   purchases: typeof purchases;
+  radarCityModel: typeof radarCityModel;
   recovery: typeof recovery;
   referralLeaderboard: typeof referralLeaderboard;
   referralLeaderboardModel: typeof referralLeaderboardModel;

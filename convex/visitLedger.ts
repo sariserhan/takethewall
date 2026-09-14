@@ -1,3 +1,4 @@
+import { addCityDelta, applyCityDelta } from "./radarCityModel";
 import { v } from "convex/values";
 import { internalMutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -21,9 +22,10 @@ async function updateRadar(ctx: MutationCtx, visit: Omit<Doc<"visitLedger">, "_i
 export async function createVisit(ctx: MutationCtx, a: Location & { key: string; takeoverId: Id<"takeovers">; visitorHash: string; occurredAt: number; freshReign: boolean }) {
   const { country, city, source } = visitLocation(a);
   const visit = { key: a.key, takeoverId: a.takeoverId, visitorHash: a.visitorHash, occurredAt: a.occurredAt, date: new Date(a.occurredAt).toISOString().slice(0, 10), country, city, locationSource: source, sources: [source], freshReign: a.freshReign };
-  await ctx.db.insert("visitLedger", visit);
+  const id = await ctx.db.insert("visitLedger", visit);
   await regionDelta(ctx, a.takeoverId, country, 1, Number(a.freshReign));
   await updateRadar(ctx, visit);
+  return id;
 }
 export async function enrichVisit(ctx: MutationCtx, row: Doc<"visitLedger">, a: Location & { visitorHash: string }) {
   if (row.visitorHash !== a.visitorHash) throw Error("Visit identity mismatch");
@@ -36,6 +38,18 @@ export async function enrichVisit(ctx: MutationCtx, row: Doc<"visitLedger">, a: 
   if (country !== row.country) {
     await regionDelta(ctx, row.takeoverId, row.country, -1, -Number(row.freshReign));
     await regionDelta(ctx, row.takeoverId, country, 1, Number(row.freshReign));
+  }
+  if (row.cityBatchId && (country !== row.country || city !== row.city)) {
+    const batch = await ctx.db.get(row.cityBatchId);
+    if (batch) {
+      const cities = batch.cities ?? [];
+      addCityDelta(cities, row.city, row.country, -1);
+      addCityDelta(cities, city, country, 1);
+      await ctx.db.patch(batch._id, { cities: cities.filter(r => r.views !== 0) });
+    } else {
+      await applyCityDelta(ctx, row.date, { city: row.city, country: row.country, views: -1 });
+      await applyCityDelta(ctx, row.date, { city, country, views: 1 });
+    }
   }
   await ctx.db.patch(row._id, changes);
   await updateRadar(ctx, { ...row, ...changes });
@@ -55,8 +69,9 @@ export const cleanup = internalMutation({
     const cutoff = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
     const visits = await ctx.db.query("visitLedger").withIndex("by_date", q => q.lt("date", cutoff)).take(100);
     const visitors = await ctx.db.query("radarVisitors").withIndex("by_date_lastSeenAt", q => q.lt("date", cutoff)).take(100);
-    for (const row of [...visits, ...visitors]) await ctx.db.delete(row._id);
-    if (visits.length === 100 || visitors.length === 100) await ctx.scheduler.runAfter(0, internal.visitLedger.cleanup, {});
+    const cities = await ctx.db.query("dailyCityViews").withIndex("by_date_key", q => q.lt("date", cutoff)).take(100);
+    for (const row of [...visits, ...visitors, ...cities]) await ctx.db.delete(row._id);
+    if (visits.length === 100 || visitors.length === 100 || cities.length === 100) await ctx.scheduler.runAfter(0, internal.visitLedger.cleanup, {});
     return null;
   },
 });

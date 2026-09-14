@@ -1,3 +1,4 @@
+import { cityDelta } from "./radarCityModel";
 import { visitorPingAlert } from "./visitorPingWebhookModel";
 import { websiteGeography } from "./geographyModel";
 import { designAssets } from "./designAssets";
@@ -79,6 +80,7 @@ export default defineSchema({
     key: v.literal("email"),
     nextAt: v.number(),
   }).index("by_key", ["key"]),
+  dailyCityViews: defineTable({ date: v.string(), key: v.string(), city: v.string(), country: v.string(), views: v.number() }).index("by_date_key", ["date", "key"]),
   analyticsBatches: defineTable({
     takeoverId: v.id("takeovers"),
     date: v.string(),
@@ -89,6 +91,7 @@ export default defineSchema({
     siteVisitors: v.number(),
     dailyVisitors: v.number(),
     funnelVisits: v.number(),
+    cities: v.optional(v.array(cityDelta)),
     regions: v.array(
       v.object({
         code: v.string(),
@@ -239,6 +242,7 @@ export default defineSchema({
 
   visitLedger: defineTable({
     key: v.string(), takeoverId: v.id("takeovers"), visitorHash: v.string(),
+    cityBatchId: v.optional(v.id("analyticsBatches")),
     occurredAt: v.number(), date: v.string(), country: v.string(), city: v.string(),
     locationSource: v.union(v.literal("vercel"), v.literal("visitorping")),
     sources: v.array(v.union(v.literal("vercel"), v.literal("visitorping"))), freshReign: v.boolean(),

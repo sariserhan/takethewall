@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useConvexConnectionState } from "convex/react";
+import { useConvexConnectionState, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { geoArea, geoCentroid, geoEquirectangular, geoPath } from "d3-geo";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import { useRadarVisitors } from "./use-radar-visitors";
 import { cityLookup, type CityCenter } from "@/lib/radar-geography";
-import citySnapshot from "@/lib/radar-city-snapshot.json";
 import styles from "./wall-radar.module.css";
 type Country = Feature<Geometry, { name: string; code: string }>;
 type Arrival = {
@@ -13,7 +13,6 @@ type Arrival = {
   receivedAt: number;
   city: string;
   country: string;
-  visitors?: number;
   views?: number;
   label?: string;
 };
@@ -22,7 +21,9 @@ const place = (row: Arrival) =>
 export function WallRadar() {
   const live = useRadarVisitors();
   const [requestedMode, setMode] = useState<"cities" | "live">("cities");
-  const report = citySnapshot.date === new Date().toISOString().slice(0, 10) ? citySnapshot : null;
+  const wall = useQuery(api.wall.current, {});
+  const today = new Date().toISOString().slice(0, 10);
+  const report = wall?.radarCities ? wall.utcDate === today ? wall.radarCities : { date: today, views: 0, uniqueVisitors: 0, historicalThrough: null, cities: [] } : null;
   const mode = report ? requestedMode : "live";
   const connection = useConvexConnectionState();
   const [held, setHeld] = useState<Arrival[] | null>(null);
@@ -34,7 +35,7 @@ export function WallRadar() {
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seen = useRef<Set<string> | null>(null);
   const rows: Arrival[] = mode === "cities"
-    ? (report?.cities ?? []).map(city => ({ id: "city:" + city.label, receivedAt: 0, city: city.city, country: city.country, visitors: city.visitors, views: city.views, label: city.label }))
+    ? (report?.cities ?? []).map(city => ({ id: "city:" + city.label, receivedAt: 0, city: city.city, country: city.country, views: city.views, label: city.label }))
     : held ?? live ?? [];
   useEffect(() => {
     const controller = new AbortController();
@@ -133,17 +134,17 @@ export function WallRadar() {
   return (
     <section
       className={styles.radar}
-      aria-label={mode === "cities" ? "Saved visits by city" : "Unique visitors today"}
+      aria-label={mode === "cities" ? "Visits by city today" : "Unique visitors today"}
       data-testid="radar"
     >
       <header className={styles.heading}>
         <div>
-          <span className={styles.eyebrow}>RADAR · UNIQUE VISITORS TODAY</span>
+          <span className={styles.eyebrow}>{mode === "cities" ? "RADAR · VISITS BY CITY" : "RADAR · UNIQUE VISITORS TODAY"}</span>
           <h2>The world, dropping by.</h2>
-          <p>{mode === "cities" ? "Saved city breakdown from VisitorPing. New arrivals continue in Live visitors." : "Today’s visitors, counted once per browser across both tracking sources."}</p>
+          <p>{mode === "cities" ? "Today’s visits grouped by city, including repeat views. Totals match the wall’s daily view counter." : "Today’s visitors, counted once per browser across both tracking sources."}</p>
         </div>
         <span className={styles.status}>
-          {mode === "cities" ? "SAVED SNAPSHOT" : held
+          {mode === "cities" ? "LIVE CITY TOTALS" : held
             ? "FEED PAUSED"
             : connection.isWebSocketConnected
               ? "LISTENING"
@@ -151,7 +152,7 @@ export function WallRadar() {
         </span>
       </header>
       <div className={styles.controls}>
-        {report && <button aria-pressed={mode === "cities"} onClick={() => { setMode("cities"); setSelected(""); }}>Saved cities</button>}
+        {report && <button aria-pressed={mode === "cities"} onClick={() => { setMode("cities"); setSelected(""); }}>Cities</button>}
         <button aria-pressed={mode === "live"} onClick={() => { setMode("live"); setSelected(""); }}>Live visitors</button>
         {mode === "live" && <button
           onClick={() => {
@@ -163,7 +164,7 @@ export function WallRadar() {
           {held ? "Resume arrivals" : "Pause arrivals"}
         </button>}
         <span>
-          {mode === "cities" ? report ? `${report.views} visits · ${report.uniqueVisitors} unique visitors · saved snapshot` : "Loading cities…" : `${rows.length} unique visitors shown today (UTC)${rows.length === 50 ? " · most recent 50" : ""}`}
+          {mode === "cities" ? report ? `${report.views} visits · ${report.uniqueVisitors} unique visitors · today (UTC)` : "Loading cities…" : `${rows.length} unique visitors shown today (UTC)${rows.length === 50 ? " · most recent 50" : ""}`}
         </span>
       </div>
       <p className={styles.note}>
@@ -240,7 +241,7 @@ export function WallRadar() {
               <>
                 <strong>{place(latest)}</strong>
                 <span>
-                  {mode === "cities" ? `${latest.views} ${latest.views === 1 ? "visit" : "visits"} · ${latest.visitors} unique ${latest.visitors === 1 ? "visitor" : "visitors"}` : `First seen today · ${new Date(latest.receivedAt).toISOString().slice(11, 19)} UTC`}
+                  {mode === "cities" ? `${latest.views} ${latest.views === 1 ? "visit" : "visits"} today` : `First seen today · ${new Date(latest.receivedAt).toISOString().slice(11, 19)} UTC`}
                 </span>
               </>
             ) : (
@@ -251,7 +252,7 @@ export function WallRadar() {
                     : "Waiting for today’s first visitor."}
                 </strong>
                 <span>
-                  {mode === "cities" ? "City counts come from VisitorPing’s wall impression events." : "Visitors appear when either tracking source records a verified view."}
+                  {mode === "cities" ? "Each accepted wall view counts once, even when both tracking sources report it." : "Visitors appear when either tracking source records a verified view."}
                 </span>
               </>
             )}
@@ -267,10 +268,10 @@ export function WallRadar() {
           </p>
         </div>
         <div className={styles.feed}>
-          <h3>{mode === "cities" ? "Saved cities" : "Today’s visitors"}</h3>
+          <h3>{mode === "cities" ? "Visits by city" : "Today’s visitors"}</h3>
           {!rows.length ? (
             <p>
-              {mode === "cities" ? report ? "No cities recorded yet today." : "No saved city report." : "No verified visitors yet today. New visits will appear here."}
+              {mode === "cities" ? report ? "No cities recorded yet today." : "City totals are loading." : "No verified visitors yet today. New visits will appear here."}
             </p>
           ) : (
             <ol aria-label={mode === "cities" ? "Visits by city" : "Arrival feed"}>
@@ -281,9 +282,9 @@ export function WallRadar() {
                     onClick={() => setSelected(row.id)}
                   >
                     <strong>{row.city || "Location not recorded"}{mode === "cities" ? ` · ${row.views} ${row.views === 1 ? "visit" : "visits"}` : ""}</strong>
-                    <span>{mode === "cities" ? `${row.visitors} unique ${row.visitors === 1 ? "visitor" : "visitors"} · ${row.label}` : row.country === "ZZ" ? "Location not recorded" : row.country}</span>
+                    <span>{mode === "cities" ? row.label : row.country === "ZZ" ? "Location not recorded" : row.country}</span>
                     <small>
-                      {mode === "cities" ? "Saved snapshot · includes repeat views" : `${new Date(row.receivedAt).toISOString().replace("T", " ").slice(0, 19)} UTC · first seen today`}
+                      {mode === "cities" ? "Today (UTC) · includes repeat views" : `${new Date(row.receivedAt).toISOString().replace("T", " ").slice(0, 19)} UTC · first seen today`}
                     </small>
                     <small>{precision}</small>
                   </button>
@@ -293,7 +294,7 @@ export function WallRadar() {
           )}
         </div>
       </div>
-      {mode === "cities" && report && <p className={styles.note}>VisitorPing city report through {new Date(report.to).toISOString().slice(11, 19)} UTC · one-time snapshot; no API refreshes. {report.truncated ? "Showing the top 100 city groups. " : ""}City totals are not added to live visitors. A browser seen in multiple cities can appear in more than one city group.</p>}
+      {mode === "cities" && report && <p className={styles.note}>City counts and the daily view total update together. {report.historicalThrough ? `Historical cities were imported once from VisitorPing through ${new Date(report.historicalThrough).toISOString().slice(11, 19)} UTC. ` : ""}New views use our shared visit records. Visits without a recorded location are included in “Location not recorded.” No recurring VisitorPing API calls.</p>}
       {mode === "live" && <p className={styles.note}>
         Sources: Vercel and <a href="https://visitorping.com/" target="_blank" rel="noopener noreferrer">VisitorPing</a>.
         Matching page views are merged using a shared signed identifier. Each

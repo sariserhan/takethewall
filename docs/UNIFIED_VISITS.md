@@ -45,8 +45,12 @@ Deploy the wall backend and receiver before the VisitorPing consumer. This imple
 
 On 2026-09-14 the authorized production backfill inserted 12 missing identities and preserved 1 existing entry. Production verification showed 13 Radar entries matching 13 daily unique browsers. Twelve locations remain unknown; legacy webhook cities were not guessed onto browser identities.
 
-## One-time Radar city snapshot
+## Live city visits with a one-time historical snapshot
 
-`lib/radar-city-snapshot.json` is a one-time city breakdown fetched from VisitorPing, scoped to non-bot `wall_impression` events on the recorded UTC date. The matching analytics total provides distinct visitors; independently deduplicated city groups are not summed. It contains only coarse city labels and aggregate counts.
+`lib/radar-city-snapshot.json` is the one-time VisitorPing city breakdown for its recorded UTC date. Radar does not call VisitorPing's API at runtime. The snapshot supplies historical city visit counts only when the canonical daily total can accommodate them; its distinct visitor counts are never added to the wall's visitor count.
 
-Radar reads this local snapshot with no runtime API request, polling, or refresh endpoint. It labels the saved cutoff explicitly and offers the independent Live visitors view for ongoing webhook/direct tracking. The saved city option disappears after its UTC date ends; live tracking remains. Snapshot groups are never assigned to individual historical browser identities or added to the live visitor total.
+New ledger impressions carry their analytics batch ID. Each batch holds per-city view deltas and updates `dailyCityViews` in the same transaction as `dailyStats.impressions`. A duplicate delivery can correct the pending batch or already-flushed city aggregate, without adding another view. Cities normalize the `Ft.` abbreviation to `Fort` so new Fort Washington views join the historical group. Views dated before the historical snapshot cutoff are not added to the historical city totals again.
+
+`wall.current` returns the daily view count and reconciled city breakdown together. The displayed groups sum to that exact view total. Any older views without a recoverable city, omitted groups beyond the bounded query, or legacy pending batches appear in a Location not recorded remainder. No city is guessed to make the numbers match. The UI subscribes to that same wall query; Live visitors remains a separate distinct-browser view. On subsequent UTC days there is no historical snapshot, and new city views continue from zero through the shared analytics pipeline.
+
+Validated with delivery order, repeat views, geography corrections before/after flush, one-time historical counts, missing geography, and a browser fixture that updated the wall and Radar from 49 to 50 together without API requests. City history follows the ledger's seven-day cleanup window. This change is verified on development; production rollout remains separate.
