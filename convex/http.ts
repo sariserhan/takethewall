@@ -173,6 +173,12 @@ http.route({
         case "event":
           result = await ctx.runMutation(internal.analytics.record, args);
           break;
+        case "presenceHeartbeat":
+          result = await ctx.runMutation(internal.wallPresence.heartbeat, args);
+          break;
+        case "presenceDisconnect":
+          result = await ctx.runMutation(internal.wallPresence.disconnect, args);
+          break;
         case "context":
           result = await ctx.runQuery(internal.wall.activeContext, args);
           break;

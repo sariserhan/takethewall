@@ -247,6 +247,9 @@ export default defineSchema({
     locationSource: v.union(v.literal("vercel"), v.literal("visitorping")),
     sources: v.array(v.union(v.literal("vercel"), v.literal("visitorping"))), freshReign: v.boolean(),
   }).index("by_key", ["key"]).index("by_date", ["date"]),
+  presenceLocations: defineTable({
+    visitorHash: v.string(), city: v.string(), country: v.string(),
+  }).index("by_visitorHash", ["visitorHash"]),
   radarVisitors: defineTable({
     date: v.string(), visitorHash: v.string(), firstSeenAt: v.number(), lastSeenAt: v.number(),
     lastVisitKey: v.string(), country: v.string(), city: v.string(),

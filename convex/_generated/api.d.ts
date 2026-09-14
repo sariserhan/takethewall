@@ -66,6 +66,7 @@ import type * as visitorPingWebhook from "../visitorPingWebhook.js";
 import type * as visitorPingWebhookModel from "../visitorPingWebhookModel.js";
 import type * as visitorping from "../visitorping.js";
 import type * as wall from "../wall.js";
+import type * as wallPresence from "../wallPresence.js";
 import type * as wallSubscriptions from "../wallSubscriptions.js";
 import type * as wallVotes from "../wallVotes.js";
 import type * as websiteGeography from "../websiteGeography.js";
@@ -136,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   visitorPingWebhookModel: typeof visitorPingWebhookModel;
   visitorping: typeof visitorping;
   wall: typeof wall;
+  wallPresence: typeof wallPresence;
   wallSubscriptions: typeof wallSubscriptions;
   wallVotes: typeof wallVotes;
   websiteGeography: typeof websiteGeography;
@@ -170,4 +172,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  presence: import("@convex-dev/presence/_generated/component.js").ComponentApi<"presence">;
 };

@@ -34,7 +34,7 @@ export function browserIdentity() {
   }
   return { visitorId, pageId };
 }
-async function context(takeoverId: string) {
+export async function context(takeoverId: string) {
   const old = contexts.get(takeoverId);
   if (old && old.expiresAt > Date.now() + 5000) return old;
   const inflight = requests.get(takeoverId);

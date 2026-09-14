@@ -24,6 +24,7 @@ import { WallSubscription } from "./wall-subscription";
 import { MilestoneAlerts } from "./milestone-alerts";
 import { ReportContent } from "./report-content";
 import { WallCanvas } from "./wall-canvas";
+import { WallPresence } from "./wall-presence";
 import { RadarArrivalSound } from "./radar-arrival-sound";
 import { StatShare } from "./stat-share";
 import { StatDetails } from "./stat-details";
@@ -68,6 +69,7 @@ function Connected() {
   return (
     <>
     <RadarArrivalSound />
+    <WallPresence takeoverId={data?.owner?.id} />
     <WallView
       data={data}
       checkoutPaused={controls?.paused ?? false}
