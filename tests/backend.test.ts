@@ -260,6 +260,7 @@ describe("attribution and abuse controls", () => {
     expect(await t.query(api.wall.current, {})).toMatchObject({
       totalVisitors: 1,
       visitorsToday: 1,
+      viewsToday: 2,
       owner: { impressions: 2, uniqueVisitors: 1 },
       regions: [{ regionCode: "US", impressions: 2 }],
     });

@@ -5,7 +5,6 @@ import { geoArea, geoCentroid, geoEquirectangular, geoPath } from "d3-geo";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
 import { api } from "@/convex/_generated/api";
 import { cityLookup, type CityCenter } from "@/lib/radar-geography";
-import { WallToolIcon } from "./wall-tool-icon";
 import styles from "./wall-radar.module.css";
 type Country = Feature<Geometry, { name: string; code: string }>;
 type Arrival = {
@@ -22,14 +21,11 @@ export function WallRadar() {
   const [held, setHeld] = useState<Arrival[] | null>(null);
   const [countries, setCountries] = useState<Country[]>([]),
     [cities, setCities] = useState<CityCenter[]>([]);
-  const [mapReady, setMapReady] = useState(false),
-    [sound, setSound] = useState(false),
-    [soundError, setSoundError] = useState("");
+  const [mapReady, setMapReady] = useState(false);
   const [flashes, setFlashes] = useState<string[]>([]),
     [selected, setSelected] = useState("");
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const audio = useRef<AudioContext | null>(null),
-    seen = useRef<Set<string> | null>(null);
+  const seen = useRef<Set<string> | null>(null);
   const rows = held ?? live ?? [];
   useEffect(() => {
     const controller = new AbortController();
@@ -115,44 +111,15 @@ export function WallRadar() {
       .map((row) => row.id);
     if (!fresh.length) return;
     setFlashes(fresh);
-    if (sound && audio.current?.state === "running") {
-      const ctx = audio.current,
-        osc = ctx.createOscillator(),
-        gain = ctx.createGain();
-      osc.frequency.value = 660;
-      gain.gain.setValueAtTime(0.035, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.2);
-    }
     if (flashTimer.current) clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setFlashes([]), 6000);
-  }, [live, held, sound]);
+  }, [live, held]);
   useEffect(
     () => () => {
       if (flashTimer.current) clearTimeout(flashTimer.current);
-      void audio.current?.close();
     },
     [],
   );
-  async function toggleSound() {
-    if (sound) {
-      setSound(false);
-      return;
-    }
-    try {
-      audio.current ??= new AudioContext();
-      await audio.current.resume();
-      setSound(true);
-      setSoundError("");
-    } catch {
-      setSoundError(
-        "Sound unavailable in this browser. Visual alerts still work.",
-      );
-    }
-  }
   const latest = rows[0];
   return (
     <section
@@ -184,16 +151,16 @@ export function WallRadar() {
         >
           {held ? "Resume arrivals" : "Pause arrivals"}
         </button>
-        <button onClick={() => void toggleSound()} aria-pressed={sound}>
-          <WallToolIcon name={sound ? "sound" : "muted"} />
-          Sound {sound ? "on" : "off"}
-        </button>
         <span>
-          {rows.length} recent {rows.length === 1 ? "alert" : "alerts"} · up to
-          50 shown
+          {rows.length} received {rows.length === 1 ? "alert" : "alerts"}
+          {rows.length === 50 ? " · latest 50 deliveries" : ""}
         </span>
       </div>
-      {soundError && <p role="status">{soundError}</p>}
+      <p className={styles.note}>
+        Arrival sound is enabled across the wall, even when Radar is closed.
+        Click or tap anywhere first to allow audio. Pausing this feed pauses its
+        display only.
+      </p>
       <div className={styles.layout}>
         <div className={styles.visual}>
           <svg
@@ -323,9 +290,10 @@ export function WallRadar() {
         </div>
       </div>
       <p className={styles.note}>
-        Arrival alerts are not an online-user count or a complete traffic feed.
-        Times show when we received each alert; delayed, test, or repeat
-        deliveries can appear. Hot-lead alerts are excluded.
+        Source: <a href="https://visitorping.com/" target="_blank" rel="noopener noreferrer">VisitorPing</a>.
+        Radar shows received alerts, not unique visitors. Repeat deliveries can
+        appear, so this count may differ from the VisitorPing dashboard. Times
+        show when each alert reached the wall.
       </p>
       <p className={styles.note}>
         Locations:{" "}

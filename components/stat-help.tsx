@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef } from "react";
 
 const explanations: Record<string, string> = {
+  "VIEWS TODAY (UTC)": "Counted views of the wall since midnight UTC, including repeat visits. Each page counts once per takeover; duplicate tracking deliveries do not add views.",
+  "UNIQUE VISITORS · ALL TIME": "Distinct browsers recorded across the website’s lifetime. Repeat visits do not add to this count. Separate devices or cleared browser storage can count again.",
   "VISITORS TODAY (UTC)":
     "Distinct browsers that viewed the wall today, from midnight UTC. A returning browser counts once per UTC day. Different devices or cleared browser storage can count separately.",
   "TOTAL VISITORS":

@@ -24,6 +24,7 @@ import { WallSubscription } from "./wall-subscription";
 import { MilestoneAlerts } from "./milestone-alerts";
 import { ReportContent } from "./report-content";
 import { WallCanvas } from "./wall-canvas";
+import { RadarArrivalSound } from "./radar-arrival-sound";
 import { StatShare } from "./stat-share";
 import { StatDetails } from "./stat-details";
 import { StatHelp } from "./stat-help";
@@ -65,11 +66,14 @@ function Connected() {
   const controls = useQuery(api.checkoutControls.state);
   const connection = useConvexConnectionState();
   return (
+    <>
+    <RadarArrivalSound />
     <WallView
       data={data}
       checkoutPaused={controls?.paused ?? false}
       connected={hydrated && connection.isWebSocketConnected}
     />
+    </>
   );
 }
 function Clock({ since }: { since: number }) {
@@ -219,6 +223,11 @@ function WallView({
       ? data.visitorsToday
       : 0
     : undefined;
+  const viewsToday = data
+    ? data.utcDate === new Date().toISOString().slice(0, 10)
+      ? data.viewsToday
+      : 0
+    : undefined;
   const regions = topRegions(data?.regions ?? []);
   const takeWall = () => {
     setOpen(true);
@@ -294,15 +303,16 @@ function WallView({
         )}
         <section className="site-metrics" aria-label="Site analytics">
           <Metric
-            label="VISITORS TODAY (UTC)"
+            label="VIEWS TODAY (UTC)"
             action={<StatToolButton name="Radar" onClick={() => setLabPanel("Radar")} />}
-            value={numbers(realToday)}
+            value={numbers(viewsToday)}
           />
           <Metric
-            label="TOTAL VISITORS"
+            label="UNIQUE VISITORS · ALL TIME"
             action={<StatDetails label="Visitor totals" title="Website visitor totals" rows={[
-              { label: "Recorded visitors · all time", value: numbers(data?.totalVisitors) },
-              { label: "Recorded visitors · today (UTC)", value: numbers(realToday) },
+              { label: "Unique visitors · all time", value: numbers(data?.totalVisitors) },
+              { label: "Unique visitors · today (UTC)", value: numbers(realToday) },
+              { label: "Views · today (UTC)", value: numbers(viewsToday) },
             ]}><p>All-time visitors are distinct browsers recorded across the website’s lifetime. Today’s visitors are counted separately for the current UTC day; these two totals should not be added together.</p></StatDetails>}
             value={numbers(
               data?.totalVisitors,

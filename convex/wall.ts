@@ -15,6 +15,7 @@ export const current = query({
       totalTakeovers: v.number(),
       numberingOffset: v.optional(v.number()),
       visitorsToday: v.number(),
+      viewsToday: v.number(),
       utcDate: v.string(),
       regions: v.array(
         v.object({ regionCode: v.string(), impressions: v.number() }),
@@ -68,6 +69,7 @@ export const current = query({
       totalTakeovers: s.totalTakeovers + (s.numberingOffset ?? 0),
       ...(s.numberingOffset ? { numberingOffset: s.numberingOffset } : {}),
       visitorsToday: d?.visitors ?? 0,
+      viewsToday: d?.impressions ?? 0,
       utcDate,
       regions: r.map((x) => ({
         regionCode: x.regionCode,
