@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ImageUpload } from "./image-upload";
 import { WallCanvas } from "./wall-canvas";
+import { Arrow } from "./arrow";
 import {
   withPrimaryImage,
   designImageKeys,
@@ -179,7 +180,7 @@ export default function WallDesigner({
             to 24 blocks.
           </p>
         </div>
-        <div className="designer-actions">
+        <div className="designer-actions designer-mode" aria-label="Design mode">
           <button
             type="button"
             aria-pressed={!d}
@@ -215,27 +216,26 @@ export default function WallDesigner({
         <section className="design-examples" aria-label="Example wall designs">
           <h4>Start with a look. Make it yours.</h4>
           <p>
-            Example designs, not live takeovers. Applying a look keeps your
-            name, message and uploaded image.
+            Choose a starting layout. Your text and uploaded image stay yours.
           </p>
           <div className="design-example-grid">
             {[
               {
                 key: "launch",
                 label: "Product launch",
-                heading: "MEET YOUR NEXT BIG IDEA.",
+                heading: "MEET YOUR NEXT IDEA.",
                 text: "A home for what you’re building.",
               },
               {
                 key: "poster",
                 label: "Bold poster",
-                heading: "IMPOSSIBLE TO IGNORE.",
+                heading: "MAKE SOME NOISE.",
                 text: "Your message. Front and center.",
               },
               {
                 key: "message",
                 label: "Personal message",
-                heading: "THIS MOMENT IS YOURS.",
+                heading: "YOUR MOMENT.",
                 text: "Celebrate someone. Say something.",
               },
             ].map((example) => (
@@ -258,11 +258,11 @@ export default function WallDesigner({
                 <span className="design-example-art" aria-hidden="true">
                   <b>{example.heading}</b>
                   <span>{example.text}</span>
-                  <i>{example.key === "message" ? "♥" : "Discover more ↗"}</i>
+                  <i>{example.key === "message" ? "Made for you" : "Discover more"}</i>
                 </span>
                 <span className="design-example-caption">
                   Use {example.label.toLowerCase()}{" "}
-                  <span aria-hidden="true">↗</span>
+                  <Arrow />
                 </span>
               </button>
             ))}

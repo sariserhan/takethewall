@@ -1151,3 +1151,22 @@ test("launch checklist shares only the public referral URL and supplies a banner
   await page.screenshot({path:`/tmp/launch-checklist-${info.project.name}.png`});
   expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
 });
+
+test("example cards fit a narrow designer even on a desktop viewport", async ({page}, info) => {
+  await wallFixture(page);
+  await page.goto("/?take=1");
+  const dialog=page.getByRole("dialog",{name:"MAKE IT YOURS."});
+  const designer=dialog.getByRole("region",{name:"Wall Designer"});
+  await designer.evaluate(el => { el.style.width="440px"; el.style.maxWidth="100%"; el.style.boxSizing="border-box"; });
+  const cards=designer.locator(".design-example");
+  await expect(cards).toHaveCount(3);
+  await designer.scrollIntoViewIfNeeded();
+  const boxes=await cards.evaluateAll(nodes => nodes.map(el => { const r=el.getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,overflow:el.scrollWidth>el.clientWidth+1}; }));
+  expect(boxes[1].x).toBe(boxes[0].x);
+  expect(boxes[1].y).toBeGreaterThan(boxes[0].y);
+  expect(boxes.every(box => box.height < 210 && !box.overflow)).toBe(true);
+  expect(await designer.locator(".design-example-art b").evaluateAll(nodes => nodes.every(el => el.scrollWidth<=el.clientWidth+1))).toBe(true);
+  await designer.screenshot({path:`/tmp/design-cards-${info.project.name}.png`});
+  await designer.getByRole("button",{name:"Use product launch"}).click();
+  await expect(designer.locator(".designer-stage")).toBeVisible();
+});
