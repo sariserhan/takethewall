@@ -1471,3 +1471,19 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
   .audience-row .keep-or-yeet h2{font-size:36px}
   .audience-row .keep-or-yeet .vote-controls{margin-top:20px}
 }
+
+/* Keep the purchase and two reward paths ahead of optional participation. */
+.reward-path-milestone { border-top: 4px solid var(--ink) !important; }
+.reward-path-referral { border-top: 4px solid #8b5cf6 !important; }
+.wall-explore { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--rule); }
+.wall-explore-heading h2 { margin: 0; font: 26px/1.2 var(--display); }
+.wall-explore-heading p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.wall-explore .wall-tools { margin-top: 16px; }
+.founder-launch-kit { border: 1px solid var(--rule); padding: clamp(16px, 3vw, 28px); margin: 24px 0; }
+.founder-launch-kit > summary { font-weight: 700; cursor: pointer; }
+.founder-launch-kit p, .founder-launch-kit li { line-height: 1.6; }
+.founder-launch-kit label { display: grid; gap: 8px; margin: 16px 0; font-weight: 600; min-width: 0; }
+.founder-launch-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.founder-launch-kit :is(input, textarea, select) { width: 100%; box-sizing: border-box; font-weight: 400; }
+.founder-launch-kit .owner-share-actions > :is(button, a) { min-height: 44px; border: 1px solid var(--ink); padding: 12px 16px; font: 600 13px var(--body); }
+@media (max-width: 600px) { .founder-launch-fields { grid-template-columns: minmax(0, 1fr); gap: 0; } }

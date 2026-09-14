@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { FounderLaunchKit } from "./founder-launch-kit";
 import { AdminCommunity } from "./admin-community";
 import { TakeoverShare } from "./takeover-share";
 export function AdminGrowth() {
@@ -20,6 +21,7 @@ export function AdminGrowth() {
   return (
     <section>
       <h2>Growth & sharing</h2>
+      <FounderLaunchKit />
       <AdminCommunity />
       <label className="check-label">
         <input

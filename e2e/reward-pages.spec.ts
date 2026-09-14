@@ -289,3 +289,33 @@ test("Provisional referral leader updates on cards and the permanent page", asyn
     ),
   ).toBe(true);
 });
+
+
+test("First visit leads from purchase to rewards before optional tools", async ({page}, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await fixture(page, {status:"future", outboundLinkEnabled:false});
+  await page.goto("/");
+  await expect(page).toHaveTitle(/Take The Wall/);
+  await expect(page.locator(".strap")).toContainText("Your project. This entire wall.");
+  const prizes = page.locator("#cash-prizes");
+  await expect(prizes).toBeVisible();
+  expect(await page.evaluate(() => {
+    const purchase = document.querySelector(".purchase-band")!;
+    const prizes = document.querySelector("#cash-prizes")!;
+    const tools = document.querySelector(".wall-explore")!;
+    return !!(purchase.compareDocumentPosition(prizes) & Node.DOCUMENT_POSITION_FOLLOWING)
+      && !!(prizes.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING);
+  })).toBe(true);
+  await prizes.evaluate(el => el.scrollIntoView({block:"start"}));
+  await page.screenshot({path:`/tmp/launch-home-${info.project.name}.png`});
+  await page.getByRole("heading", {name:"Explore the wall", exact:true}).scrollIntoViewIfNeeded();
+  const playground=page.getByRole("button", {name:"Playground",exact:true});
+  await playground.click();
+  await expect(playground).toHaveAttribute("aria-expanded","true");
+  await expect(page.locator("#playground-controls")).toBeVisible();
+  await page.locator(".purchase-band button").click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

@@ -248,7 +248,7 @@ function WallView({
         <header className="masthead">
           <MagneticTitle />
           <div className="strap">
-            <p>One wall. One owner. Who’s next?</p>
+            <p>Your project. This entire wall. Until the next takeover.</p>
             <span className="connection">
               <i className={connected ? "online" : ""} />
               {connected ? "LIVE" : "CONNECTING"}
@@ -531,7 +531,7 @@ function WallView({
         <section className="purchase-band">
           <strong className="price">$4.99</strong>
           <p>
-            Your website, social profile, app, or message.
+            Design your wall. Preview it. Make it live.
             <br />
             It stays until the next takeover replaces it.
           </p>
@@ -546,6 +546,7 @@ function WallView({
           </button>
         </section>
       </div>
+      <HomepageMilestones />
       {owner && (
         <div className="audience-row">
           <KeepOrYeet key={"vote:"+owner.id} takeoverId={owner.id} name={owner.displayName} />
@@ -554,7 +555,6 @@ function WallView({
       )}
       {owner && <MicroAma key={owner.id} takeoverId={owner.id} name={owner.displayName} />}
       <CommunityEvent />
-      <HomepageMilestones />
       <HallOfFame />
       <CrumblingWall />
       <Gazette />
@@ -572,6 +572,11 @@ function WallView({
         <WallSubscription />
         <MilestoneAlerts />
       </section>
+      <section className="wall-explore" aria-labelledby="wall-explore-title">
+        <div className="wall-explore-heading">
+          <h2 id="wall-explore-title">Explore the wall</h2>
+          <p>Share it, inspect it, or play. These tools are optional.</p>
+        </div>
       <div className="wall-tools">
         <div className="wall-tools-primary">
         <HackerTerminal
@@ -607,6 +612,7 @@ function WallView({
             <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>
       </div>
+      </section>
       <PublicFooter home />
       <ResumeCheckout />
       <PurchaseSheet

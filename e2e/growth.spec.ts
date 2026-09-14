@@ -249,6 +249,15 @@ test("admin prepares a social post and reviews search eligibility within /admin"
   });
   await page.goto("/admin");
   await page.getByRole("button", { name: "growth", exact: true }).click();
+  const launch = page.locator(".founder-launch-kit");
+  await expect(launch).toBeVisible();
+  await launch.getByLabel("Project name (optional)").fill("Raven Studio");
+  await launch.getByLabel("Channel", {exact:true}).selectOption("linkedin");
+  await expect(launch.getByLabel("Trackable homepage link")).toHaveValue(/utm_source=linkedin.*utm_campaign=founder_pilot/);
+  await expect(launch.getByLabel("Invitation draft")).toHaveValue(/Would you try it with Raven Studio/);
+  await expect(launch.getByRole("link", {name:"Download results sheet"})).toHaveAttribute("download", "");
+  await launch.scrollIntoViewIfNeeded();
+  await page.screenshot({path:`/tmp/founder-kit-${info.project.name}.png`});
   const historyToggle = page.getByRole("checkbox", {
     name: "Show Wall History publicly",
   });

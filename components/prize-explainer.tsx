@@ -25,7 +25,7 @@ export function PrizeExplainer({
   const next = ordered.find((m) => m.number > data.currentNumber);
   const format = (n: number) => n.toLocaleString("en-US");
   return (
-    <section className="prize-explainer" aria-labelledby="prize-title">
+    <section id="cash-prizes" className="prize-explainer" aria-labelledby="prize-title">
       {demo && (
         <p className="demo-progress-notice">
           <strong>DEMO PROGRESS</strong> — Displayed progress combines real
@@ -43,38 +43,10 @@ export function PrizeExplainer({
             : "YOUR TIME ON THE WALL."}
         </h2>
         <p>
-          Put your content here for $4.99 plus applicable tax. It stays until
-          the next takeover replaces it.
+          {next
+            ? "Your placement is the purchase. The rewards are a separate opportunity to qualify."
+            : "All prize milestones have been reached. Follow their winner pages below."}
         </p>
-        {next ? (
-          <>
-            <p className="prize-claim-summary">
-              <strong>
-                Reward A · ${format(next.rewardUsd)} · Reach the milestone
-              </strong>
-              <br />
-              The qualifying takeover at #{format(next.number)} starts a claim
-              for this cash prize.
-            </p>
-            {next.performance && (
-              <p className="prize-claim-summary">
-                <strong>
-                  Reward B · ${format(next.performance.rewardUsd)} · Bring the
-                  most visitors
-                </strong>
-                <br />
-                Share your referral link. The eligible entrant with the most
-                verified referrals in this milestone’s cohort starts a separate
-                cash-prize claim.
-              </p>
-            )}
-          </>
-        ) : (
-          <p>
-            All prize milestones have been reached. Follow their winner pages
-            below.
-          </p>
-        )}
         <p>
           Prizes require eligibility verification. Purchasing does not guarantee
           a prize.
@@ -135,7 +107,7 @@ export function PrizeExplainer({
           className="reward-paths"
           aria-label="Ways to qualify for a cash prize"
         >
-          <article>
+          <article className="reward-path-milestone">
             <span className="eyebrow">REWARD A · MILESTONE PLACEMENT</span>
             <h3>REACH #{format(next.number)}</h3>
             <strong>${format(next.rewardUsd)} reward</strong>
@@ -148,7 +120,7 @@ export function PrizeExplainer({
             </Link>
           </article>
           {next.performance && (
-            <article>
+            <article className="reward-path-referral">
               <span className="eyebrow">REWARD B · REFERRAL LEADER</span>
               <h3>BRING THE MOST VISITORS</h3>
               <strong>${format(next.performance.rewardUsd)} reward</strong>
