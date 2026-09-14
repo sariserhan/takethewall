@@ -8,6 +8,16 @@ Take The Wall is a public internet experiment. A website, app, social profile, o
 
 Browsing is free. A verified $4.99 USD purchase replaces the current owner; there is no guaranteed duration or audience.
 
+<!-- founder-pilot -->
+## Try the three-founder pilot
+
+I’m looking for three founders to put their projects on the wall and try sharing their referral links. No purchase is required: the official free email-entry route is available, subject to review. No guaranteed audience or time on the wall; the next activated takeover replaces yours.
+
+[Read the pilot invitation and entry details](https://github.com/sariserhan/company-operator/blob/main/marketing/takethewall/founder-pilot/INVITATION.md) · [Try your design](https://www.takethewall.com/?take=1&utm_source=github&utm_medium=community&utm_campaign=three_founders&utm_content=project_readme)
+
+Interested? Email **contact@takethewall.com** with subject **Founder pilot** and your project URL. This expresses interest; it is not automatic entry or a reserved slot. A sharing window will be agreed after participants are confirmed. The pilot adds no separate prize; existing rewards follow the [Reward Rules](https://www.takethewall.com/?info=rewards).
+<!-- /founder-pilot -->
+
 ## Run locally
 
 Requires Node.js 22+ and npm. No consumer authentication exists.
