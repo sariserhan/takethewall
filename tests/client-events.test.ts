@@ -139,9 +139,7 @@ it("tracks browser events once per visible impression or click intent, independe
     "wall_owner_link_click",
     "take_wall_clicked",
   ]);
-  expect(
-    track.mock.calls.every(
-      (c) => JSON.stringify(c[1]) === JSON.stringify(metadata),
-    ),
-  ).toBe(true);
+  expect(track.mock.calls[0][1]).toEqual({ ...metadata, wallContext: "signed", wallEventId: expect.any(String) });
+  expect(track.mock.calls[1][1]).toEqual(metadata);
+  expect(track.mock.calls[2][1]).toEqual(metadata);
 });

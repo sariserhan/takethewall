@@ -1,6 +1,7 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
+crons.interval("Unified visit retention", { hours: 24 }, internal.visitLedger.cleanup, {});
 crons.interval("VisitorPing alert retention", {hours:24}, internal.visitorPingWebhook.cleanup, {});
 crons.interval(
   "initialize referral leaderboard indexes",
@@ -123,4 +124,5 @@ crons.interval(
   internal.whispers.cleanup,
   {},
 );
+crons.interval("expire referral delivery tokens", { minutes: 10 }, internal.growth.cleanupReferralDeliveries, {});
 export default crons;

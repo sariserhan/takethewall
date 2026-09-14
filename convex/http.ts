@@ -104,6 +104,12 @@ http.route({
         case "growthHistory":
           result = await ctx.runQuery(internal.growth.history, args);
           break;
+        case "referralPrepare":
+          result = await ctx.runMutation(internal.growth.prepareReferral, args);
+          break;
+        case "referralReceive":
+          result = await ctx.runMutation(internal.growth.receiveReferral, args);
+          break;
         case "referralVisit":
           result = await ctx.runMutation(internal.growth.visit, args);
           break;

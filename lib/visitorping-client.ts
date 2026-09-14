@@ -3,8 +3,11 @@ export interface VisitorPingProperties {
   ownerDomain: string;
   destination: string;
   country?: string;
+  wallContext?: string;
+  wallEventId?: string;
 }
 type Event =
+  | "wall_referral_visit"
   | "wall_impression"
   | "wall_owner_link_click"
   | "take_wall_clicked"
@@ -21,7 +24,7 @@ declare global {
 const once = new Set<string>();
 const pending: {
   event: Event;
-  data: VisitorPingProperties;
+  data: VisitorPingProperties | { wallReferralToken: string; referralPublicId: string };
   expires: number;
   key?: string;
   persist?: boolean;
@@ -52,11 +55,11 @@ function flush() {
 }
 export function trackVisitorPing(
   event: Event,
-  data: VisitorPingProperties,
+  data: VisitorPingProperties | { wallReferralToken: string; referralPublicId: string },
   options: { once?: boolean; persist?: boolean } = {},
 ) {
   if (typeof window === "undefined" || window.location.pathname !== "/") return;
-  const key = options.once ? event + ":" + data.takeoverId : undefined;
+  const key = options.once && "takeoverId" in data ? event + ":" + data.takeoverId : undefined;
   if (key) {
     if (once.has(key)) return;
     try {

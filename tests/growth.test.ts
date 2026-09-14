@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
+import { ensureOwnerAccess } from "../convex/ownerModel";
 import { convexTest } from "convex-test";
 import schema from "../convex/schema";
 import { api, internal } from "../convex/_generated/api";
@@ -260,4 +261,41 @@ it("excludes authenticated owner visits, including another placement by the same
   expect(
     (await t.run((ctx) => ctx.db.get(source.takeoverId)))!.shareVisitors ?? 0,
   ).toBe(0);
+});
+
+it.each([true, false])("deduplicates opaque webhook referrals across delivery order (direct first: %s)", async directFirst => {
+  const { t, source, publicId } = await setup();
+  const visitorHash = "c".repeat(64), tokenHash = "d".repeat(64);
+  await t.mutation(internal.growth.prepareReferral, { publicId, visitorHash, tokenHash });
+  const issuedAt = Date.now();
+  vi.setSystemTime(issuedAt + 5100);
+  const callback = { publicId, tokenHash, occurredAt: Date.now() };
+  if (directFirst) await t.mutation(internal.growth.visit, { publicId, visitorHash });
+  expect(await t.mutation(internal.growth.receiveReferral, callback)).toBe(true);
+  await t.mutation(internal.growth.visit, { publicId, visitorHash });
+  await t.mutation(internal.growth.receiveReferral, callback);
+  expect((await t.run(ctx => ctx.db.get(source.takeoverId)))?.shareVisitors).toBe(1);
+  expect(await t.run(ctx => ctx.db.query("referralVisits").collect())).toHaveLength(1);
+});
+it("rejects unmatched, premature, stale and expired callbacks and owner self-referrals", async () => {
+  const { t, publicId, source } = await setup();
+  const tokenHash = "d".repeat(64);
+  const issuedAt = Date.now();
+  await t.mutation(internal.growth.prepareReferral, { publicId, visitorHash: "c".repeat(64), tokenHash });
+  for (const callback of [
+    { publicId, tokenHash, occurredAt: issuedAt + 4999 },
+    { publicId: "ttw_" + "0".repeat(32), tokenHash, occurredAt: issuedAt + 5100 },
+    { publicId, tokenHash: "e".repeat(64), occurredAt: issuedAt + 5100 },
+    { publicId, tokenHash, occurredAt: issuedAt + 120001 },
+  ]) {
+    vi.setSystemTime(issuedAt + 130000);
+    expect(await t.mutation(internal.growth.receiveReferral, callback)).toBe(false);
+  }
+  vi.setSystemTime(issuedAt + 86400_001);
+  expect(await t.mutation(internal.growth.receiveReferral, { publicId, tokenHash, occurredAt: issuedAt + 5100 })).toBe(false);
+  vi.stubEnv("CLAIM_TOKEN_SECRET", "c".repeat(40));
+  const access = await t.run(ctx => ensureOwnerAccess(ctx, source.takeoverId));
+  await t.mutation(internal.growth.prepareReferral, { publicId, visitorHash: "e".repeat(64), tokenHash: "f".repeat(64), ownerTokenHash: access!.tokenHash });
+  vi.setSystemTime(Date.now() + 5100);
+  expect(await t.mutation(internal.growth.receiveReferral, { publicId, tokenHash: "f".repeat(64), occurredAt: Date.now() })).toBe(false);
 });

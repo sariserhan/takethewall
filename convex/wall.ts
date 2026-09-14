@@ -71,7 +71,7 @@ export const current = query({
       visitorsToday: d?.visitors ?? 0,
       viewsToday: d?.impressions ?? 0,
       utcDate,
-      regions: r.map((x) => ({
+      regions: r.filter(x => x.impressions > 0).map((x) => ({
         regionCode: x.regionCode,
         impressions: x.impressions,
       })),

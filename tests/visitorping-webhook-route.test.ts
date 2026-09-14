@@ -43,8 +43,9 @@ function request(
   );
 }
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   vi.stubEnv("WALL_SERVER_SECRET", secret);
+  vi.stubEnv("WALL_TOKEN_SECRET", "t".repeat(48));
 });
 afterEach(() => vi.unstubAllEnvs());
 it("stores authenticated country/city alerts without touching visitor or reward totals", async () => {
@@ -170,4 +171,41 @@ it("reports safe validation reasons without echoing payload contents", async () 
     error: "Invalid VisitorPing alert: Unexpected site domain",
   });
   expect(mocks.backend).not.toHaveBeenCalled();
+});
+
+it("accepts authenticated shared views and replaces only location with provider data", async () => {
+  const { signContext } = await import("../lib/server");
+  const context = { takeoverId: "takeover-identifier-123", visitorHash: "signed-browser", pageId: "signed-page", region: "US", city: "New York", issuedAt: Date.now(), expiresAt: Date.now() + 300_000, excluded: false };
+  const result = await POST(request({ event: "wall.impression", data: { context: signContext(context), eventId: "valid-event-id-1234", location: { country: "AU", city: "Sydney" }, visitorHash: "forged-browser" } }));
+  expect(result.status).toBe(200);
+  expect(mocks.backend).toHaveBeenCalledWith("event", { ...context, region: "AU", city: "Sydney", event: "impression", eventId: "valid-event-id-1234", source: "visitorping" });
+});
+it("rejects forged shared context tokens before recording anything", async () => {
+  const result = await POST(request({ event: "wall.impression", data: { context: "forged." + "a".repeat(64), eventId: "valid-event-id-1234", location: { country: "AU", city: "Sydney" } } }));
+  expect(result.status).toBe(400);
+  expect(mocks.backend).not.toHaveBeenCalled();
+});
+it("keeps shared callback delivery retryable if persistence fails", async () => {
+  const { signContext } = await import("../lib/server");
+  mocks.backend.mockRejectedValueOnce(new Error("unavailable"));
+  const context = signContext({ takeoverId: "takeover-identifier-123", visitorHash: "signed-browser", pageId: "signed-page", region: "US", issuedAt: Date.now(), expiresAt: Date.now() + 300_000, excluded: false });
+  expect((await POST(request({ event: "wall.impression", data: { context, eventId: "valid-event-id-1234", location: { country: "AU", city: "Sydney" } } }))).status).toBe(503);
+});
+
+it("preserves a valid tracked ID while discarding other landing URL parameters", async () => {
+  const publicId = "ttw_" + "a".repeat(32);
+  const response = await POST(request({ ...payload, data: { ...payload.data, entryPage: `https://takethewall.com/?ref=${publicId}&token=private` } }));
+  expect(response.status).toBe(200);
+  const stored = JSON.stringify(mocks.backend.mock.calls);
+  expect(stored).toContain(publicId);
+  expect(stored).not.toContain("token=private");
+});
+it("forwards only the opaque token hash for a tracked referral and retries storage failures", async () => {
+  const data = { token: "b".repeat(64), publicId: "ttw_" + "a".repeat(32), occurredAt: Date.now() };
+  expect((await POST(request({ event: "wall.referral", data }))).status).toBe(200);
+  expect(mocks.backend).toHaveBeenCalledWith("referralReceive", expect.objectContaining({ publicId: data.publicId, occurredAt: data.occurredAt }));
+  expect(JSON.stringify(mocks.backend.mock.calls)).not.toContain(data.token);
+  mocks.backend.mockRejectedValueOnce(Error("offline"));
+  expect((await POST(request({ event: "wall.referral", data }))).status).toBe(503);
+  expect((await POST(request({ event: "wall.referral", data: { ...data, token: "fake" } }))).status).toBe(400);
 });

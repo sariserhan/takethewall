@@ -4,7 +4,7 @@ import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
 import { WhisperPreview } from "./whisper-room";
 import { KeepOrYeet } from "./keep-or-yeet";
 import { MicroAma } from "./micro-ama";
-import { WallCreativeTools } from "./wall-creative-tools";
+import { MorseTool, WallCreativeTools } from "./wall-creative-tools";
 import { WallToolIcon } from "./wall-tool-icon";
 import { TryMine } from "./try-mine";
 import { MagneticTitle, PulseTool, WallExperiments } from "./wall-experiments";
@@ -349,19 +349,21 @@ function WallView({
         </section>
           {!trying && (
             <div className="owner-identity-strip">
+              <PulseTool compact ownerId={owner?.id} name={owner?.displayName} />
+              <div className="owner-identity-center">
               {owner && <span className="owner-live-status"><i aria-hidden="true" /> CURRENT OWNER{owner.takeoverNumber ? ` · #${owner.takeoverNumber}` : ""}</span>}
+              </div>
               <button
                 type="button"
-                className="stat-tool-button stat-tool-text"
+                className="report-content-trigger"
                 aria-controls="current-wall"
                 onClick={() => {
                   setTrying(true);
                   requestAnimationFrame(() => document.querySelector(".try-mine")?.scrollIntoView({ block: "center" }));
                 }}
               >
-                <WallToolIcon name="preview" /> Try Mine
+                Try mine
               </button>
-              <PulseTool compact ownerId={owner?.id} name={owner?.displayName} />
             </div>
           )}
         <section id="current-wall" ref={adRef} className={`owner-section${owner?.canvasDesign && !trying ? " has-wall-design" : ""}`} aria-label="Current owner">
@@ -444,10 +446,11 @@ function WallView({
         </section>
         {owner && (
           <div className="wall-owner-tools">
-            <ReportContent
+            {!trying && <MorseTool message={owner.morseMessage || owner.description || owner.displayName || ""} />}
+            {owner && <ReportContent
               takeoverId={owner.id}
               name={owner.displayName || owner.domain}
-            />
+            />}
           </div>
         )}
         <section className="reign-metrics" aria-label="Current reign analytics">
@@ -635,7 +638,7 @@ function WallView({
           <div className="experiment-menu-controls" role="group" aria-labelledby="playground-title">
             <h3 id="playground-title" className="eyebrow">Playground</h3>
             <WallExperiments />
-            <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
+            <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,websiteUrl:owner.websiteUrl,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>
       </div>
       </section>

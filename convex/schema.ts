@@ -237,6 +237,16 @@ export default defineSchema({
     auditHash: v.string(),
   }).index("by_number", ["takeoverNumber"]),
 
+  visitLedger: defineTable({
+    key: v.string(), takeoverId: v.id("takeovers"), visitorHash: v.string(),
+    occurredAt: v.number(), date: v.string(), country: v.string(), city: v.string(),
+    locationSource: v.union(v.literal("vercel"), v.literal("visitorping")),
+    sources: v.array(v.union(v.literal("vercel"), v.literal("visitorping"))), freshReign: v.boolean(),
+  }).index("by_key", ["key"]).index("by_date", ["date"]),
+  radarVisitors: defineTable({
+    date: v.string(), visitorHash: v.string(), firstSeenAt: v.number(), lastSeenAt: v.number(),
+    lastVisitKey: v.string(), country: v.string(), city: v.string(),
+  }).index("by_date_visitorHash", ["date", "visitorHash"]).index("by_date_lastSeenAt", ["date", "lastSeenAt"]),
   visitorPingWebhookDeliveries: defineTable({
     ...visitorPingAlert.fields, receivedAt: v.number(),
   }).index("by_receivedAt", ["receivedAt"]).index("by_event_receivedAt", ["event", "receivedAt"]),
@@ -337,6 +347,10 @@ export default defineSchema({
     key: v.literal("current"),
     historyEnabled: v.boolean(),
   }).index("by_key", ["key"]),
+  referralDeliveries: defineTable({
+    tokenHash: v.string(), publicId: v.string(), visitorHash: v.string(),
+    ownerTokenHash: v.optional(v.string()), issuedAt: v.number(), expiresAt: v.number(),
+  }).index("by_token", ["tokenHash"]).index("by_expiry", ["expiresAt"]),
   referralVisits: defineTable({
     takeoverId: v.id("takeovers"),
     visitorHash: v.string(),

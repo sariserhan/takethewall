@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { WallSnapshot } from "@/lib/wall-snapshot";
 import { paperBrickSvg } from "@/lib/paper-brick";
-export function PaperBrick({ data }: { data: WallSnapshot | null }) {
+export function PaperBrick({ data }: { data: (WallSnapshot & { websiteUrl?: string; message?: string }) | null }) {
   const [printUrl, setPrintUrl] = useState("");
   const [svg, setSvg] = useState(""),
     [error, setError] = useState(""),
@@ -61,6 +61,7 @@ export function PaperBrick({ data }: { data: WallSnapshot | null }) {
       if (controller.current.signal.aborted) return;
       const result = paperBrickSvg({
         name: data.name,
+        detail: data.websiteUrl || data.message || "",
         number: data.number,
         qr,
         art,

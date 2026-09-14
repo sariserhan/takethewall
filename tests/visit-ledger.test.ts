@@ -1,0 +1,64 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { convexTest } from "convex-test";
+import schema from "../convex/schema";
+import { api, internal } from "../convex/_generated/api";
+import { flushAnalytics } from "./backend-work-helpers";
+const modules = import.meta.glob("../convex/**/*.ts");
+beforeEach(() => { vi.stubEnv("PUBLIC_METRICS_ENABLED", "true"); vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-14T12:00:00Z")); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
+async function setup() {
+  const t = convexTest(schema, modules);
+  const storageId = await t.run(ctx => ctx.storage.store(new Blob(["image"])));
+  const takeoverId = await t.mutation(internal.wall.seed, { logoStorageId: storageId });
+  const event = { takeoverId, visitorHash: "browser-one", pageId: "page-one", eventId: "event-one", event: "impression" as const, region: "US", city: "New York", issuedAt: Date.now(), expiresAt: Date.now() + 300_000, excluded: false };
+  return { t, event };
+}
+for (const first of ["vercel", "visitorping"] as const) it(`merges both sources once when ${first} arrives first, enriching geography without changing totals`, async () => {
+  const { t, event } = await setup();
+  const vercel = { ...event, source: "vercel" as const };
+  const visitorping = { ...event, source: "visitorping" as const, region: "AU", city: "Sydney" };
+  await t.mutation(internal.analytics.record, first === "vercel" ? vercel : visitorping);
+  await flushAnalytics(t);
+  await t.mutation(internal.analytics.record, first === "vercel" ? visitorping : vercel);
+  await t.mutation(internal.analytics.record, visitorping);
+  await flushAnalytics(t);
+  const wall = await t.query(api.wall.current, {});
+  expect(wall).toMatchObject({ visitorsToday: 1, viewsToday: 1, totalVisitors: 1, regions: [{ regionCode: "AU", impressions: 1 }] });
+  const radar = await t.query(api.visitLedger.radar, { date: "2026-09-14" });
+  expect(radar).toHaveLength(1);
+  expect(radar[0]).toMatchObject({ city: "Sydney", country: "AU" });
+  expect(Object.keys(radar[0]).sort()).toEqual(["city", "country", "id", "receivedAt"]);
+  expect(JSON.stringify(radar)).not.toContain("browser-one");
+});
+it("keeps different people in the same city separate, and repeated page views unique per browser", async () => {
+  const { t, event } = await setup();
+  await t.mutation(internal.analytics.record, event);
+  await t.mutation(internal.analytics.record, { ...event, visitorHash: "browser-two", pageId: "page-two" });
+  await t.mutation(internal.analytics.record, { ...event, pageId: "page-three" });
+  await flushAnalytics(t);
+  expect(await t.query(api.wall.current, {})).toMatchObject({ viewsToday: 3, visitorsToday: 2, totalVisitors: 2 });
+  expect(await t.query(api.visitLedger.radar, { date: "2026-09-14" })).toHaveLength(2);
+});
+it("rejects a cross-browser page ID collision rather than combining identities", async () => {
+  const { t, event } = await setup();
+  await t.mutation(internal.analytics.record, event);
+  await expect(t.mutation(internal.analytics.record, { ...event, visitorHash: "someone-else", source: "visitorping" })).rejects.toThrow("Visit identity mismatch");
+});
+it("uses the original UTC day for delayed verified callbacks and never replays an old visit as today", async () => {
+  const { t, event } = await setup();
+  vi.setSystemTime(new Date("2026-09-15T01:00:00Z"));
+  await expect(t.mutation(internal.analytics.record, event)).rejects.toThrow("expired");
+  await t.mutation(internal.analytics.record, { ...event, source: "visitorping" });
+  await flushAnalytics(t);
+  const day = await t.run(ctx => ctx.db.query("dailyStats").withIndex("by_date", q => q.eq("date", "2026-09-14")).unique());
+  expect(day).toMatchObject({ visitors: 1, impressions: 1 });
+  expect(await t.query(api.visitLedger.radar, { date: "2026-09-15" })).toEqual([]);
+});
+it("enriches before aggregation without double-counting and rejects excluded callbacks", async () => {
+  const { t, event } = await setup();
+  await t.mutation(internal.analytics.record, event);
+  await t.mutation(internal.analytics.record, { ...event, source: "visitorping", region: "MX", city: "Mexico City" });
+  await t.mutation(internal.analytics.record, { ...event, pageId: "excluded", excluded: true });
+  await flushAnalytics(t);
+  expect(await t.query(api.wall.current, {})).toMatchObject({ viewsToday: 1, regions: [{ regionCode: "MX", impressions: 1 }] });
+});

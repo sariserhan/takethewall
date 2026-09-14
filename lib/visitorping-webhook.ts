@@ -6,6 +6,7 @@ export type VisitorPingAlert = {
     location: { city: string; region: string; country: string };
     source: string;
     entryPage: string;
+    referralPublicId?: string;
     deviceType: string;
     isHotLead: boolean;
     companyName: string;
@@ -38,6 +39,15 @@ function safePage(value: string) {
     return "";
   }
 }
+// Preserve only the public tracked-link ID before discarding URL query data.
+export function trackedReferralId(value: string): string | undefined {
+  try {
+    const url = new URL(value, "https://takethewall.com");
+    if (!["https:", "http:"].includes(url.protocol) || !["takethewall.com", "www.takethewall.com"].includes(url.hostname) || url.username || url.password) return;
+    const refs = url.searchParams.getAll("ref");
+    if (refs.length === 1 && /^ttw_[a-f0-9]{32}$/.test(refs[0])) return refs[0];
+  } catch {}
+}
 export function parseVisitorPingAlert(value: unknown): VisitorPingAlert {
   const root = object(value),
     data = object(root.data),
@@ -52,6 +62,10 @@ export function parseVisitorPingAlert(value: unknown): VisitorPingAlert {
     throw new VisitorPingValidationError("Unexpected site domain");
   if (typeof data.isHotLead !== "boolean")
     throw new VisitorPingValidationError("Invalid hot-lead flag");
+  const entryPage = text(data.entryPage, 2048, true);
+  const fromUrl = trackedReferralId(entryPage);
+  const preserved = typeof data.referralPublicId === "string" && /^ttw_[a-f0-9]{32}$/.test(data.referralPublicId) ? data.referralPublicId : undefined;
+  const referralPublicId = fromUrl ?? preserved;
   return {
     event: root.event,
     data: {
@@ -65,7 +79,8 @@ export function parseVisitorPingAlert(value: unknown): VisitorPingAlert {
       source: /^https?:\/\//i.test(String(data.source ?? ""))
         ? safePage(text(data.source, 2048, true))
         : text(data.source, 200, true),
-      entryPage: safePage(text(data.entryPage, 2048, true)),
+      entryPage: safePage(entryPage),
+      ...(referralPublicId ? { referralPublicId } : {}),
       deviceType: text(data.deviceType, 80, true),
       isHotLead: data.isHotLead,
       companyName: text(data.companyName, 240, true),

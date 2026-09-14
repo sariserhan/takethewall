@@ -6,7 +6,7 @@ import {
   query,
   mutation,
 } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { requireAdmin, audit } from "./rewardModel";
@@ -119,58 +119,7 @@ export const visit = internalMutation({
     ownerToken: v.optional(v.string()),
   },
   returns: v.boolean(),
-  handler: async (ctx, a) => {
-    if (
-      process.env.WALL_ENVIRONMENT !== "production" ||
-      process.env.PUBLIC_METRICS_ENABLED !== "true" ||
-      !/^[a-f0-9]{64}$/.test(a.visitorHash)
-    )
-      return false;
-    const t = await ctx.db
-      .query("takeovers")
-      .withIndex("by_publicId", (q) => q.eq("publicTakeoverId", a.publicId))
-      .unique();
-    if (!t || !visible(t)) return false;
-    if (a.ownerToken) {
-      const access = await ownerAccess(ctx, a.ownerToken).catch(() => null);
-      if (access) {
-        if (access.takeoverId === t._id) return false;
-        const source = await ctx.db
-          .query("purchases")
-          .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
-          .unique();
-        const own = await ctx.db
-          .query("purchases")
-          .withIndex("by_takeoverId", (q) =>
-            q.eq("takeoverId", access.takeoverId),
-          )
-          .unique();
-        if (
-          source?.buyerEmail &&
-          own?.buyerEmail &&
-          source.buyerEmail.toLowerCase() === own.buyerEmail.toLowerCase()
-        )
-          return false;
-      }
-    }
-
-    const old = await ctx.db
-      .query("referralVisits")
-      .withIndex("by_source_visitor", (q) =>
-        q.eq("takeoverId", t._id).eq("visitorHash", a.visitorHash),
-      )
-      .unique();
-    if (!old) {
-      await ctx.db.insert("referralVisits", {
-        takeoverId: t._id,
-        visitorHash: a.visitorHash,
-        createdAt: Date.now(),
-      });
-      await ctx.db.patch(t._id, { shareVisitors: (t.shareVisitors ?? 0) + 1 });
-      await syncHall(ctx, t._id);
-    }
-    return true;
-  },
+  handler: recordReferral,
 });
 export const review = mutation({
   args: {
@@ -263,5 +212,90 @@ export const sitemap = internalQuery({
       publicId: t.publicTakeoverId!,
       modified: t.seoReviewedAt!,
     }));
+  },
+});
+
+async function recordReferral(ctx: MutationCtx, a: { publicId: string; visitorHash: string; ownerToken?: string; ownerTokenHash?: string }) {
+
+    if (
+      process.env.WALL_ENVIRONMENT !== "production" ||
+      process.env.PUBLIC_METRICS_ENABLED !== "true" ||
+      !/^[a-f0-9]{64}$/.test(a.visitorHash)
+    )
+      return false;
+    const t = await ctx.db
+      .query("takeovers")
+      .withIndex("by_publicId", (q) => q.eq("publicTakeoverId", a.publicId))
+      .unique();
+    if (!t || !visible(t)) return false;
+    if (a.ownerToken || a.ownerTokenHash) {
+      const access = a.ownerToken
+        ? await ownerAccess(ctx, a.ownerToken).catch(() => null)
+        : await ctx.db.query("ownerAccess").withIndex("by_token", q => q.eq("tokenHash", a.ownerTokenHash!)).unique();
+      if (access) {
+        if (access.takeoverId === t._id) return false;
+        const source = await ctx.db
+          .query("purchases")
+          .withIndex("by_takeoverId", (q) => q.eq("takeoverId", t._id))
+          .unique();
+        const own = await ctx.db
+          .query("purchases")
+          .withIndex("by_takeoverId", (q) =>
+            q.eq("takeoverId", access.takeoverId),
+          )
+          .unique();
+        if (
+          source?.buyerEmail &&
+          own?.buyerEmail &&
+          source.buyerEmail.toLowerCase() === own.buyerEmail.toLowerCase()
+        )
+          return false;
+      }
+    }
+
+    const old = await ctx.db
+      .query("referralVisits")
+      .withIndex("by_source_visitor", (q) =>
+        q.eq("takeoverId", t._id).eq("visitorHash", a.visitorHash),
+      )
+      .unique();
+    if (!old) {
+      await ctx.db.insert("referralVisits", {
+        takeoverId: t._id,
+        visitorHash: a.visitorHash,
+        createdAt: Date.now(),
+      });
+      await ctx.db.patch(t._id, { shareVisitors: (t.shareVisitors ?? 0) + 1 });
+      await syncHall(ctx, t._id);
+    }
+    return true;
+}
+export const prepareReferral = internalMutation({
+  args: { tokenHash: v.string(), publicId: v.string(), visitorHash: v.string(), ownerTokenHash: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    if (!/^[a-f0-9]{64}$/.test(a.tokenHash) || !/^[a-f0-9]{64}$/.test(a.visitorHash) || !/^ttw_[a-f0-9]{32}$/.test(a.publicId)) throw Error("Invalid referral verification");
+    const now = Date.now();
+    await ctx.db.insert("referralDeliveries", { ...a, issuedAt: now, expiresAt: now + 86400_000 });
+    return null;
+  },
+});
+export const receiveReferral = internalMutation({
+  args: { tokenHash: v.string(), publicId: v.string(), occurredAt: v.number() },
+  returns: v.boolean(),
+  handler: async (ctx, a) => {
+    const pending = await ctx.db.query("referralDeliveries").withIndex("by_token", q => q.eq("tokenHash", a.tokenHash)).unique();
+    const now = Date.now();
+    if (!pending || pending.publicId !== a.publicId || pending.expiresAt < now || !Number.isFinite(a.occurredAt) || a.occurredAt > now || a.occurredAt < pending.issuedAt + 5000 || a.occurredAt > pending.issuedAt + 120000) return false;
+    // Reuse the direct path's distinct-browser and owner exclusion checks.
+    return recordReferral(ctx, pending);
+  },
+});
+export const cleanupReferralDeliveries = internalMutation({
+  args: {}, returns: v.null(),
+  handler: async ctx => {
+    const rows = await ctx.db.query("referralDeliveries").withIndex("by_expiry", q => q.lt("expiresAt", Date.now())).take(500);
+    for (const row of rows) await ctx.db.delete(row._id);
+    return null;
   },
 });

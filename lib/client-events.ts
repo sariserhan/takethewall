@@ -76,7 +76,7 @@ export async function wallEvent(
           : event === "click"
             ? "wall_owner_link_click"
             : event,
-        c.visitorPing,
+        event === "impression" ? { ...c.visitorPing, wallContext: c.token, wallEventId: eventId } : c.visitorPing,
         { once: event === "impression" },
       );
     const body = JSON.stringify({ token: c.token, eventId, event });

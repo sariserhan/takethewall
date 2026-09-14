@@ -181,6 +181,7 @@ export interface EventContext {
   visitorHash: string;
   pageId: string;
   region: string;
+  city?: string;
   issuedAt: number;
   expiresAt: number;
   excluded: boolean;
@@ -189,7 +190,7 @@ export function signContext(context: EventContext) {
   const data = Buffer.from(JSON.stringify(context)).toString("base64url");
   return data + "." + keyed("context:" + data);
 }
-export function readContext(token: string): EventContext {
+export function readContext(token: string, deliveryGraceMs = 0): EventContext {
   if (typeof token !== "string" || token.length > 3000)
     throw new HttpError("Invalid event context");
   const [data, sig, ...extra] = token.split(".");
@@ -199,11 +200,15 @@ export function readContext(token: string): EventContext {
   if (!timingSafeEqual(Buffer.from(sig), expected))
     throw new HttpError("Invalid event context");
   const value = JSON.parse(Buffer.from(data, "base64url").toString());
-  if (value.expiresAt < Date.now())
+  if (value.expiresAt + deliveryGraceMs < Date.now())
     throw new HttpError("Event context expired");
   return value;
 }
 export function trafficContext(req: Request) {
+  let city = "";
+  if (process.env.VERCEL === "1") {
+    try { city = decodeURIComponent(req.headers.get("x-vercel-ip-city") ?? "").trim().slice(0, 160); } catch {}
+  }
   const production =
     process.env.PUBLIC_METRICS_ENABLED === "true" &&
     process.env.WALL_ENVIRONMENT === "production" &&
@@ -214,6 +219,7 @@ export function trafficContext(req: Request) {
       production,
       req.headers.get("x-wall-test") === "1",
     ),
+    city,
     region:
       process.env.VERCEL === "1"
         ? (req.headers.get("x-vercel-ip-country") ?? "ZZ")

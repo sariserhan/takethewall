@@ -43,9 +43,9 @@ test("new arrivals chime with Radar closed, without replaying history or doublin
       if (message.type !== "ModifyQuerySet") return;
       transition(message.modifications.map((query: { type: string; queryId: number; udfPath: string }) => {
         if (query.type === "Remove") return { type: "QueryRemoved", queryId: query.queryId };
-        if (query.udfPath === "visitorPingWebhook:radar") radarId = query.queryId;
+        if (query.udfPath === "visitLedger:radar") radarId = query.queryId;
         return { type: "QueryUpdated", queryId: query.queryId, logLines: [], journal: null,
-          value: query.udfPath === "visitorPingWebhook:radar" ? rows : query.udfPath === "checkoutControls:state" ? { paused: false } : null };
+          value: query.udfPath === "visitLedger:radar" ? rows : query.udfPath === "checkoutControls:state" ? { paused: false } : null };
       }), message.newVersion);
     });
   });

@@ -1,3 +1,4 @@
+import { randomBytes, createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
@@ -46,10 +47,21 @@ export async function POST(req: Request) {
       // Preserve historical deduplication, then pin that identity in a signed,
       // HttpOnly cookie so changing localStorage cannot rotate it each visit.
       const visitorHash = existing ?? keyed("referral-visitor:" + a.visitorId);
+      let visitorPingReferral: string | undefined;
+      try {
+        const token = randomBytes(32).toString("hex");
+        await backend("referralPrepare", {
+          tokenHash: createHash("sha256").update(token).digest("hex"),
+          publicId: a.publicId, visitorHash,
+          ...(jar.get("ttw-owner")?.value ? { ownerTokenHash: createHash("sha256").update(jar.get("ttw-owner")!.value).digest("hex") } : {}),
+        });
+        visitorPingReferral = token;
+      } catch { /* Direct verification remains available if fallback setup fails. */ }
       const result = NextResponse.json(
         {
           proof: signReferralProof(a.publicId, visitorHash, clientHash(req)),
           waitMs: REFERRAL_WAIT_MS,
+          ...(visitorPingReferral ? { visitorPingReferral } : {}),
         },
         { headers: { "Cache-Control": "no-store" } },
       );

@@ -26,6 +26,7 @@ export type CreativeData = WallSnapshot & {
   id: string;
   message: string;
   morseMessage?: string;
+  websiteUrl?: string;
 };
 export function WallCreativeTools({ data }: { data: CreativeData | null }) {
   const blacklight = useBlacklight();
@@ -214,4 +215,15 @@ function CreativeIcon({ name }: { name: CreativePanel }) {
       <path d={paths[name]} />
     </svg>
   );
+}
+
+const CornerMorseRadio = dynamic(() => import("./wall-radio").then(module => module.MorseRadio), { ssr: false });
+export function MorseTool({ message }: { message: string }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button type="button" className="stat-tool-button wall-morse-trigger" aria-label="Morse code" data-tooltip="Morse code" aria-haspopup="dialog" onClick={() => setOpen(true)}><CreativeIcon name="Morse" /></button>
+    <Dialog open={open} onClose={() => setOpen(false)} title="Morse code">
+      {open && <CornerMorseRadio key={message} message={message} />}
+    </Dialog>
+  </>;
 }

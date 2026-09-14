@@ -1,3 +1,4 @@
+import { createVisit, enrichVisit } from "./visitLedger";
 import { syncHall } from "./hallModel";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -26,6 +27,8 @@ export const record = internalMutation({
       v.literal("checkout_started"),
     ),
     region: v.string(),
+    city: v.optional(v.string()),
+    source: v.optional(v.union(v.literal("vercel"), v.literal("visitorping"))),
     issuedAt: v.number(),
     expiresAt: v.number(),
     excluded: v.boolean(),
@@ -36,7 +39,7 @@ export const record = internalMutation({
       return false;
     const now = Date.now();
     if (
-      a.expiresAt < now ||
+      a.expiresAt + (a.source === "visitorping" ? 86400_000 : 0) < now ||
       a.issuedAt > now ||
       a.expiresAt - a.issuedAt > 300_000
     )
@@ -46,7 +49,7 @@ export const record = internalMutation({
       !t?.activatedAt ||
       a.issuedAt < t.activatedAt ||
       (t.replacedAt !== undefined &&
-        (a.issuedAt > t.replacedAt || now > t.replacedAt + 120_000))
+        (a.issuedAt > t.replacedAt || (a.source !== "visitorping" && now > t.replacedAt + 120_000)))
     )
       throw new Error("Invalid reign attribution");
     if (
@@ -60,16 +63,22 @@ export const record = internalMutation({
       a.event === "impression"
         ? `impression:${a.takeoverId}:${a.pageId}`
         : `event:${a.visitorHash}:${a.eventId}`;
+    if (a.event === "impression") {
+      const prior = await ctx.db.query("visitLedger").withIndex("by_key", q => q.eq("key", eventKey)).unique();
+      if (prior) {
+        await enrichVisit(ctx, prior, a);
+        return false;
+      }
+    }
     if (!(await receipt(ctx, eventKey))) return false;
     if (a.event === "take_wall_clicked" || a.event === "checkout_started") {
       return true;
     }
-    const date = new Date(now).toISOString().slice(0, 10);
+    const date = new Date(a.issuedAt).toISOString().slice(0, 10);
     let fresh = false,
       freshSite = false,
       freshDay = false,
       funnelVisit = false;
-    const region = /^[A-Z]{2}$/.test(a.region) ? a.region : "ZZ";
     if (a.event === "impression") {
       funnelVisit = await receipt(ctx, "funnel-visit:" + a.pageId);
       const seen = await ctx.db
@@ -108,6 +117,7 @@ export const record = internalMutation({
       fresh = !seen;
       freshSite = !lifetime;
       freshDay = !today;
+      await createVisit(ctx, { ...a, key: eventKey, occurredAt: a.issuedAt, freshReign: fresh });
     }
     // Independent buckets avoid a shared write for every incoming impression.
     const shard =
@@ -121,18 +131,6 @@ export const record = internalMutation({
       .unique();
     const impression = a.event === "impression" ? 1 : 0;
     const regions = batch?.regions ?? [];
-    if (impression) {
-      const r = regions.find((r) => r.code === region);
-      if (r) {
-        r.impressions++;
-        r.uniqueVisitors += Number(fresh);
-      } else
-        regions.push({
-          code: region,
-          impressions: 1,
-          uniqueVisitors: Number(fresh),
-        });
-    }
     const values = {
       impressions: (batch?.impressions ?? 0) + impression,
       uniqueVisitors: (batch?.uniqueVisitors ?? 0) + Number(fresh),

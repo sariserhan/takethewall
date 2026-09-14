@@ -11,6 +11,7 @@ export const visitorPingAlert = v.object({
     }),
     source: v.string(),
     entryPage: v.string(),
+    referralPublicId: v.optional(v.string()),
     deviceType: v.string(),
     isHotLead: v.boolean(),
     companyName: v.string(),

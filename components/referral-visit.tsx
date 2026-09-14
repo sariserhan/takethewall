@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import { trackVisitorPing } from "@/lib/visitorping-client";
 import { browserIdentity } from "@/lib/client-events";
 export function ReferralVisit({ publicId }: { publicId: string }) {
   useEffect(() => {
@@ -39,6 +40,9 @@ export function ReferralVisit({ publicId }: { publicId: string }) {
             timer = undefined;
             if (stopped || document.visibilityState !== "visible") return;
             completed = true;
+            if (typeof data.visitorPingReferral === "string") {
+              trackVisitorPing("wall_referral_visit", { wallReferralToken: data.visitorPingReferral, referralPublicId: publicId });
+            }
             try {
               await fetch("/api/referrals", {
                 method: "POST",

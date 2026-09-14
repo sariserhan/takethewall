@@ -63,7 +63,7 @@ async function begin() {
 }
 it("requires a signed browser cookie and a completed waiting period before counting", async () => {
   const proof = await begin();
-  expect(backend).not.toHaveBeenCalled();
+  expect(backend).not.toHaveBeenCalledWith("referralVisit", expect.anything());
   const body = { action: "complete", publicId: id, proof };
   expect((await POST(request(body))).status).toBe(403);
   vi.setSystemTime(Date.now() + 5100);
@@ -103,7 +103,7 @@ it("pins browser identity across localStorage changes and rejects tampering and 
   expect(
     (await POST(request({ action: "complete", publicId: id, proof }))).status,
   ).toBe(403);
-  expect(backend).not.toHaveBeenCalled();
+  expect(backend).not.toHaveBeenCalledWith("referralVisit", expect.anything());
 });
 it("excludes bots and preview traffic, rejects foreign origins, and does not attribute rejected visits", async () => {
   expect((await POST(request(undefined, "Googlebot"))).status).toBe(204);
@@ -113,7 +113,7 @@ it("excludes bots and preview traffic, rejects foreign origins, and does not att
   ).toBe(403);
   vi.stubEnv("VERCEL_ENV", "preview");
   expect((await POST(request())).headers.get("set-cookie")).toBeNull();
-  expect(backend).not.toHaveBeenCalled();
+  expect(backend).not.toHaveBeenCalledWith("referralVisit", expect.anything());
   vi.stubEnv("VERCEL_ENV", "production");
   const proof = await begin();
   vi.setSystemTime(Date.now() + 5100);
@@ -125,4 +125,13 @@ it("excludes bots and preview traffic, rejects foreign origins, and does not att
     "referralVisit",
     expect.objectContaining({ ownerToken: "owner-token" }),
   );
+});
+
+it("returns only an opaque fallback token and keeps identity in the server mapping", async () => {
+  const r = await POST(request());
+  const data = await r.json();
+  expect(data.visitorPingReferral).toMatch(/^[a-f0-9]{64}$/);
+  const args = vi.mocked(backend).mock.calls.find(call => call[0] === "referralPrepare")![1] as { tokenHash: string; visitorHash: string };
+  expect(args.tokenHash).not.toBe(data.visitorPingReferral);
+  expect(data.visitorPingReferral).not.toContain(args.visitorHash);
 });

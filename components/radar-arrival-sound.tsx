@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useRadarVisitors } from "./use-radar-visitors";
 
 /** Keep the arrival subscription alive independently of the Radar dialog. */
 export function RadarArrivalSound() {
-  const arrivals = useQuery(api.visitorPingWebhook.radar, {});
+  const arrivals = useRadarVisitors();
   const audio = useRef<AudioContext | null>(null);
   const seen = useRef<Set<string> | null>(null);
 

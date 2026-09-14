@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, useConvexConnectionState } from "convex/react";
+import { useConvexConnectionState } from "convex/react";
 import { geoArea, geoCentroid, geoEquirectangular, geoPath } from "d3-geo";
 import type { FeatureCollection, Feature, Geometry } from "geojson";
-import { api } from "@/convex/_generated/api";
+import { useRadarVisitors } from "./use-radar-visitors";
 import { cityLookup, type CityCenter } from "@/lib/radar-geography";
 import styles from "./wall-radar.module.css";
 type Country = Feature<Geometry, { name: string; code: string }>;
@@ -16,7 +16,7 @@ type Arrival = {
 const place = (row: Arrival) =>
   [row.city, row.country].filter(Boolean).join(", ") || "Location unavailable";
 export function WallRadar() {
-  const live = useQuery(api.visitorPingWebhook.radar, {});
+  const live = useRadarVisitors();
   const connection = useConvexConnectionState();
   const [held, setHeld] = useState<Arrival[] | null>(null);
   const [countries, setCountries] = useState<Country[]>([]),
@@ -124,18 +124,18 @@ export function WallRadar() {
   return (
     <section
       className={styles.radar}
-      aria-label="Recent visitor arrivals"
+      aria-label="Unique visitors today"
       data-testid="radar"
     >
       <header className={styles.heading}>
         <div>
-          <span className={styles.eyebrow}>RADAR · VISITORPING ARRIVALS</span>
+          <span className={styles.eyebrow}>RADAR · UNIQUE VISITORS TODAY</span>
           <h2>The world, dropping by.</h2>
-          <p>City-level arrival alerts as they reach the wall.</p>
+          <p>Today’s visitors, counted once per browser across both tracking sources.</p>
         </div>
         <span className={styles.status}>
           {held
-            ? "PAUSED"
+            ? "FEED PAUSED"
             : connection.isWebSocketConnected
               ? "LISTENING"
               : "RECONNECTING"}
@@ -152,8 +152,8 @@ export function WallRadar() {
           {held ? "Resume arrivals" : "Pause arrivals"}
         </button>
         <span>
-          {rows.length} received {rows.length === 1 ? "alert" : "alerts"}
-          {rows.length === 50 ? " · latest 50 deliveries" : ""}
+          {rows.length} unique {rows.length === 1 ? "visitor" : "visitors"} shown today (UTC)
+          {rows.length === 50 ? " · most recent 50" : ""}
         </span>
       </div>
       <p className={styles.note}>
@@ -230,7 +230,7 @@ export function WallRadar() {
               <>
                 <strong>{place(latest)}</strong>
                 <span>
-                  Latest received ·{" "}
+                  First seen today ·{" "}
                   {new Date(latest.receivedAt).toISOString().slice(11, 19)} UTC
                 </span>
               </>
@@ -239,10 +239,10 @@ export function WallRadar() {
                 <strong>
                   {live === undefined
                     ? "Connecting to arrivals…"
-                    : "Waiting for the next arrival."}
+                    : "Waiting for today’s first visitor."}
                 </strong>
                 <span>
-                  Real alerts will appear here when VisitorPing delivers them.
+                  Visitors appear when either tracking source records a verified view.
                 </span>
               </>
             )}
@@ -258,11 +258,10 @@ export function WallRadar() {
           </p>
         </div>
         <div className={styles.feed}>
-          <h3>Recent arrivals</h3>
+          <h3>Today’s visitors</h3>
           {!rows.length ? (
             <p>
-              No arrival alerts yet. Leave Radar open to watch the next one come
-              in.
+              No verified visitors yet today. New visits will appear here.
             </p>
           ) : (
             <ol aria-label="Arrival feed">
@@ -279,7 +278,7 @@ export function WallRadar() {
                         .toISOString()
                         .replace("T", " ")
                         .slice(0, 19)}{" "}
-                      UTC · received
+                      UTC · first seen today
                     </small>
                     <small>{precision}</small>
                   </button>
@@ -290,10 +289,10 @@ export function WallRadar() {
         </div>
       </div>
       <p className={styles.note}>
-        Source: <a href="https://visitorping.com/" target="_blank" rel="noopener noreferrer">VisitorPing</a>.
-        Radar shows received alerts, not unique visitors. Repeat deliveries can
-        appear, so this count may differ from the VisitorPing dashboard. Times
-        show when each alert reached the wall.
+        Sources: Vercel and <a href="https://visitorping.com/" target="_blank" rel="noopener noreferrer">VisitorPing</a>.
+        Matching page views are merged using a shared signed identifier. Each
+        browser appears once per UTC day. Separate devices or cleared browser
+        storage can count again. Unmatched legacy alerts are not included.
       </p>
       <p className={styles.note}>
         Locations:{" "}
