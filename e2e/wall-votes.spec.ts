@@ -657,3 +657,32 @@ test("Whisper report stays below composer and rate limits preserve the message",
   await expect(input).toHaveValue("");
   expect(posts).toBe(2);
 });
+
+test("audience row aligns desktop cards and stacks on mobile", async ({page}, info) => {
+  const state=await fixture(page); state.seedWhispers();
+  await page.goto("/");
+  const row=page.locator(".audience-row");
+  await row.scrollIntoViewIfNeeded();
+  const vote=row.locator(".keep-or-yeet"),conversation=row.locator(".whisper-preview");
+  await expect(conversation.locator(".whisper-log>p")).toHaveCount(3);
+  const a=await vote.boundingBox(), b=await conversation.boundingBox();
+  if(info.project.name==="desktop"){
+    expect(Math.abs(a!.y-b!.y)).toBeLessThan(1);
+    expect(Math.abs(a!.height-b!.height)).toBeLessThan(1);
+    expect(b!.width/a!.width).toBeCloseTo(2,1);
+  }else{
+    expect(b!.y).toBeGreaterThan(a!.y+a!.height);
+    expect(Math.abs(a!.width-b!.width)).toBeLessThan(1);
+  }
+  expect((await conversation.locator(".whisper-log").boundingBox())!.height).toBeLessThanOrEqual(190);
+  expect(await row.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  await vote.getByRole("button",{name:/KEEP ·/}).click();
+  await expect(vote.getByRole("button",{name:/KEEP ·/})).toHaveAttribute("aria-pressed","true");
+  await conversation.getByRole("button",{name:"View conversation",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Whispers about Owner 1",exact:true});
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button",{name:"Close dialog",exact:true}).click();
+  // Use a tall capture after verifying the actual phone viewport, so both cards fit in the image.
+  if(info.project.name === "mobile") await page.setViewportSize({width:390,height:1600});
+  await row.screenshot({path:`/tmp/audience-row-${info.project.name}.png`});
+});

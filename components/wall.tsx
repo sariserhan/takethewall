@@ -546,8 +546,12 @@ function WallView({
           </button>
         </section>
       </div>
-      {owner && <KeepOrYeet key={"vote:"+owner.id} takeoverId={owner.id} name={owner.displayName} />}
-      {owner && <WhisperPreview key={"whisper:"+owner.id} takeoverId={owner.id} name={owner.displayName} />}
+      {owner && (
+        <div className="audience-row">
+          <KeepOrYeet key={"vote:"+owner.id} takeoverId={owner.id} name={owner.displayName} />
+          <WhisperPreview key={"whisper:"+owner.id} takeoverId={owner.id} name={owner.displayName} />
+        </div>
+      )}
       {owner && <MicroAma key={owner.id} takeoverId={owner.id} name={owner.displayName} />}
       <CommunityEvent />
       <HomepageMilestones />
