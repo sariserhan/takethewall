@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -29,6 +29,15 @@ export function WhisperRoom({
     [company, setCompany] = useState(""),
     [status, setStatus] = useState(""),
     [busy, setBusy] = useState(false);
+  const [retryIn, setRetryIn] = useState(0);
+  useEffect(() => {
+    if (retryIn <= 0) return;
+    const timer = window.setTimeout(
+      () => setRetryIn((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [retryIn]);
   return (
     <section className="whisper-room">
       <p>
@@ -84,9 +93,10 @@ export function WhisperRoom({
       </div>
       {!admin && (
         <form
+          className="whisper-compose"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (busy) return;
+            if (busy || retryIn > 0) return;
             setBusy(true);
             setStatus("");
             try {
@@ -96,6 +106,14 @@ export function WhisperRoom({
                 body: JSON.stringify({ takeoverId, text, company }),
               });
               const result = await r.json();
+              if (r.status === 429) {
+                const seconds = Number(r.headers.get("Retry-After"));
+                setRetryIn(
+                  Number.isFinite(seconds) && seconds > 0
+                    ? Math.min(300, Math.ceil(seconds))
+                    : 60,
+                );
+              }
               if (!r.ok) throw Error(result.error ?? "Could not post.");
               setText("");
               setStatus("Posted.");
@@ -123,16 +141,30 @@ export function WhisperRoom({
             value={company}
             onChange={(e) => setCompany(e.target.value)}
           />
-          <button disabled={busy}>Send whisper</button>
+          <button type="submit" disabled={busy || retryIn > 0}>
+            {busy
+              ? "Sending…"
+              : retryIn > 0
+                ? `Try again in ${retryIn}s`
+                : "Send whisper"}
+          </button>
         </form>
       )}
-      <p role="status">{status}</p>
-      {!admin && (
-        <ReportContent
-          takeoverId={takeoverId}
-          name="Whisper room — include the comment in your report"
-        />
-      )}
+      <div className="whisper-footer">
+        <p role="status">{status}</p>
+        {!admin && (
+          <>
+            <p className="whisper-limit-note">
+              Up to 3 whispers per minute per connection. Shared networks share
+              this limit.
+            </p>
+            <ReportContent
+              takeoverId={takeoverId}
+              name="Whisper room — include the comment in your report"
+            />
+          </>
+        )}
+      </div>
     </section>
   );
 }

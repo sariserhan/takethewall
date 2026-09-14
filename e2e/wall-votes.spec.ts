@@ -622,3 +622,38 @@ test("globe shows website visitor countries independently of current owner", asy
   await dialog.screenshot({path:`/tmp/website-globe-${info.project.name}.png`});
   expect(errors).toEqual([]);
 });
+
+test("Whisper report stays below composer and rate limits preserve the message",async({page},info)=>{
+  await fixture(page);
+  let posts=0;
+  await page.route("**/api/whisper",route=>{
+    posts++;
+    return posts===1?route.fulfill({status:429,headers:{"Retry-After":"2"},json:{error:"Please wait. Your message has been kept."}}):route.fulfill({json:{ok:true}});
+  });
+  await page.goto("/");
+  const preview=page.locator(".whisper-preview");
+  const input=preview.getByLabel("Your whisper",{exact:true});
+  await input.fill("Hello from a spectator");
+  const compose=await preview.locator(".whisper-compose").boundingBox();
+  const reportButton=preview.getByRole("button",{name:"Report this content",exact:true});
+  const reportBox=await reportButton.boundingBox();
+  expect(reportBox!.y).toBeGreaterThan(compose!.y+compose!.height);
+  await reportButton.click();
+  const report=page.getByRole("dialog",{name:"REPORT CONTENT",exact:true});
+  await expect(report).toBeVisible();
+  const textarea=report.getByLabel("What should we review?");
+  await textarea.fill("This is a sample report for layout testing only.");
+  const field=await textarea.boundingBox(),submit=await report.getByRole("button",{name:"Submit report",exact:true}).boundingBox();
+  expect(submit!.y).toBeGreaterThan(field!.y+field!.height);
+  expect(await report.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  await report.screenshot({path:`/tmp/whisper-report-${info.project.name}.png`});
+  await report.getByRole("button",{name:"Close dialog",exact:true}).click();
+  await preview.getByRole("button",{name:"Send whisper",exact:true}).click();
+  await expect(preview.getByRole("button",{name:/Try again in/})).toBeDisabled();
+  await expect(input).toHaveValue("Hello from a spectator");
+  await expect(preview.getByRole("button",{name:"Send whisper",exact:true})).toBeEnabled({timeout:5000});
+  expect(posts).toBe(1);
+  await preview.getByRole("button",{name:"Send whisper",exact:true}).click();
+  await expect(input).toHaveValue("");
+  expect(posts).toBe(2);
+});
