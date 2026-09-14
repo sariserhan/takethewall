@@ -38,3 +38,9 @@ After five continuous visible seconds, the client emits `wall_referral_visit` co
 Referral credit is recorded at acceptance time, never backdated into a closed reward cohort. The callback can recover the visit counter; it cannot set the browser's purchase-attribution cookie if direct completion failed. Both paths require successful initial referral verification setup. This is not a mechanism to convert arbitrary referrer traffic into prize credit.
 
 Deploy the wall backend and receiver before the VisitorPing consumer. This implementation is verified in development; production rollout remains separate.
+
+## Historical Radar identity backfill
+
+`visitLedger:backfillRadar` is an internal, paginated, idempotent mutation. For a given UTC date it copies missing identities from `dailyVisitors` into Radar, using the daily record creation time as the historical first observation. It preserves existing Radar rows and uses country `ZZ`/empty city where no historical location is recoverable. It does not create impressions, referrals, or aggregate visitor counts. Later matched visits enrich the same Radar row normally. Pass `dryRun: true` to preview missing/existing counts, and continue with the returned cursor if `done` is false.
+
+On 2026-09-14 the authorized production backfill inserted 12 missing identities and preserved 1 existing entry. Production verification showed 13 Radar entries matching 13 daily unique browsers. Twelve locations remain unknown; legacy webhook cities were not guessed onto browser identities.

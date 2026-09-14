@@ -62,3 +62,29 @@ it("enriches before aggregation without double-counting and rejects excluded cal
   await flushAnalytics(t);
   expect(await t.query(api.wall.current, {})).toMatchObject({ viewsToday: 1, regions: [{ regionCode: "MX", impressions: 1 }] });
 });
+
+it("backfills missing daily browsers once without inventing locations or changing totals", async () => {
+  const { t, event } = await setup();
+  await t.mutation(internal.analytics.record, event);
+  await flushAnalytics(t);
+  await t.run(async ctx => {
+    await ctx.db.insert("dailyVisitors", { date: "2026-09-14", visitorHash: "historical-browser", expiresAt: Date.now() + 86400_000 });
+    await ctx.db.insert("dailyVisitors", { date: "2026-09-13", visitorHash: "previous-day", expiresAt: Date.now() + 86400_000 });
+  });
+  const before = await t.query(api.wall.current, {});
+  const args = { date: "2026-09-14" };
+  expect(await t.mutation(internal.visitLedger.backfillRadar, { ...args, dryRun: true })).toMatchObject({ inserted: 1, existing: 1, done: true });
+  expect(await t.query(api.visitLedger.radar, args)).toHaveLength(1);
+  expect(await t.mutation(internal.visitLedger.backfillRadar, args)).toMatchObject({ inserted: 1, existing: 1 });
+  expect(await t.mutation(internal.visitLedger.backfillRadar, args)).toMatchObject({ inserted: 0, existing: 2 });
+  const rows = await t.query(api.visitLedger.radar, args);
+  expect(rows).toHaveLength(2);
+  expect(rows).toEqual(expect.arrayContaining([expect.objectContaining({ city: "New York", country: "US" }), expect.objectContaining({ city: "", country: "ZZ" })]));
+  expect(await t.query(api.wall.current, {})).toEqual(before);
+  const oldId = rows.find(row => row.country === "ZZ")!.id;
+  vi.setSystemTime(Date.now() + 60000);
+  await t.mutation(internal.analytics.record, { ...event, visitorHash: "historical-browser", pageId: "returning-page", eventId: "returning-event", issuedAt: Date.now(), expiresAt: Date.now() + 300000, city: "Sydney", region: "AU" });
+  const enriched = await t.query(api.visitLedger.radar, args);
+  expect(enriched).toHaveLength(2);
+  expect(enriched.find(row => row.id === oldId)).toMatchObject({ city: "Sydney", country: "AU" });
+});

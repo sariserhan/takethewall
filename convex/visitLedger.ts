@@ -60,3 +60,25 @@ export const cleanup = internalMutation({
     return null;
   },
 });
+
+// Reconstruct identities from the daily counter, never from city/time guesses.
+export const backfillRadar = internalMutation({
+  args: { date: v.string(), cursor: v.optional(v.string()), dryRun: v.optional(v.boolean()) },
+  returns: v.object({ inserted: v.number(), existing: v.number(), done: v.boolean(), cursor: v.string() }),
+  handler: async (ctx, { date, cursor, dryRun = false }) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > new Date().toISOString().slice(0, 10)) throw Error("Invalid backfill date");
+    const page = await ctx.db.query("dailyVisitors").withIndex("by_date_visitorHash", q => q.eq("date", date)).paginate({ cursor: cursor ?? null, numItems: 100 });
+    let inserted = 0, existing = 0;
+    for (const visitor of page.page) {
+      const row = await ctx.db.query("radarVisitors").withIndex("by_date_visitorHash", q => q.eq("date", date).eq("visitorHash", visitor.visitorHash)).unique();
+      if (row) { existing++; continue; }
+      inserted++;
+      if (!dryRun) await ctx.db.insert("radarVisitors", {
+        date, visitorHash: visitor.visitorHash,
+        firstSeenAt: visitor._creationTime, lastSeenAt: visitor._creationTime,
+        lastVisitKey: `historical:${visitor._id}`, country: "ZZ", city: "",
+      });
+    }
+    return { inserted, existing, done: page.isDone, cursor: page.continueCursor };
+  },
+});
