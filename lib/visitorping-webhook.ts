@@ -11,15 +11,16 @@ export type VisitorPingAlert = {
     companyName: string;
   };
 };
+export class VisitorPingValidationError extends Error {}
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
-    throw Error("Expected an object");
+    throw new VisitorPingValidationError("Expected an object");
   return value as Record<string, unknown>;
 }
 function text(value: unknown, max: number, optional = false) {
   if (optional && (value === undefined || value === null)) return "";
   if (typeof value !== "string" || value.length > max)
-    throw Error("Invalid text field");
+    throw new VisitorPingValidationError("Invalid text field");
   return value.trim();
 }
 // Alert URLs may include private checkout/claim query strings. Never persist them.
@@ -42,13 +43,15 @@ export function parseVisitorPingAlert(value: unknown): VisitorPingAlert {
     data = object(root.data),
     location = object(data.location ?? {});
   if (root.event !== "visitor.arrival" && root.event !== "visitor.hot_lead")
-    throw Error("Unsupported event");
+    throw new VisitorPingValidationError("Unsupported event");
   const domain = text(data.siteDomain, 253)
     .toLowerCase()
     .replace(/^www\./, "")
     .replace(/\.$/, "");
-  if (domain !== "takethewall.com") throw Error("Unexpected site domain");
-  if (typeof data.isHotLead !== "boolean") throw Error("Invalid hot-lead flag");
+  if (domain !== "takethewall.com")
+    throw new VisitorPingValidationError("Unexpected site domain");
+  if (typeof data.isHotLead !== "boolean")
+    throw new VisitorPingValidationError("Invalid hot-lead flag");
   return {
     event: root.event,
     data: {

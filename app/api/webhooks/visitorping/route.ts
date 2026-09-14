@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { backend, HttpError, jsonBody } from "@/lib/server";
-import { parseVisitorPingAlert } from "@/lib/visitorping-webhook";
+import {
+  parseVisitorPingAlert,
+  VisitorPingValidationError,
+} from "@/lib/visitorping-webhook";
 export const runtime = "nodejs";
 function reply(body: unknown, status: number) {
   return Response.json(body, {
@@ -41,7 +44,9 @@ export async function POST(req: Request) {
         error:
           error instanceof HttpError && error.status === 413
             ? "Request too large"
-            : "Invalid VisitorPing alert",
+            : error instanceof VisitorPingValidationError
+              ? `Invalid VisitorPing alert: ${error.message}`
+              : "Invalid VisitorPing alert: malformed JSON",
       },
       error instanceof HttpError && error.status === 413 ? 413 : 400,
     );

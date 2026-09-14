@@ -157,3 +157,17 @@ it("expires only deliveries older than 90 days", async () => {
     ),
   ).toHaveLength(1);
 });
+
+it("reports safe validation reasons without echoing payload contents", async () => {
+  const response = await POST(
+    request({
+      ...payload,
+      data: { ...payload.data, siteDomain: "private-other-domain.example" },
+    }),
+  );
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({
+    error: "Invalid VisitorPing alert: Unexpected site domain",
+  });
+  expect(mocks.backend).not.toHaveBeenCalled();
+});
