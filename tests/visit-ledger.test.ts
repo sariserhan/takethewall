@@ -152,3 +152,26 @@ it("initializes lifetime views from history and adds repeat views once across UT
   await flushAnalytics(t);
   expect((await t.query(api.wall.current, {}))?.totalViews).toBe(9);
 });
+it("sorts city groups by latest visit, including repeats, without promoting delayed webhooks", async () => {
+  const { t, event } = await setup();
+  vi.setSystemTime(new Date("2026-09-15T12:00:00Z"));
+  const start = Date.now();
+  async function view(city: string, minute: number, pageId: string) {
+    await t.mutation(internal.analytics.record, { ...event, city, pageId, issuedAt: start + minute * 60_000, expiresAt: start + minute * 60_000 + 300_000 });
+    await flushAnalytics(t);
+  }
+  const cities = async () => (await t.query(api.wall.current, {}))!.radarCities!.cities.map(row => row.city);
+  await view("London", 0, "london-one");
+  await view("London", 0, "london-two");
+  vi.setSystemTime(start + 60_000);
+  await view("Sydney", 1, "sydney-one");
+  expect(await cities()).toEqual(["Sydney", "London"]);
+  vi.setSystemTime(start + 120_000);
+  await view("London", 2, "london-three");
+  expect(await cities()).toEqual(["London", "Sydney"]);
+  // A later delivery of an older visit keeps its original occurrence time.
+  await view("Sydney", 0, "sydney-delayed");
+  expect(await cities()).toEqual(["London", "Sydney"]);
+  await t.mutation(internal.analytics.record, { ...event, pageId: "london-three", source: "visitorping", city: "Mexico City", region: "MX", issuedAt: start + 120_000, expiresAt: start + 420_000 });
+  expect(await cities()).toEqual(["Mexico City", "Sydney", "London"]);
+});

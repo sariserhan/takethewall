@@ -1,4 +1,4 @@
-import { addCityDelta, applyCityDelta } from "./radarCityModel";
+import { addCityDelta, applyCityDelta, cityKey } from "./radarCityModel";
 import { v } from "convex/values";
 import { internalMutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -21,7 +21,7 @@ async function updateRadar(ctx: MutationCtx, visit: Omit<Doc<"visitLedger">, "_i
 }
 export async function createVisit(ctx: MutationCtx, a: Location & { key: string; takeoverId: Id<"takeovers">; visitorHash: string; occurredAt: number; freshReign: boolean }) {
   const { country, city, source } = visitLocation(a);
-  const visit = { key: a.key, takeoverId: a.takeoverId, visitorHash: a.visitorHash, occurredAt: a.occurredAt, date: new Date(a.occurredAt).toISOString().slice(0, 10), country, city, locationSource: source, sources: [source], freshReign: a.freshReign };
+  const visit = { key: a.key, takeoverId: a.takeoverId, visitorHash: a.visitorHash, occurredAt: a.occurredAt, date: new Date(a.occurredAt).toISOString().slice(0, 10), country, city, cityKey: cityKey(city, country), locationSource: source, sources: [source], freshReign: a.freshReign };
   const id = await ctx.db.insert("visitLedger", visit);
   await regionDelta(ctx, a.takeoverId, country, 1, Number(a.freshReign));
   await updateRadar(ctx, visit);
@@ -34,11 +34,12 @@ export async function enrichVisit(ctx: MutationCtx, row: Doc<"visitLedger">, a: 
   const prefer = incoming.country !== "ZZ" && (row.country === "ZZ" || (incoming.source === "visitorping" && row.locationSource !== "visitorping"));
   const country = prefer ? incoming.country : row.country;
   const city = prefer ? (incoming.city || (country === row.country ? row.city : "")) : row.city || (incoming.country === country ? incoming.city : "");
-  const changes = { country, city, locationSource: prefer ? incoming.source : row.locationSource, sources: [...new Set([...row.sources, incoming.source])] };
+  const changes = { country, city, cityKey: cityKey(city, country), locationSource: prefer ? incoming.source : row.locationSource, sources: [...new Set([...row.sources, incoming.source])] };
   if (country !== row.country) {
     await regionDelta(ctx, row.takeoverId, row.country, -1, -Number(row.freshReign));
     await regionDelta(ctx, row.takeoverId, country, 1, Number(row.freshReign));
   }
+  await ctx.db.patch(row._id, changes);
   if (row.cityBatchId && (country !== row.country || city !== row.city)) {
     const batch = await ctx.db.get(row.cityBatchId);
     if (batch) {
@@ -51,7 +52,6 @@ export async function enrichVisit(ctx: MutationCtx, row: Doc<"visitLedger">, a: 
       await applyCityDelta(ctx, row.date, { city, country, views: 1 });
     }
   }
-  await ctx.db.patch(row._id, changes);
   await updateRadar(ctx, { ...row, ...changes });
 }
 export const radar = query({

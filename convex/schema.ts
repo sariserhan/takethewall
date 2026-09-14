@@ -80,7 +80,7 @@ export default defineSchema({
     key: v.literal("email"),
     nextAt: v.number(),
   }).index("by_key", ["key"]),
-  dailyCityViews: defineTable({ date: v.string(), key: v.string(), city: v.string(), country: v.string(), views: v.number() }).index("by_date_key", ["date", "key"]),
+  dailyCityViews: defineTable({ date: v.string(), key: v.string(), city: v.string(), country: v.string(), views: v.number(), lastVisitAt: v.optional(v.number()) }).index("by_date_key", ["date", "key"]),
   analyticsBatches: defineTable({
     takeoverId: v.id("takeovers"),
     date: v.string(),
@@ -243,10 +243,10 @@ export default defineSchema({
   visitLedger: defineTable({
     key: v.string(), takeoverId: v.id("takeovers"), visitorHash: v.string(),
     cityBatchId: v.optional(v.id("analyticsBatches")),
-    occurredAt: v.number(), date: v.string(), country: v.string(), city: v.string(),
+    occurredAt: v.number(), date: v.string(), country: v.string(), city: v.string(), cityKey: v.optional(v.string()),
     locationSource: v.union(v.literal("vercel"), v.literal("visitorping")),
     sources: v.array(v.union(v.literal("vercel"), v.literal("visitorping"))), freshReign: v.boolean(),
-  }).index("by_key", ["key"]).index("by_date", ["date"]),
+  }).index("by_key", ["key"]).index("by_date", ["date"]).index("by_date_cityKey_occurredAt", ["date", "cityKey", "occurredAt"]),
   presenceLocations: defineTable({
     visitorHash: v.string(), city: v.string(), country: v.string(),
   }).index("by_visitorHash", ["visitorHash"]),
