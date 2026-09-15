@@ -9,12 +9,28 @@ export function RadarArrivalSound({ visitors, connected }: {
   connected: boolean;
 }) {
   const audio = useRef<AudioContext | null>(null);
+  const buffer = useRef<AudioBuffer | null>(null);
+  const playing = useRef<AudioBufferSourceNode | null>(null);
   const seen = useRef<Set<string> | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let decoding = false;
+    const download = fetch("/sounds/here39s-another-good-example.mp3", { signal: controller.signal })
+      .then(response => response.ok ? response.arrayBuffer() : null)
+      .catch(() => null);
     const unlock = () => {
       try {
         audio.current ??= new AudioContext();
+        if (!decoding) {
+          decoding = true;
+          const context = audio.current;
+          void download.then(async bytes => {
+            if (!bytes || controller.signal.aborted) return;
+            const decoded = await context.decodeAudioData(bytes);
+            if (!controller.signal.aborted) buffer.current = decoded;
+          }).catch(() => {});
+        }
         if (audio.current.state === "suspended") {
           void audio.current.resume().catch(() => {});
         }
@@ -27,6 +43,10 @@ export function RadarArrivalSound({ visitors, connected }: {
     return () => {
       document.removeEventListener("pointerdown", unlock);
       document.removeEventListener("keydown", unlock);
+      controller.abort();
+      buffer.current = null;
+      playing.current?.stop();
+      playing.current = null;
       const context = audio.current;
       audio.current = null;
       if (context) void context.close().catch(() => {});
@@ -46,30 +66,21 @@ export function RadarArrivalSound({ visitors, connected }: {
     if (!context || context.state !== "running" ||
         document.documentElement.dataset.wallFrozen === "on") return;
 
-    // A sharp sonar-style chirp with a metallic overtone and two fading echoes.
-    // Schedule the whole ping on the audio clock, without JS animation timers.
-    const now = context.currentTime;
-    for (const [delay, volume] of [[0, 0.045], [0.22, 0.016], [0.44, 0.006]]) {
-      for (const [frequency, level] of [[1450, 1], [2900, 0.18]]) {
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        const start = now + delay;
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(frequency, start);
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.78, start + 0.2);
-        gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(volume * level, start + 0.006);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.onended = () => {
-          oscillator.disconnect();
-          gain.disconnect();
-        };
-        oscillator.start(start);
-        oscillator.stop(start + 0.3);
-      }
-    }
+    // Play the supplied clip once; arrivals during playback must not stack audio.
+    if (!buffer.current || playing.current) return;
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    source.buffer = buffer.current;
+    gain.gain.value = 0.45;
+    source.connect(gain);
+    gain.connect(context.destination);
+    playing.current = source;
+    source.onended = () => {
+      source.disconnect();
+      gain.disconnect();
+      if (playing.current === source) playing.current = null;
+    };
+    source.start();
   }, [visitors, connected]);
 
   return null;
