@@ -1669,3 +1669,10 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
   .recent-arrivals-slot>section { margin-top:0; }
   .wall-explore .experiment-menu-controls { order:4; width:auto; min-width:0; max-width:100%; }
 }
+
+.site-metrics .metric>strong,.reign-metrics .metric>strong { min-height:1.2em; font-variant-numeric:tabular-nums; }
+.reign-clock { display:inline-block; min-width:8ch; }
+.analytics-loading-status { min-height:1.5em; margin:4px 0; color:var(--muted); font:10px/1.5 var(--body); }
+.metric>strong[data-pending="true"] { color:var(--muted); }
+.regions>p,.regions>ul { min-height:48px; }
+.lifetime-visits strong { min-width:3ch; font-variant-numeric:tabular-nums; }

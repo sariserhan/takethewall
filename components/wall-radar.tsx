@@ -22,12 +22,12 @@ const place = (row: Arrival) =>
 export function WallRadar({ scope = "today" }: { scope?: "today" | "takeover" | "reached" }) {
   const namesOnly = scope === "reached";
   const takeover = scope !== "today";
-  const live = useQuery(api.wallPresence.live, takeover ? "skip" : {});
   const [requestedMode, setMode] = useState<"cities" | "live">("cities");
+  const live = useQuery(api.wallPresence.live, takeover || requestedMode !== "live" ? "skip" : {});
   const wall = useQuery(api.wall.current, {});
   const today = new Date().toISOString().slice(0, 10);
-  const report = takeover ? wall?.takeoverRadarCities : wall?.radarCities ? wall.utcDate === today ? wall.radarCities : { date: today, views: 0, uniqueVisitors: 0, historicalThrough: null, cities: [] } : null;
-  const mode = takeover ? "cities" : report ? requestedMode : "live";
+  const report = takeover ? wall?.takeoverRadarCities : wall?.radarCities ? wall.utcDate === today ? wall.radarCities : null : null;
+  const mode = takeover ? "cities" : requestedMode;
   const connection = useConvexConnectionState();
   const [countries, setCountries] = useState<Country[]>([]),
     [cities, setCities] = useState<CityCenter[]>([]);

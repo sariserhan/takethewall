@@ -43,3 +43,5 @@
 .matching input:checked { background:var(--ink); border-color:var(--ink); }
 .matching input:checked::after { left:14px; background:var(--paper); }
 .matching input:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+
+.radio:not([data-animating="true"]) .equalizer i { animation-play-state:paused; }

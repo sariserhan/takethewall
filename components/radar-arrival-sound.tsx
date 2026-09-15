@@ -18,9 +18,6 @@ export function RadarArrivalSound({ visitors, connected }: {
   useEffect(() => {
     const controller = new AbortController();
     let decoding = false;
-    const download = fetch("/sounds/here39s-another-good-example.mp3", { signal: controller.signal })
-      .then(response => response.ok ? response.arrayBuffer() : null)
-      .catch(() => null);
     const unlock = () => {
       if (!wallSoundEnabled()) return;
       try {
@@ -28,11 +25,13 @@ export function RadarArrivalSound({ visitors, connected }: {
         if (!decoding) {
           decoding = true;
           const context = audio.current;
-          void download.then(async bytes => {
-            if (!bytes || controller.signal.aborted) return;
-            const decoded = await context.decodeAudioData(bytes);
-            if (!controller.signal.aborted) buffer.current = decoded;
-          }).catch(() => {});
+          void fetch("/sounds/here39s-another-good-example.mp3", { signal:controller.signal })
+            .then(response => response.ok ? response.arrayBuffer() : null)
+            .then(async bytes => {
+              if (!bytes || controller.signal.aborted) return;
+              const decoded = await context.decodeAudioData(bytes);
+              if (!controller.signal.aborted) buffer.current = decoded;
+            }).catch(() => { decoding = false; });
         }
         if (audio.current.state === "suspended") {
           void audio.current.resume().catch(() => {});

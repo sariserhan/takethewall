@@ -13,5 +13,5 @@ export function StatValue({ children }: { children: ReactNode }) {
     const animation = node.animate([{backgroundColor:"#48cb7738"},{backgroundColor:"transparent"}], {duration:900,easing:"ease-out"});
     return () => animation.cancel();
   }, [children]);
-  return <strong ref={element}>{children}</strong>;
+  return <strong ref={element} aria-label={children === "—" ? "Not available yet" : undefined} data-pending={children === "—"}>{children}</strong>;
 }

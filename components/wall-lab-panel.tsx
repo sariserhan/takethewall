@@ -6,8 +6,9 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { WallSnapshot } from "@/lib/wall-snapshot";
 import { createWallSnapshot } from "@/lib/wall-snapshot";
-import { WallRadar } from "./wall-radar";
-import { WallGlobe } from "./wall-globe";
+import dynamic from "next/dynamic";
+const WallRadar = dynamic(() => import("./wall-radar").then(module => module.WallRadar), { loading:() => <p role="status">Loading radar…</p> });
+const WallGlobe = dynamic(() => import("./wall-globe").then(module => module.WallGlobe), { loading:() => <p role="status">Loading globe…</p> });
 export type LabPanel =
   "Globe" | "Radar" | "Takeover Radar" | "Cities Radar" | "Snapshot" | "Audit" | "QR Code";
 export type LabData = WallSnapshot & {

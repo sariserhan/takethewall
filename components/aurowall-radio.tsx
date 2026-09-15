@@ -5,9 +5,11 @@ import { clearRadioEffects, radioEffectEvent, type RadioEffect } from "@/lib/rad
 import { wallSoundEnabled } from "./use-wall-sound";
 import { RadioPlayback } from "@/lib/radio-playback";
 import { useRadioMatching, radioMatchingEnabled, setRadioMatching, radioMatchingEvent } from "./use-radio-matching";
+import { useVisibleAnimation } from "./use-visible-animation";
 import styles from "./aurowall-radio.module.css";
 const presets: RadioChannel[] = ["lofi", "jazz", "deep-focus", "ambient", "rain", "forest", "waves", "synthwave"];
 export function AurowallRadio() {
+  const animation = useVisibleAnimation();
   const audio = useRef<HTMLAudioElement>(null);
   const secondAudio = useRef<HTMLAudioElement>(null);
   const playback = useRef<RadioPlayback | null>(null);
@@ -86,7 +88,7 @@ export function AurowallRadio() {
     tune(others[Math.floor(Math.random() * others.length)]);
   }
   return (
-    <section className={styles.radio} aria-label="Aurowall Radio">
+    <section ref={animation} className={styles.radio} aria-label="Aurowall Radio">
       <div className={styles.intro}>
         <span className={styles.eyebrow}>AUROWALL RADIO · {radioChannels.length} CHANNELS</span>
         <h2>A soundtrack for your stay.</h2>

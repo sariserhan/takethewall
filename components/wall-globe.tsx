@@ -62,10 +62,16 @@ export function WallGlobe() {
   }, []);
   useEffect(() => {
     if (!spin) return;
-    const id = setInterval(() => {
-      if (!document.hidden) setAngle((a) => (a + 0.7) % 360);
-    }, 80);
-    return () => clearInterval(id);
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const update = () => {
+      clearInterval(timer);
+      if (!document.hidden && !reduced.matches) timer = setInterval(() => setAngle(a => (a + 0.7) % 360), 80);
+    };
+    update();
+    document.addEventListener("visibilitychange", update);
+    reduced.addEventListener("change", update);
+    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", update); reduced.removeEventListener("change", update); };
   }, [spin]);
   const projection = geoOrthographic()
     .scale(177)
@@ -245,8 +251,7 @@ export function WallGlobe() {
         </ul>
       ) : (
         <p>
-          No country analytics yet. Explore the map while the first visits
-          arrive.
+          {report === undefined ? "Loading country analytics…" : "No country analytics yet. Explore the map while the first visits arrive."}
         </p>
       )}
       {snapshot?.truncated && (

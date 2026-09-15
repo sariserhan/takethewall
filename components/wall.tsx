@@ -91,10 +91,17 @@ function Connected() {
 function Clock({ since }: { since: number }) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  return <>{since && now ? duration(now - since) : "00:00:00"}</>;
+    if (!since) return;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const update = () => {
+      clearInterval(timer);
+      if (!document.hidden) { setNow(Date.now()); timer = setInterval(() => setNow(Date.now()), 1000); }
+    };
+    const frame = requestAnimationFrame(update);
+    document.addEventListener("visibilitychange", update);
+    return () => { cancelAnimationFrame(frame); clearInterval(timer); document.removeEventListener("visibilitychange", update); };
+  }, [since]);
+  return <span className="reign-clock" aria-label={!since || !now ? "Reign time loading" : undefined}>{since && now ? duration(now - since) : "—"}</span>;
 }
 function Metric({ label, value, action }: {
   label: string;
@@ -246,12 +253,12 @@ function WallView({
   const realToday = data
     ? data.utcDate === new Date().toISOString().slice(0, 10)
       ? data.visitorsToday
-      : 0
+      : undefined
     : undefined;
   const viewsToday = data
     ? data.utcDate === new Date().toISOString().slice(0, 10)
       ? data.viewsToday
-      : 0
+      : undefined
     : undefined;
   const regions = topRegions(data?.regions ?? []);
   const takeWall = () => {
@@ -337,7 +344,7 @@ function WallView({
             been confirmed.
           </div>
         )}
-        <section className="site-metrics" aria-label="Site analytics">
+        <section className="site-metrics" aria-label="Site analytics" aria-busy={!data}>
           <Metric
             label="VIEWS TODAY (UTC)"
             action={<StatToolButton name="Radar" onClick={() => setLabPanel("Radar")} />}
@@ -384,6 +391,7 @@ function WallView({
             )}
           </div>
         </section>
+          <p className="analytics-loading-status" role="status">{!data ? "Loading live stats…" : !connected ? "Reconnecting · showing last received stats." : ""}</p>
           {!trying && (
             <div className="owner-identity-strip">
               <PulseTool compact ownerId={owner?.id} name={owner?.displayName} />
@@ -490,14 +498,14 @@ function WallView({
             />}
           </div>
         )}
-        <section className="reign-metrics" aria-label="Current reign analytics">
+        <section className="reign-metrics" aria-label="Current reign analytics" aria-busy={!data}>
           <Metric
             label="CURRENT REIGN"
             action={<StatToolButton name="Snapshot" onClick={() => setLabPanel("Snapshot")} />}
             value={
               <>
                 <Clock since={since} />
-                {since > 0 && (
+                {since > 0 ? (
                   <time
                     className="owner-since"
                     dateTime={new Date(since).toISOString()}
@@ -509,7 +517,7 @@ function WallView({
                       .slice(0, 19)}{" "}
                     UTC
                   </time>
-                )}
+                ) : <span className="owner-since" aria-hidden="true">&nbsp;</span>}
               </>
             }
           />

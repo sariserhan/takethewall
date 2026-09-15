@@ -1,4 +1,5 @@
 import { VisitorPingCredit } from "./visitorping-credit";
+import { useVisibleAnimation } from "./use-visible-animation";
 import type { CSSProperties } from "react";
 import styles from "./live-visitor-radar.module.css";
 
@@ -22,10 +23,11 @@ export function LiveVisitorRadar({ visitors, connected, selected, onSelect }: {
   selected?: string | null;
   onSelect?: (id: string | null) => void;
 }) {
+  const animation = useVisibleAnimation();
   const ready = connected && visitors !== undefined;
   const rows = ready ? visitors : [];
   return (
-    <section className={styles.radar} aria-label="Live visitor radar">
+    <section ref={animation} className={styles.radar} aria-label="Live visitor radar">
       <header className={styles.header}>
         <span><i aria-hidden="true" /> LIVE VISITOR RADAR</span>
         <strong>{ready ? `${rows.length}${rows.length === 500 ? "+" : ""} ONLINE` : "CONNECTING"}</strong>
@@ -43,10 +45,10 @@ export function LiveVisitorRadar({ visitors, connected, selected, onSelect }: {
               return (
                 <div key={visitor.id} role="listitem" className={styles.contact} data-selected={selected === visitor.id}
                   style={{
-                    "--start-x": `${50 + Math.cos(angle) * 39}%`,
-                    "--start-y": `${50 + Math.sin(angle) * 39}%`,
-                    "--end-x": `${50 + Math.cos(angle) * 10}%`,
-                    "--end-y": `${50 + Math.sin(angle) * 10}%`,
+                    "--start-x": `${Math.cos(angle) * 39}cqw`,
+                    "--start-y": `${Math.sin(angle) * 39}cqw`,
+                    "--end-x": `${Math.cos(angle) * 10}cqw`,
+                    "--end-y": `${Math.sin(angle) * 10}cqw`,
                   } as CSSProperties}>
                   <button type="button" className={styles.dot} aria-label={label} title={label} aria-pressed={selected === visitor.id}
                     onMouseEnter={() => onSelect?.(visitor.id)} onMouseLeave={() => onSelect?.(null)}
