@@ -26,6 +26,7 @@ import { ReportContent } from "./report-content";
 import { WallCanvas } from "./wall-canvas";
 import { LiveVisitorRadar, type LiveVisitor } from "./live-visitor-radar";
 import { WallPresence } from "./wall-presence";
+import { RecentArrivals } from "./recent-arrivals";
 import { RadarArrivalSound } from "./radar-arrival-sound";
 import { StatShare } from "./stat-share";
 import { StatDetails } from "./stat-details";
@@ -640,6 +641,7 @@ function WallView({
             <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,websiteUrl:owner.websiteUrl,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>
       </div>
+        <RecentArrivals visitors={liveVisitors} connected={connected} />
         </div>
         <LiveVisitorRadar visitors={liveVisitors} connected={connected} />
       </section>

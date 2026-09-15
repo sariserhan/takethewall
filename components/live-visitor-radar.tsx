@@ -3,7 +3,7 @@ import styles from "./live-visitor-radar.module.css";
 
 export type LiveVisitor = { id: string; city: string; country: string };
 const countries = new Intl.DisplayNames(["en"], { type: "region" });
-function location(visitor: LiveVisitor) {
+export function visitorLocation(visitor: LiveVisitor) {
   const code = visitor.country.trim().toUpperCase();
   const country = /^[A-Z]{2}$/.test(code) && code !== "ZZ"
     ? countries.of(code) : code === "ZZ" ? "" : visitor.country;
@@ -36,7 +36,7 @@ export function LiveVisitorRadar({ visitors, connected }: {
           <div className={styles.contacts} role="list" aria-label="Visitors with the wall visible">
             {rows.map(visitor => {
               const angle = bearing(visitor.id);
-              const label = location(visitor);
+              const label = visitorLocation(visitor);
               return (
                 <div key={visitor.id} role="listitem" className={styles.contact}
                   style={{
