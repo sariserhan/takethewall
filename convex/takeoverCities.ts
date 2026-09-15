@@ -15,7 +15,11 @@ export async function trackTakeoverCity(ctx: MutationCtx, visitId: Id<"visitLedg
   const visit = await ctx.db.get(visitId);
   if (!visit || visit.takeoverCityRecorded) return;
   const snapshot = await ctx.db.query("takeoverCitySnapshots").withIndex("by_takeoverId", q => q.eq("takeoverId", visit.takeoverId)).unique();
-  if (snapshot && visit.occurredAt <= snapshot.through && !visit.key.startsWith("arrival:")) return;
+  if (snapshot && visit.occurredAt <= snapshot.through && !visit.key.startsWith("arrival:")) {
+    // The snapshot owns the count; retained ledger rows still supply recency.
+    await applyTakeoverCity(ctx, visit.takeoverId, visit.city, visit.country, 0);
+    return;
+  }
   await applyTakeoverCity(ctx, visit.takeoverId, visit.city, visit.country, 1);
   await ctx.db.patch(visit._id, { takeoverCityRecorded: true });
 }
