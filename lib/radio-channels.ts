@@ -63,8 +63,6 @@ export const radioChannels = [
   "piano",
   "pop",
   "portuguese",
-  "prayer",
-  "quran",
   "rain-piano",
   "rain",
   "rainy-jazz",

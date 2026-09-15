@@ -171,7 +171,7 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
                   onClick={() => {
                     setEra(value);
                     setRetro(false);
-                    setRadioEffects({ retro:null, era:value === "1984" ? { channel:"80s", label:"1984" } : value === "1996" ? { channel:"90s", label:"1996" } : value === "2077" ? { channel:"synthwave", label:"2077" } : null });
+                    setRadioEffects({ retro:null, era:value === "1984" ? { channel:"80s", label:"1984" } : value === "1996" ? { channel:"90s", label:"1996" } : value === "2077" ? { channel:"edm", label:"2077" } : null });
                   }}
                 >
                   {label}
