@@ -22,3 +22,7 @@
 @keyframes approach { from { left:var(--start-x); top:var(--start-y); } to { left:var(--end-x); top:var(--end-y); } }
 @media(prefers-reduced-motion:reduce) { .sweep { animation:none; } .contact { animation:none; left:var(--start-x); top:var(--start-y); } }
 @media(max-width:600px) { .radar { padding:14px; } .label { max-width:85px; font-size:8px; } }
+
+.contact[data-selected="true"] { z-index:5; }
+.contact[data-selected="true"] .dot { background:#fff; outline:2px solid #9fffaf; outline-offset:5px; box-shadow:0 0 22px #71ff98; }
+.contact[data-selected="true"] .label { color:#fff; background:#102d1d; font-weight:700; max-width:160px; }

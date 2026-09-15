@@ -1655,3 +1655,17 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 
 .lifetime-visits-summary { display:inline-flex; align-items:center; gap:5px; }
 .lifetime-visits-summary .stat-help-trigger { padding:4px 0; }
+
+.playground-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-basis:100%; }
+.playground-heading h3 { margin:0 0 4px; color:var(--muted); }
+.playground-reset button { background:none; color:inherit; border:0; padding:4px 0; font:11px var(--body); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.live-radar-slot,.recent-arrivals-slot { min-width:0; }
+@media(max-width:850px) {
+  .wall-explore-controls,.wall-explore .wall-tools { display:contents; }
+  .wall-explore-heading { order:0; }
+  .wall-explore .wall-tools-primary { order:1; }
+  .live-radar-slot { order:2; }
+  .recent-arrivals-slot { order:3; }
+  .recent-arrivals-slot>section { margin-top:0; }
+  .wall-explore .experiment-menu-controls { order:4; width:auto; min-width:0; max-width:100%; }
+}

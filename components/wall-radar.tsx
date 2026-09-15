@@ -159,7 +159,7 @@ export function WallRadar({ scope = "today" }: { scope?: "today" | "takeover" | 
         </span>
       </div>
       <p className={styles.note}>
-        Arrival sound is enabled across the wall, even when Radar is closed.
+        The wall’s Sound on/off control applies to visitor arrivals, even when Radar is closed.
         Click or tap anywhere first to allow audio.
       </p>
       <div className={styles.layout}>

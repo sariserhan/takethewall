@@ -1,5 +1,6 @@
 "use client";
 
+import { useWallSound, wallSoundEnabled } from "./use-wall-sound";
 import { useEffect, useRef } from "react";
 import type { LiveVisitor } from "./live-visitor-radar";
 
@@ -8,6 +9,7 @@ export function RadarArrivalSound({ visitors, connected }: {
   visitors?: LiveVisitor[];
   connected: boolean;
 }) {
+  const enabled = useWallSound();
   const audio = useRef<AudioContext | null>(null);
   const buffer = useRef<AudioBuffer | null>(null);
   const playing = useRef<AudioBufferSourceNode | null>(null);
@@ -20,6 +22,7 @@ export function RadarArrivalSound({ visitors, connected }: {
       .then(response => response.ok ? response.arrayBuffer() : null)
       .catch(() => null);
     const unlock = () => {
+      if (!wallSoundEnabled()) return;
       try {
         audio.current ??= new AudioContext();
         if (!decoding) {
@@ -40,9 +43,11 @@ export function RadarArrivalSound({ visitors, connected }: {
     };
     document.addEventListener("pointerdown", unlock);
     document.addEventListener("keydown", unlock);
+    window.addEventListener("ttw-sound-change", unlock);
     return () => {
       document.removeEventListener("pointerdown", unlock);
       document.removeEventListener("keydown", unlock);
+      window.removeEventListener("ttw-sound-change", unlock);
       controller.abort();
       buffer.current = null;
       playing.current?.stop();
@@ -54,6 +59,10 @@ export function RadarArrivalSound({ visitors, connected }: {
   }, []);
 
   useEffect(() => {
+    if (!enabled) { playing.current?.stop(); playing.current = null; }
+  }, [enabled]);
+
+  useEffect(() => {
     if (!connected || !visitors) {
       seen.current = null;
       return;
@@ -63,7 +72,7 @@ export function RadarArrivalSound({ visitors, connected }: {
     // Establish a silent baseline on load/reconnect; never replay existing dots.
     if (!previous || !visitors.some(row => !previous.has(row.id))) return;
     const context = audio.current;
-    if (!context || context.state !== "running" ||
+    if (!enabled || !context || context.state !== "running" ||
         document.documentElement.dataset.wallFrozen === "on") return;
 
     // Play the supplied clip once; arrivals during playback must not stack audio.
@@ -81,7 +90,7 @@ export function RadarArrivalSound({ visitors, connected }: {
       if (playing.current === source) playing.current = null;
     };
     source.start();
-  }, [visitors, connected]);
+  }, [visitors, connected, enabled]);
 
   return null;
 }

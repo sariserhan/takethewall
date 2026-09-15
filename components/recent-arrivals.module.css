@@ -3,8 +3,12 @@
 .header h3 { margin:0; font:20px/1.2 var(--display); }
 .header>span { font:9px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; color:var(--muted); letter-spacing:.08em; }
 .list { list-style:none; padding:0; margin:16px 0 0; }
-.list li { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--rule); }
-.list li>div { min-width:0; flex:1; }
+.list li { border-top:1px solid var(--rule); }
+.row { width:100%; display:flex; align-items:center; gap:12px; padding:12px 0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+.row:disabled { cursor:default; }
+.row:focus-visible { outline:2px solid #348750; outline-offset:2px; }
+.list li[data-selected="true"] { background:#48cb771a; }
+.location { min-width:0; flex:1; }
 .list strong { display:block; font:600 12px/1.5 var(--body); overflow-wrap:anywhere; }
 .list time { display:block; margin-top:3px; color:var(--muted); font:10px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
 .indicator { width:7px; height:7px; flex-shrink:0; border:1px solid var(--muted); border-radius:50%; }

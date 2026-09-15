@@ -1,4 +1,8 @@
 "use client";
+import { StatValue } from "./stat-value";
+import { ResetWallEffects } from "./reset-wall-effects";
+import { setInteractionMode } from "./wall-interaction-mode";
+import { setBlacklight } from "./wall-blacklight";
 import { isReachedCity } from "@/lib/reached-cities";
 import Link from "next/link";
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
@@ -101,7 +105,7 @@ function Metric({ label, value, action }: {
         <StatHelp label={label} />
         {action}
       </span>
-      <strong>{value}</strong>
+      {label === "CURRENT REIGN" ? <strong>{value}</strong> : <StatValue>{value}</StatValue>}
     </div>
   );
 }
@@ -122,6 +126,16 @@ function WallView({
   connected: boolean;
   liveVisitors?: LiveVisitor[];
 }) {
+  const [selectedVisitor, setSelectedVisitor] = useState<string | null>(null);
+  const [effectsVersion, setEffectsVersion] = useState(0);
+  const resetEffects = () => {
+    setInteractionMode("off");
+    setBlacklight(false);
+    document.documentElement.setAttribute("data-wall-theme", "paper");
+    try { localStorage.setItem("ttw-theme", "paper"); } catch {}
+    setLabPanel(null);
+    setEffectsVersion(version => version + 1);
+  };
   const [labPanel, setLabPanel] = useState<LabPanel | null>(null);
   const [draftVersion, setDraftVersion] = useState(0);
   const [trying, setTrying] = useState(false);
@@ -272,7 +286,7 @@ function WallView({
                 {connected ? "LIVE" : "CONNECTING"}
               </span>
               <span className="lifetime-visits-summary">
-              <StatDetails label="All-time visits" className="lifetime-visits" trigger={<><strong>{numbers(data?.totalViews)}</strong><span>ALL-TIME VISITS</span></>} title="Website visit totals" rows={[
+              <StatDetails label="All-time visits" className="lifetime-visits" trigger={<><StatValue>{numbers(data?.totalViews)}</StatValue><span>ALL-TIME VISITS</span></>} title="Website visit totals" rows={[
               { label: "Visits · all time", value: numbers(data?.totalViews) },
               { label: "Unique visitors · all time", value: numbers(data?.totalVisitors) },
               { label: "Unique visitors · today (UTC)", value: numbers(realToday) },
@@ -500,7 +514,7 @@ function WallView({
             <span className="stat-heading"><StatHelp label="REFERRALS" />
               {owner?.publicId ? <StatShare key={owner.publicId} publicId={owner.publicId} name={owner.displayName} /> : <button type="button" className="stat-tool-button" aria-label="Share referral unavailable" disabled><WallToolIcon name="share" />Share referral</button>}
             </span>
-            <strong>{owner ? numbers(owner.shareVisitors ?? 0) : "—"}</strong>
+            <StatValue>{owner ? numbers(owner.shareVisitors ?? 0) : "—"}</StatValue>
             <small className="referral-prize-label">Referral prize · Reward B</small>
             <small className="referral-prize-hint">Share this takeover’s link to support its referral count</small>
           </div>
@@ -513,7 +527,7 @@ function WallView({
                 </Link>
               ) : <StatDetails label="Current takeover" title="Current takeover" rows={[]}><p>The current takeover’s public page is not available yet.</p></StatDetails>}
             </span>
-            <strong>{numbers(data?.totalTakeovers)}</strong>
+            <StatValue>{numbers(data?.totalTakeovers)}</StatValue>
             <small className="takeover-prize-label">Takeover prize · Reward A <NextPrizeMilestone /></small>
           </div>
           <Metric
@@ -636,17 +650,17 @@ function WallView({
         />
         <TakeoverSound changed={changed} />
         <WallActions />
-        <WallLab panel={labPanel} setPanel={setLabPanel} data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors, number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: false } : null} />
+        <WallLab key={effectsVersion} panel={labPanel} setPanel={setLabPanel} data={owner ? { id: owner.id, name: owner.displayName, contentType: owner.contentType, logoUrl: owner.logoUrl, activatedAt: owner.activatedAt, visitors: owner.uniqueVisitors, number: owner.takeoverNumber, regions: data?.regions ?? [], includesDemo: false } : null} />
         </div>
           <div className="experiment-menu-controls" role="group" aria-labelledby="playground-title">
-            <h3 id="playground-title" className="eyebrow">Playground</h3>
-            <WallExperiments />
-            <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,websiteUrl:owner.websiteUrl,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
+            <div className="playground-heading"><h3 id="playground-title" className="eyebrow">Playground</h3><ResetWallEffects onReset={resetEffects} /></div>
+            <WallExperiments key={`experiments-${effectsVersion}`} />
+            <WallCreativeTools key={`creative-${effectsVersion}`} data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,websiteUrl:owner.websiteUrl,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>
       </div>
-        <RecentArrivals visitors={liveVisitors} connected={connected} />
+        <div className="recent-arrivals-slot"><RecentArrivals visitors={liveVisitors} connected={connected} selected={selectedVisitor} onSelect={setSelectedVisitor} /></div>
         </div>
-        <LiveVisitorRadar visitors={liveVisitors} connected={connected} />
+        <div className="live-radar-slot"><LiveVisitorRadar visitors={liveVisitors} connected={connected} selected={selectedVisitor} onSelect={setSelectedVisitor} /></div>
       </section>
       <PublicFooter home />
       <ResumeCheckout />

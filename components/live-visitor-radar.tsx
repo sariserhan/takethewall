@@ -16,9 +16,11 @@ function bearing(id: string) {
   return ((hash >>> 0) % 360) * Math.PI / 180;
 }
 
-export function LiveVisitorRadar({ visitors, connected }: {
+export function LiveVisitorRadar({ visitors, connected, selected, onSelect }: {
   visitors?: LiveVisitor[];
   connected: boolean;
+  selected?: string | null;
+  onSelect?: (id: string | null) => void;
 }) {
   const ready = connected && visitors !== undefined;
   const rows = ready ? visitors : [];
@@ -39,14 +41,16 @@ export function LiveVisitorRadar({ visitors, connected }: {
               const angle = bearing(visitor.id);
               const label = visitorLocation(visitor);
               return (
-                <div key={visitor.id} role="listitem" className={styles.contact}
+                <div key={visitor.id} role="listitem" className={styles.contact} data-selected={selected === visitor.id}
                   style={{
                     "--start-x": `${50 + Math.cos(angle) * 39}%`,
                     "--start-y": `${50 + Math.sin(angle) * 39}%`,
                     "--end-x": `${50 + Math.cos(angle) * 10}%`,
                     "--end-y": `${50 + Math.sin(angle) * 10}%`,
                   } as CSSProperties}>
-                  <button type="button" className={styles.dot} aria-label={label} title={label}>
+                  <button type="button" className={styles.dot} aria-label={label} title={label} aria-pressed={selected === visitor.id}
+                    onMouseEnter={() => onSelect?.(visitor.id)} onMouseLeave={() => onSelect?.(null)}
+                    onFocus={() => onSelect?.(visitor.id)} onBlur={() => onSelect?.(null)} onClick={() => onSelect?.(visitor.id)}>
                     <span className={styles.label} data-side={Math.cos(angle) > 0 ? "left" : "right"}>{label}</span>
                   </button>
                 </div>
@@ -57,7 +61,7 @@ export function LiveVisitorRadar({ visitors, connected }: {
         {ready && !rows.length && <p className={styles.empty}>SCANNING · WAITING FOR VISITORS</p>}
       </div>
       <footer className={styles.footer}>
-        <span>Each dot is a visitor with the wall visible. Tap or click the page to enable arrival pings.</span>
+        <span>Each dot is a visitor with the wall visible. Use Sound on/off to control arrival pings; tap or click once to enable audio.</span>
         <span>Dots drift inward during a visit. Position is decorative; city and country are approximate.</span>
         <VisitorPingCredit />
       </footer>

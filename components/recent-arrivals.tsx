@@ -6,9 +6,11 @@ import styles from "./recent-arrivals.module.css";
 
 type Arrival = LiveVisitor & { observedAt: number; arrival: boolean };
 
-export function RecentArrivals({ visitors, connected }: {
+export function RecentArrivals({ visitors, connected, selected, onSelect }: {
   visitors?: LiveVisitor[];
   connected: boolean;
+  selected?: string | null;
+  onSelect?: (id: string | null) => void;
 }) {
   const [entries, setEntries] = useState<Arrival[]>([]);
   const [now, setNow] = useState(0);
@@ -59,15 +61,20 @@ export function RecentArrivals({ visitors, connected }: {
               : `${Math.floor(minutes / 60)} ${minutes < 120 ? "hour" : "hours"} ago`;
             const active = online.has(entry.id);
             return (
-              <li key={entry.id}>
+              <li key={entry.id} data-selected={active && selected === entry.id}>
+                <button className={styles.row} type="button" disabled={!active} aria-pressed={active && selected === entry.id}
+                  aria-label={`${visitorLocation(entry)}${active ? ", highlight on radar" : ", no longer online"}`}
+                  onMouseEnter={() => { if (active) onSelect?.(entry.id); }} onMouseLeave={() => onSelect?.(null)}
+                  onFocus={() => onSelect?.(entry.id)} onBlur={() => onSelect?.(null)} onClick={() => onSelect?.(entry.id)}>
                 <i className={styles.indicator} data-online={active} aria-label={!ready ? "Status unavailable" : active ? "Online now" : "No longer online"} role="img" />
-                <div>
+                <span className={styles.location}>
                   <strong>{visitorLocation(entry)}</strong>
                   <time dateTime={new Date(entry.observedAt).toISOString()}>
                     {entry.arrival ? "Arrived" : "First seen"} {age}
                   </time>
-                </div>
+                </span>
                 <span className={styles.status}>{!ready ? "—" : active ? "ONLINE" : "LEFT"}</span>
+                </button>
               </li>
             );
           })}

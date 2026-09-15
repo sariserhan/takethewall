@@ -1,4 +1,5 @@
 "use client";
+import { setWallSound, useWallSound } from "./use-wall-sound";
 import { WallToolIcon } from "./wall-tool-icon";
 import { useEffect, useRef, useState, type RefObject } from "react";
 export function MobilePurchaseBar({
@@ -42,20 +43,17 @@ export function MobilePurchaseBar({
   );
 }
 export function TakeoverSound({ changed }: { changed: boolean }) {
-  const [enabled, setEnabled] = useState(false);
+  const enabled = useWallSound();
+  const previousChange = useRef(changed);
   const context = useRef<AudioContext | null>(null);
   useEffect(() => {
-    try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Read the saved browser preference after hydration.
-      setEnabled(localStorage.getItem("ttw-sound") === "on");
-    } catch {}
     return () => {
       void context.current?.close();
       context.current = null;
     };
   }, []);
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) { void context.current?.suspend().catch(() => {}); return; }
     const unlock = () => {
       try {
         context.current ??= new AudioContext();
@@ -63,13 +61,16 @@ export function TakeoverSound({ changed }: { changed: boolean }) {
       } catch {}
     };
     document.addEventListener("pointerdown", unlock);
-    return () => document.removeEventListener("pointerdown", unlock);
+    document.addEventListener("keydown", unlock);
+    return () => { document.removeEventListener("pointerdown", unlock); document.removeEventListener("keydown", unlock); };
   }, [enabled]);
   useEffect(() => {
+    const fresh = changed && !previousChange.current;
+    previousChange.current = changed;
     const audio = context.current;
     if (
       document.documentElement.dataset.wallFrozen === "on" ||
-      !changed ||
+      !fresh ||
       !enabled ||
       !audio ||
       audio.state !== "running" ||
@@ -98,12 +99,10 @@ export function TakeoverSound({ changed }: { changed: boolean }) {
     <button
       className="sound-toggle"
       aria-pressed={enabled}
+      title="Toggle takeover and visitor-arrival sounds"
       onClick={() => {
         const next = !enabled;
-        setEnabled(next);
-        try {
-          localStorage.setItem("ttw-sound", next ? "on" : "off");
-        } catch {}
+        setWallSound(next);
         if (next) {
           try {
             context.current ??= new AudioContext();
