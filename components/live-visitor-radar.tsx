@@ -56,7 +56,7 @@ export function LiveVisitorRadar({ visitors, connected }: {
         {ready && !rows.length && <p className={styles.empty}>SCANNING · WAITING FOR VISITORS</p>}
       </div>
       <footer className={styles.footer}>
-        <span>Each dot is a visitor with the wall visible.</span>
+        <span>Each dot is a visitor with the wall visible. Tap or click the page to enable arrival pings.</span>
         <span>Dots drift inward during a visit. Position is decorative; city and country are approximate.</span>
       </footer>
     </section>

@@ -70,7 +70,7 @@ function Connected() {
   const connection = useConvexConnectionState();
   return (
     <>
-    <RadarArrivalSound />
+    <RadarArrivalSound visitors={liveVisitors} connected={connection.isWebSocketConnected} />
     <WallPresence takeoverId={data?.owner?.id} />
     <WallView
       data={data}
