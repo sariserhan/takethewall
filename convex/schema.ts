@@ -255,6 +255,11 @@ export default defineSchema({
     date: v.string(), visitorHash: v.string(), firstSeenAt: v.number(), lastSeenAt: v.number(),
     lastVisitKey: v.string(), country: v.string(), city: v.string(),
   }).index("by_date_visitorHash", ["date", "visitorHash"]).index("by_date_lastSeenAt", ["date", "lastSeenAt"]),
+  visitorPingIdentities: defineTable({ key: v.string(), referralHash: v.string(), ownerTokenHash: v.optional(v.string()) }).index("by_key", ["key"]),
+  visitorPingSessions: defineTable({
+    key: v.string(), visitorHash: v.string(), matched: v.boolean(), excluded: v.boolean(),
+    fallbackVisitId: v.optional(v.id("visitLedger")), referralPublicId: v.optional(v.string()),
+  }).index("by_key", ["key"]),
   visitorPingWebhookDeliveries: defineTable({
     ...visitorPingAlert.fields, receivedAt: v.number(),
   }).index("by_receivedAt", ["receivedAt"]).index("by_event_receivedAt", ["event", "receivedAt"]),

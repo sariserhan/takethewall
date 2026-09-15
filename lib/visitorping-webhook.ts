@@ -7,6 +7,9 @@ export type VisitorPingAlert = {
     source: string;
     entryPage: string;
     referralPublicId?: string;
+    sessionId?: string;
+    visitorId?: string;
+    timestamp?: string;
     deviceType: string;
     isHotLead: boolean;
     companyName: string;
@@ -69,6 +72,12 @@ export function parseVisitorPingAlert(value: unknown): VisitorPingAlert {
   return {
     event: root.event,
     data: {
+      ...Object.fromEntries(["sessionId", "visitorId", "timestamp"].flatMap(key => {
+        if (data[key] === undefined) return [];
+        const value = text(data[key], 200);
+        if (!value || (key === "timestamp" && !Number.isFinite(Date.parse(value)))) throw new VisitorPingValidationError("Invalid arrival identity or timestamp");
+        return [[key, value]];
+      })),
       siteDomain: domain,
       siteName: text(data.siteName, 200),
       location: {

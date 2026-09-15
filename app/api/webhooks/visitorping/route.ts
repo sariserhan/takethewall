@@ -51,6 +51,14 @@ export async function POST(req: Request) {
     if (body?.event === "wall.impression") {
       if (!opaqueId(body?.data?.eventId) || typeof body?.data?.context !== "string")
         throw new VisitorPingValidationError("Invalid shared visit identifier");
+      const provider: { providerSessionId?: string; providerVisitorId?: string } = {};
+      for (const key of ["providerSessionId", "providerVisitorId"] as const) {
+        const value = body.data[key];
+        if (value !== undefined) {
+          if (typeof value !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(value)) throw new VisitorPingValidationError("Invalid provider identity");
+          provider[key] = value;
+        }
+      }
       const context = readContext(body.data.context, 86400_000);
       const location = body.data.location;
       if (!location || typeof location.country !== "string" || typeof location.city !== "string" || location.city.length > 160)
@@ -58,7 +66,7 @@ export async function POST(req: Request) {
       const country = location.country.toUpperCase();
       if (!/^[A-Z]{2}$/.test(country)) throw new VisitorPingValidationError("Invalid visit country");
       try {
-        await backend("event", { ...context, event: "impression", eventId: body.data.eventId, source: "visitorping", region: country, city: location.city });
+        await backend("event", { ...context, ...provider, event: "impression", eventId: body.data.eventId, source: "visitorping", region: country, city: location.city });
         return reply({ ok: true }, 200);
       } catch {
         return reply({ error: "Could not store visit; retry delivery" }, 503);

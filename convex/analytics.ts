@@ -1,3 +1,4 @@
+import { matchArrival } from "./visitorPingArrivalModel";
 import { recordReferral } from "./growth";
 import { historicalViews } from "./visitTotals";
 import { addCityDelta, afterCitySnapshot, applyCityDelta } from "./radarCityModel";
@@ -19,6 +20,8 @@ export const rate = internalMutation({
 });
 export const record = internalMutation({
   args: {
+    providerSessionId: v.optional(v.string()),
+    providerVisitorId: v.optional(v.string()),
     takeoverId: v.id("takeovers"),
     visitorHash: v.string(),
     pageId: v.string(),
@@ -39,7 +42,7 @@ export const record = internalMutation({
   },
   returns: v.boolean(),
   handler: async (ctx, a) => {
-    if (a.excluded || process.env.PUBLIC_METRICS_ENABLED !== "true")
+    if (process.env.PUBLIC_METRICS_ENABLED !== "true")
       return false;
     const now = Date.now();
     if (
@@ -56,6 +59,8 @@ export const record = internalMutation({
         (a.issuedAt > t.replacedAt || (a.source !== "visitorping" && now > t.replacedAt + 120_000)))
     )
       throw new Error("Invalid reign attribution");
+    if (a.source === "visitorping" && a.event === "impression") await matchArrival(ctx, a);
+    if (a.excluded) return false;
     if (
       a.event === "click" &&
       (t.contentType === "personal" || t.outboundLinkEnabled === false)

@@ -1,3 +1,4 @@
+import { recordArrival } from "./visitorPingArrivalModel";
 import { v } from "convex/values";
 import { internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -14,6 +15,7 @@ export const receive = internalMutation({
       ...alert,
       receivedAt: Date.now(),
     });
+    await recordArrival(ctx, alert, Date.now());
     return null;
   },
 });
@@ -57,5 +59,18 @@ export const radar = query({
       city: row.data.location.city,
       country: row.data.location.country,
     }));
+  },
+});
+
+// Explicit one-time replay; recurring ingestion remains webhook-only.
+export const replay = internalMutation({
+  args: { ids: v.array(v.id("visitorPingWebhookDeliveries")) }, returns: v.null(),
+  handler: async (ctx, { ids }) => {
+    if (ids.length > 50) throw Error("Replay at most 50 arrivals");
+    for (const id of ids) {
+      const row = await ctx.db.get(id);
+      if (row) await recordArrival(ctx, row, row.receivedAt);
+    }
+    return null;
   },
 });

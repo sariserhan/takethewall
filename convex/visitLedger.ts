@@ -9,7 +9,7 @@ type Location = { region: string; city?: string; source?: "vercel" | "visitorpin
 export function visitLocation(a: Location) {
   return { country: /^[A-Z]{2}$/.test(a.region) ? a.region : "ZZ", city: (a.city ?? "").trim().slice(0, 160), source: a.source ?? "vercel" as const };
 }
-async function regionDelta(ctx: MutationCtx, takeoverId: Id<"takeovers">, country: string, impressions: number, uniqueVisitors: number) {
+export async function regionDelta(ctx: MutationCtx, takeoverId: Id<"takeovers">, country: string, impressions: number, uniqueVisitors: number) {
   const row = await ctx.db.query("takeoverRegions").withIndex("by_takeoverId_regionCode", q => q.eq("takeoverId", takeoverId).eq("regionCode", country)).unique();
   if (row) await ctx.db.patch(row._id, { impressions: row.impressions + impressions, uniqueVisitors: row.uniqueVisitors + uniqueVisitors });
   else await ctx.db.insert("takeoverRegions", { takeoverId, regionCode: country, impressions, uniqueVisitors });
