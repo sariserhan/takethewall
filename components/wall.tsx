@@ -480,13 +480,6 @@ function WallView({
             }
           />
           <Metric
-            label="UNIQUE VISITORS"
-            action={<StatShare name={owner?.displayName} />}
-            value={numbers(
-              owner?.uniqueVisitors,
-            )}
-          />
-          <Metric
             label="CLICKS"
             action={owner?.outboundLinkEnabled && owner.websiteUrl ? <a className="stat-tool-button" aria-label="Visit website" data-tooltip="Visit website" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={event => { if (event.button === 1) void wallEvent(owner.id, "click"); }}><WallToolIcon name="popout" /> Visit website</a> : <button type="button" className="stat-tool-button" aria-label="Visit website unavailable" data-tooltip="No website link" disabled title="The current owner has no enabled outbound link"><WallToolIcon name="popout" /> Visit website</button>}
             value={numbers(owner?.clicks)}
