@@ -322,22 +322,18 @@ function WallView({
             action={<StatToolButton name="Radar" onClick={() => setLabPanel("Takeover Radar")} />}
             value={numbers(owner?.impressions)}
           />
-          <Metric
-            label="COUNTED TAKEOVERS"
-            action={
-              <>
-                {owner?.publicId && (
-                  <Link className="stat-tool-button" aria-label="Current takeover" data-tooltip="Current takeover" href={`/takeover/${owner.publicId}`}>
-                    <WallToolIcon name="popout" /> Current takeover
-                  </Link>
-                )}
-                {!owner?.publicId && <StatDetails label="Current takeover" title="Current takeover" rows={[]}><p>The current takeover’s public page is not available yet.</p></StatDetails>}
-              </>
-            }
-            value={
-              <>{numbers(data?.totalTakeovers)}</>
-            }
-          />
+          <div className="metric takeover-prize-stat">
+            <span className="stat-heading">
+              <StatHelp label="COUNTED TAKEOVERS" />
+              {owner?.publicId ? (
+                <Link className="stat-tool-button" aria-label="Current takeover" data-tooltip="Current takeover" href={`/takeover/${owner.publicId}`}>
+                  <WallToolIcon name="popout" /> Current takeover
+                </Link>
+              ) : <StatDetails label="Current takeover" title="Current takeover" rows={[]}><p>The current takeover’s public page is not available yet.</p></StatDetails>}
+            </span>
+            <strong>{numbers(data?.totalTakeovers)}</strong>
+            <small className="takeover-prize-label">Takeover prize · Reward A</small>
+          </div>
           <div className="metric previous-owner-stat">
             <span className="stat-heading">
               <StatHelp label="PREVIOUS OWNER" />

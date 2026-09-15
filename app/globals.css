@@ -1602,3 +1602,19 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
   .reign-metrics>.regions { grid-column:span 3; }
 }
 @media(max-width:600px) { .masthead-status { gap:10px; } .lifetime-visits { font-size:9px; padding-left:10px; } .lifetime-visits strong { font-size:12px; } }
+
+.site-metrics>.metric.takeover-prize-stat {
+  flex-direction:column; align-items:stretch; gap:4px;
+  background:#fff2d6; color:#754006;
+  border:1px solid #d5ae69; border-left:4px solid #b77913;
+  padding:10px 12px; border-radius:4px; min-width:0;
+}
+.takeover-prize-stat>.takeover-prize-label { font:700 11px/1.4 var(--body); letter-spacing:0; }
+.takeover-prize-stat .stat-help-trigger { color:inherit; }
+:root:is([data-wall-theme="obsidian"],[data-wall-blacklight="on"],[data-wall-interaction="thermal"],[data-wall-interaction="theremin"]) .takeover-prize-stat {
+  background:#33240f; color:#ffe3ab; border-color:#a7782c;
+}
+.takeover-prize-stat .stat-heading { justify-content:flex-start; flex-wrap:nowrap; }
+.takeover-prize-stat .stat-heading>.stat-help { min-width:0; flex:1; }
+.takeover-prize-stat .stat-help-trigger { min-width:0; letter-spacing:0; text-align:left; }
+@media(max-width:700px) { .takeover-prize-stat .stat-help-icon { display:none; } }
