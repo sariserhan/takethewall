@@ -36,3 +36,10 @@
 @media(max-width:760px) { .radio { grid-template-columns:minmax(0,1fr); padding:20px; gap:24px; }.intro h2 { max-width:none; }.intro p { margin-bottom:12px; }.controls { gap:8px; } }
 
 .matched { margin:-6px 0 14px; color:var(--muted); font:11px/1.5 var(--body); }
+
+.matching { display:flex; align-items:center; gap:8px; margin-top:14px; font:11px/1.5 var(--body); cursor:pointer; }
+.matching input { appearance:none; position:relative; flex:none; width:28px; height:16px; margin:0; padding:0; border:1px solid var(--rule); border-radius:12px; background:transparent; cursor:pointer; }
+.matching input::after { content:""; position:absolute; top:2px; left:2px; width:10px; height:10px; border-radius:50%; background:var(--muted); }
+.matching input:checked { background:var(--ink); border-color:var(--ink); }
+.matching input:checked::after { left:14px; background:var(--paper); }
+.matching input:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
