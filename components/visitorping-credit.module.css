@@ -1,0 +1,9 @@
+.credit { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; border-top:1px solid currentColor; margin-top:16px; padding-top:12px; font:11px/1.6 var(--body); }
+.brand { color:inherit; text-decoration:none; }
+.brand strong { font-weight:800; }
+.brand:hover,.brand:focus-visible { text-decoration:underline; text-underline-offset:3px; }
+.caption { opacity:.8; }
+.details { flex-basis:100%; font-size:10px; }
+.details summary { cursor:pointer; opacity:.75; }
+.details p { margin:6px 0 0; font:inherit; }
+.details a { color:inherit; text-underline-offset:2px; }

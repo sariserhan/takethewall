@@ -1,4 +1,5 @@
 "use client";
+import { VisitorPingCredit } from "./visitorping-credit";
 import { isReachedCity } from "@/lib/reached-cities";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useConvexConnectionState, useQuery } from "convex/react";
@@ -283,22 +284,12 @@ export function WallRadar({ scope = "today" }: { scope?: "today" | "takeover" | 
         </div>
       </div>
       {namesOnly && <p className={styles.note}>Each identified city appears once. Locations are approximate; unidentified locations are excluded. Source: VisitorPing and Vercel.</p>}
-      {mode === "cities" && report && !namesOnly && <p className={styles.note}>{takeover ? "City counts match Views This Takeover and continue across midnight until the next owner takes over." : "City counts and the daily view total update together."} {report.historicalThrough ? `Historical cities were imported once from VisitorPing through ${new Date(report.historicalThrough).toISOString().slice(11, 19)} UTC. ` : ""}New views use our shared visit records. Visits without a recorded location are included in “Location not recorded.” No recurring VisitorPing API calls.</p>}
+      {mode === "cities" && report && !namesOnly && <p className={styles.note}>{takeover ? "City counts match Views This Takeover and continue across midnight until the next owner takes over." : "City counts and the daily view total update together."} {report.historicalThrough ? `Historical cities were imported once from VisitorPing through ${new Date(report.historicalThrough).toISOString().slice(11, 19)} UTC. ` : ""}Visitor analytics powered by VisitorPing, enriched with Vercel location data. Visits without a recorded location are included in “Location not recorded.”</p>}
       {mode === "live" && <p className={styles.note}>
         Live status comes from this page’s heartbeat. Multiple tabs count once per browser.
         Hidden or closed tabs leave the live view; interrupted connections expire within about 40 seconds.
       </p>}
-      <p className={styles.note}>
-        Locations:{" "}
-        <a
-          href="https://www.geonames.org/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          GeoNames
-        </a>{" "}
-        · Map: Natural Earth · No precise visitor coordinates.
-      </p>
+      <VisitorPingCredit map="cities" />
     </section>
   );
 }

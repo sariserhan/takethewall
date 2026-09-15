@@ -1,4 +1,5 @@
 "use client";
+import { VisitorPingCredit } from "./visitorping-credit";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useId, useRef, useState } from "react";
@@ -252,21 +253,10 @@ export function WallGlobe() {
         <p>Showing the top 100 country groups supplied by VisitorPing.</p>
       )}
       <p className="field-note">
-        City data is not available from VisitorPing’s current API. A visitor can
-        appear in more than one country; country counts are not added together
+        This globe groups visitors by country. A visitor can appear in more than one country; country counts are not added together
         to produce the website total.
       </p>
-      <small>
-        Source:{" "}
-        <a
-          href="https://visitorping.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          VisitorPing
-        </a>{" "}
-        · Known and likely bots excluded. Map: Natural Earth.
-      </small>
+      <VisitorPingCredit map="countries" />
     </section>
   );
 }

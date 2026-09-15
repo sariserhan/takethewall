@@ -18,4 +18,4 @@ guessed. The admin names are public gazetteer data, not webhook region fields.
 
 Source: https://download.geonames.org/export/dump/
 License: Creative Commons Attribution, https://www.geonames.org/export/
-Credit to GeoNames is displayed in Radar.
+Credit to GeoNames is available in Radar’s expandable Map credits section.

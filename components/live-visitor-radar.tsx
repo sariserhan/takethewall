@@ -1,3 +1,4 @@
+import { VisitorPingCredit } from "./visitorping-credit";
 import type { CSSProperties } from "react";
 import styles from "./live-visitor-radar.module.css";
 
@@ -58,6 +59,7 @@ export function LiveVisitorRadar({ visitors, connected }: {
       <footer className={styles.footer}>
         <span>Each dot is a visitor with the wall visible. Tap or click the page to enable arrival pings.</span>
         <span>Dots drift inward during a visit. Position is decorative; city and country are approximate.</span>
+        <VisitorPingCredit />
       </footer>
     </section>
   );
