@@ -64,6 +64,24 @@ export function Sequence({ milestone }: { milestone: Milestone }) {
     </ol>
   );
 }
+export function NextPrizeMilestone() {
+  const data = useQuery(api.rewards.overview, { summary: true });
+  if (!data?.promotionEnabled) return null;
+  const next = [...data.milestones]
+    .sort((a, b) => a.number - b.number)
+    .find((milestone) => milestone.number > data.currentNumber);
+  if (!next) return <span> · All milestones reached</span>;
+  const number = next.number;
+  const suffix = number % 100 >= 11 && number % 100 <= 13
+    ? "th"
+    : ({ 1: "st", 2: "nd", 3: "rd" }[number % 10] ?? "th");
+  return (
+    <Link href={`/${number}`} className="takeover-next-milestone">
+      Next milestone: {number.toLocaleString("en-US")}{suffix}
+    </Link>
+  );
+}
+
 export function HomepageMilestones({ demoCount }: { demoCount?: number }) {
   const data = useQuery(api.rewards.overview, { summary: true });
   const [selected, setSelected] = useState<number | null>(null),

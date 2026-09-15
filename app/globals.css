@@ -200,7 +200,7 @@ main {
 }
 .reign-metrics {
   display: grid;
-  grid-template-columns: 1.4fr 0.85fr 0.75fr 0.75fr 1.1fr 1.2fr;
+  grid-template-columns: 1.2fr 1.1fr 1.1fr 0.9fr 1fr;
   padding: 17px 0;
   border-top: 1px solid var(--ink);
   gap: 0;
@@ -934,7 +934,7 @@ textarea {
 
 .wall-viewport>.analytics-credit{align-self:flex-end;flex-shrink:0;padding:0 0 10px;font-size:11px;line-height:1.5;text-underline-offset:3px}
 
-.wall-page .site-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.site-metrics .previous-owner-stat strong{font-family:var(--body);font-size:clamp(12px,1.4vw,20px);font-weight:700;overflow-wrap:anywhere;text-align:center}.previous-owner-stat{min-width:0;justify-content:center}@media(max-width:600px){.wall-page .site-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.wall-page .site-metrics{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.site-metrics .previous-owner-stat strong{font-family:var(--body);font-size:clamp(12px,1.4vw,20px);font-weight:700;overflow-wrap:anywhere;text-align:center}.previous-owner-stat{min-width:0;justify-content:center}@media(max-width:600px){.wall-page .site-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .owner-since{display:block;font-family:var(--body);font-size:10px;font-weight:400;line-height:1.5;margin-top:5px;white-space:nowrap}.admin-health{margin:24px 0;padding:20px;border:1px solid var(--rule)}.admin-health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}.admin-health article{padding:16px;border:1px solid var(--rule);overflow-wrap:anywhere}.admin-health p{font-size:14px;line-height:1.6}@media(max-width:700px){.admin-health-grid{grid-template-columns:1fr}}
 
@@ -1595,15 +1595,15 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 @media(max-width:760px) {
   .reign-metrics { grid-template-columns:repeat(6,minmax(0,1fr)); }
   .reign-metrics>.metric { grid-column:span 3; }
-  .reign-metrics>.metric:first-child { grid-column:span 3; min-width:0; padding-right:12px; }
+  .reign-metrics>.metric:first-child { grid-column:1/-1; min-width:0; padding-right:0; }
   .reign-metrics .owner-since { white-space:normal; }
-  .reign-metrics>.metric:nth-child(3) { border-right:1px solid var(--rule); padding-left:0; }
+  .reign-metrics>.metric:nth-child(4) { border-right:1px solid var(--rule); padding-left:0; }
   .reign-metrics>.metric.referral-prize-stat { grid-column:span 3; padding:10px 12px; }
   .reign-metrics>.regions { grid-column:span 3; }
 }
 @media(max-width:600px) { .masthead-status { gap:10px; } .lifetime-visits { font-size:9px; padding-left:10px; } .lifetime-visits strong { font-size:12px; } }
 
-.site-metrics>.metric.takeover-prize-stat {
+.reign-metrics>.metric.takeover-prize-stat {
   flex-direction:column; align-items:stretch; gap:4px;
   background:#fff2d6; color:#754006;
   border:1px solid #d5ae69; border-left:4px solid #b77913;
@@ -1618,3 +1618,9 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 .takeover-prize-stat .stat-heading>.stat-help { min-width:0; flex:1; }
 .takeover-prize-stat .stat-help-trigger { min-width:0; letter-spacing:0; text-align:left; }
 @media(max-width:700px) { .takeover-prize-stat .stat-help-icon { display:none; } }
+
+.takeover-prize-label { display:flex; flex-wrap:wrap; gap:4px 8px; }
+.takeover-next-milestone { color:inherit; text-underline-offset:3px; }
+@media(max-width:600px) {
+  .wall-page .site-metrics>.previous-owner-stat { grid-column:1/-1; }
+}

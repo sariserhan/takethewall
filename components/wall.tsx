@@ -30,7 +30,7 @@ import { StatShare } from "./stat-share";
 import { StatDetails } from "./stat-details";
 import { StatHelp } from "./stat-help";
 import { contentCta } from "@/lib/content";
-import { HomepageMilestones } from "./milestones";
+import { HomepageMilestones, NextPrizeMilestone } from "./milestones";
 import { PublicFooter } from "./public-footer";
 import Image from "next/image";
 import { Arrow } from "./arrow";
@@ -322,18 +322,29 @@ function WallView({
             action={<StatToolButton name="Radar" onClick={() => setLabPanel("Takeover Radar")} />}
             value={numbers(owner?.impressions)}
           />
-          <div className="metric takeover-prize-stat">
-            <span className="stat-heading">
-              <StatHelp label="COUNTED TAKEOVERS" />
-              {owner?.publicId ? (
-                <Link className="stat-tool-button" aria-label="Current takeover" data-tooltip="Current takeover" href={`/takeover/${owner.publicId}`}>
-                  <WallToolIcon name="popout" /> Current takeover
-                </Link>
-              ) : <StatDetails label="Current takeover" title="Current takeover" rows={[]}><p>The current takeover’s public page is not available yet.</p></StatDetails>}
-            </span>
-            <strong>{numbers(data?.totalTakeovers)}</strong>
-            <small className="takeover-prize-label">Takeover prize · Reward A</small>
-          </div>
+          <Metric
+            label="CLICKS"
+            action={owner?.outboundLinkEnabled && owner.websiteUrl ? <a className="stat-tool-button" aria-label="Visit website" data-tooltip="Visit website" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={event => { if (event.button === 1) void wallEvent(owner.id, "click"); }}><WallToolIcon name="popout" /> Visit website</a> : <button type="button" className="stat-tool-button" aria-label="Visit website unavailable" data-tooltip="No website link" disabled title="The current owner has no enabled outbound link"><WallToolIcon name="popout" /> Visit website</button>}
+            value={numbers(owner?.clicks)}
+          />
+          <Metric
+            label="CTR"
+            action={<StatDetails label="Calculation" title="Click-through rate calculation" rows={[
+              { label: "Displayed clicks", value: numbers(owner?.clicks) },
+              { label: "Displayed impressions", value: numbers(owner?.impressions) },
+              { label: "CTR", value: owner ? `${ctr(owner.impressions, owner.clicks).toFixed(2)}%` : "—" },
+            ]}><p>CTR = clicks ÷ impressions × 100. With no impressions, the rate is shown as 0%.</p></StatDetails>}
+            value={
+              owner
+                ? `${ctr(
+                    owner.impressions,
+                    owner.clicks,
+                  )
+                    .toFixed(2)
+                    .replace(/\.00$/, "")}%`
+                : "—"
+            }
+          />
           <div className="metric previous-owner-stat">
             <span className="stat-heading">
               <StatHelp label="PREVIOUS OWNER" />
@@ -484,29 +495,18 @@ function WallView({
             <small className="referral-prize-label">Referral prize · Reward B</small>
             <small className="referral-prize-hint">Share this takeover’s link to support its referral count</small>
           </div>
-          <Metric
-            label="CLICKS"
-            action={owner?.outboundLinkEnabled && owner.websiteUrl ? <a className="stat-tool-button" aria-label="Visit website" data-tooltip="Visit website" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={event => { if (event.button === 1) void wallEvent(owner.id, "click"); }}><WallToolIcon name="popout" /> Visit website</a> : <button type="button" className="stat-tool-button" aria-label="Visit website unavailable" data-tooltip="No website link" disabled title="The current owner has no enabled outbound link"><WallToolIcon name="popout" /> Visit website</button>}
-            value={numbers(owner?.clicks)}
-          />
-          <Metric
-            label="CTR"
-            action={<StatDetails label="Calculation" title="Click-through rate calculation" rows={[
-              { label: "Displayed clicks", value: numbers(owner?.clicks) },
-              { label: "Displayed impressions", value: numbers(owner?.impressions) },
-              { label: "CTR", value: owner ? `${ctr(owner.impressions, owner.clicks).toFixed(2)}%` : "—" },
-            ]}><p>CTR = clicks ÷ impressions × 100. With no impressions, the rate is shown as 0%.</p></StatDetails>}
-            value={
-              owner
-                ? `${ctr(
-                    owner.impressions,
-                    owner.clicks,
-                  )
-                    .toFixed(2)
-                    .replace(/\.00$/, "")}%`
-                : "—"
-            }
-          />
+          <div className="metric takeover-prize-stat">
+            <span className="stat-heading">
+              <StatHelp label="COUNTED TAKEOVERS" />
+              {owner?.publicId ? (
+                <Link className="stat-tool-button" aria-label="Current takeover" data-tooltip="Current takeover" href={`/takeover/${owner.publicId}`}>
+                  <WallToolIcon name="popout" /> Current takeover
+                </Link>
+              ) : <StatDetails label="Current takeover" title="Current takeover" rows={[]}><p>The current takeover’s public page is not available yet.</p></StatDetails>}
+            </span>
+            <strong>{numbers(data?.totalTakeovers)}</strong>
+            <small className="takeover-prize-label">Takeover prize · Reward A <NextPrizeMilestone /></small>
+          </div>
           <Metric
             label="CITIES REACHED"
             action={<StatToolButton name="Radar" onClick={() => setLabPanel("Cities Radar")} />}
