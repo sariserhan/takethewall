@@ -1,4 +1,5 @@
 "use client";
+import { setRadioEffects } from "@/lib/radio-effects";
 import { WallToolIcon } from "./wall-tool-icon";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
@@ -69,55 +70,13 @@ export function MagneticTitle() {
 }
 export function WallExperiments() {
   const [panel, setPanel] = useState<"Hold" | null>(null),
-    [rave, setRave] = useState(false),
-    [beat, setBeat] = useState(false);
+    [rave, setRave] = useState(false);
   useEffect(() => {
     document.documentElement.dataset.wallRave = rave ? "on" : "off";
     return () => {
       delete document.documentElement.dataset.wallRave;
     };
   }, [rave]);
-  useEffect(() => {
-    if (!rave || !beat) return;
-    let audio: AudioContext;
-    try {
-      audio = new AudioContext();
-      void audio.resume().catch(() => {});
-    } catch {
-      return;
-    }
-    let step = 0;
-    const tick = () => {
-      if (
-        document.hidden ||
-        document.documentElement.dataset.wallFrozen === "on" ||
-        audio.state !== "running"
-      )
-        return;
-      const oscillator = audio.createOscillator(),
-        gain = audio.createGain(),
-        now = audio.currentTime;
-      oscillator.type = "sine";
-      oscillator.frequency.value = [110, 138.59, 164.81, 138.59][step++ % 4];
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.025, now + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-      oscillator.connect(gain);
-      gain.connect(audio.destination);
-      oscillator.start();
-      oscillator.stop(now + 0.4);
-      oscillator.onended = () => {
-        oscillator.disconnect();
-        gain.disconnect();
-      };
-    };
-    tick();
-    const timer = setInterval(tick, 600);
-    return () => {
-      clearInterval(timer);
-      void audio.close().catch(() => {});
-    };
-  }, [rave, beat]);
   return (
     <>
       <button className="wall-action" onClick={() => setPanel("Hold")}>
@@ -128,21 +87,11 @@ export function WallExperiments() {
         aria-pressed={rave}
         onClick={() => {
           setRave(!rave);
-          setBeat(false);
+          setRadioEffects({ rave:rave ? null : { channel:"synthwave", label:"Rave" } });
         }}
       >
         <WallToolIcon name="rave" /> Rave
       </button>
-      {rave && (
-        <button
-          className="wall-action"
-          aria-pressed={beat}
-          onClick={() => setBeat(!beat)}
-        >
-          <WallToolIcon name={beat ? "sound" : "muted"} /> Rave beat{" "}
-          {beat ? "on" : "off"}
-        </button>
-      )}
       <Dialog
         open={panel !== null}
         onClose={() => setPanel(null)}

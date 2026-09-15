@@ -1,4 +1,5 @@
 "use client";
+import { setRadioEffects } from "@/lib/radio-effects";
 import dynamic from "next/dynamic";
 import {
   setInteractionMode,
@@ -74,8 +75,8 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
                       : undefined
           }
           onClick={() => {
-            if (name === "Atmosphere" && sky !== "clear") setSky("clear");
-            else if (name === "Decade Warp" && era !== "present") setEra("present");
+            if (name === "Atmosphere" && sky !== "clear") { setSky("clear"); setRadioEffects({ atmosphere:null }); }
+            else if (name === "Decade Warp" && era !== "present") { setEra("present"); setRadioEffects({ era:null }); }
             else if (name === "Blacklight") setBlacklight(!blacklight);
             else if (name === "Thermal" || name === "Theremin") {
               const mode = name === "Thermal" ? "thermal" : "theremin";
@@ -93,6 +94,7 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
         onClick={() => {
           setRetro(!retro);
           setEra("present");
+          setRadioEffects({ era:null, retro:retro ? null : { channel:"80s", label:"Retro" } });
         }}
       >
         <svg
@@ -138,7 +140,10 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
                 <button
                   key={value}
                   aria-pressed={sky === value}
-                  onClick={() => setSky(value)}
+                  onClick={() => {
+                    setSky(value);
+                    setRadioEffects({ atmosphere:value === "rain" ? { channel:"rain", label:"Rain" } : value === "snow" ? { channel:"winter", label:"Snow" } : value === "fog" ? { channel:"ambient", label:"Fog" } : null });
+                  }}
                 >
                   {value === "clear"
                     ? "Clear / off"
@@ -166,6 +171,7 @@ export function WallCreativeTools({ data }: { data: CreativeData | null }) {
                   onClick={() => {
                     setEra(value);
                     setRetro(false);
+                    setRadioEffects({ retro:null, era:value === "1984" ? { channel:"80s", label:"1984" } : value === "1996" ? { channel:"90s", label:"1996" } : value === "2077" ? { channel:"synthwave", label:"2077" } : null });
                   }}
                 >
                   {label}

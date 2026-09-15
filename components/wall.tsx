@@ -1,4 +1,5 @@
 "use client";
+import { clearRadioEffects } from "@/lib/radio-effects";
 import { AurowallRadio } from "./aurowall-radio";
 import { StatValue } from "./stat-value";
 import { ResetWallEffects } from "./reset-wall-effects";
@@ -130,6 +131,7 @@ function WallView({
   const [selectedVisitor, setSelectedVisitor] = useState<string | null>(null);
   const [effectsVersion, setEffectsVersion] = useState(0);
   const resetEffects = () => {
+    clearRadioEffects();
     setInteractionMode("off");
     setBlacklight(false);
     document.documentElement.setAttribute("data-wall-theme", "paper");

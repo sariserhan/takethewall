@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { radioChannels, radioChannelName, type RadioChannel } from "@/lib/radio-channels";
+import { clearRadioEffects, radioEffectEvent, type RadioEffect } from "@/lib/radio-effects";
+import { wallSoundEnabled } from "./use-wall-sound";
 import styles from "./aurowall-radio.module.css";
 const presets: RadioChannel[] = ["lofi", "jazz", "deep-focus", "ambient", "rain", "forest", "waves", "synthwave"];
 export function AurowallRadio() {
@@ -11,6 +13,40 @@ export function AurowallRadio() {
   const [loading, setLoading] = useState(false);
   const [volume, setVolume] = useState(35);
   const [error, setError] = useState("");
+  const effectPlayback = useRef(false);
+  const [matchedEffect, setMatchedEffect] = useState<string | null>(null);
+  const followEffect = useEffectEvent((effect: RadioEffect | null) => {
+    if (!effect) {
+      if (effectPlayback.current) pause();
+      effectPlayback.current = false;
+      setMatchedEffect(null);
+      return;
+    }
+    effectPlayback.current = true;
+    setMatchedEffect(effect.label);
+    setChannel(effect.channel);
+    if (wallSoundEnabled()) void play(effect.channel);
+    else pause();
+  });
+  const followSound = useEffectEvent(() => {
+    if (!effectPlayback.current) return;
+    if (wallSoundEnabled()) void play(channel);
+    else pause();
+  });
+  useEffect(() => {
+    const effect = (event: Event) => followEffect((event as CustomEvent<RadioEffect | null>).detail);
+    const sound = () => followSound();
+    const stored = (event: StorageEvent) => { if (event.key === "ttw-sound" || event.key === null) followSound(); };
+    window.addEventListener(radioEffectEvent, effect);
+    window.addEventListener("ttw-sound-change", sound);
+    window.addEventListener("storage", stored);
+    return () => {
+      window.removeEventListener(radioEffectEvent, effect);
+      window.removeEventListener("ttw-sound-change", sound);
+      window.removeEventListener("storage", stored);
+      clearRadioEffects();
+    };
+  }, []);
   useEffect(() => {
     const element = audio.current;
     const playbackAttempt = attempt;
@@ -38,6 +74,7 @@ export function AurowallRadio() {
     attempt.current++; audio.current?.pause(); setPlaying(false); setLoading(false);
   }
   function tune(next: RadioChannel) {
+    effectPlayback.current = false; setMatchedEffect(null);
     setChannel(next); setError("");
     if (playing || loading) void play(next);
   }
@@ -58,8 +95,9 @@ export function AurowallRadio() {
           <span className={styles.equalizer} data-playing={playing && !loading} aria-hidden="true"><i /><i /><i /><i /><i /></span>
           <div><span>{loading ? "TUNING IN" : playing ? "NOW PLAYING" : "READY WHEN YOU ARE"}</span><strong>{radioChannelName(channel)}</strong></div>
         </div>
+        {matchedEffect && <p className={styles.matched}>Matched to {matchedEffect} · change the channel anytime</p>}
         <div className={styles.controls}>
-          <button className={styles.play} type="button" onClick={() => playing || loading ? pause() : void play()} aria-label={playing || loading ? "Pause radio" : "Play radio"}>{playing || loading ? "Ⅱ Pause" : "▶ Play"}</button>
+          <button className={styles.play} type="button" onClick={() => { effectPlayback.current = false; setMatchedEffect(null); if (playing || loading) pause(); else void play(); }} aria-label={playing || loading ? "Pause radio" : "Play radio"}>{playing || loading ? "Ⅱ Pause" : "▶ Play"}</button>
           <button type="button" onClick={() => tune(radioChannels[(radioChannels.indexOf(channel) + 1) % radioChannels.length])} aria-label="Next radio channel">Next →</button>
           <button type="button" onClick={shuffle} aria-label="Shuffle radio channel">Shuffle ⤨</button>
           <label className={styles.volume}>Volume<input type="range" min="0" max="100" value={volume} onChange={event => { const value = Number(event.target.value); setVolume(value); if (audio.current) audio.current.volume = value / 100; }} /></label>
