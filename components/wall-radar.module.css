@@ -195,3 +195,6 @@
 .feed button[aria-pressed="true"] small {
   color: #19352b;
 }
+.radar > .note {
+  margin-top: 16px;
+}
