@@ -1,9 +1,9 @@
-.radar { min-width:0; padding:20px; color:#a9fbc1; background:#06130e; border:1px solid #315c42; font:10px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
+.radar { min-width:0; width:100%; max-width:500px; box-sizing:border-box; justify-self:end; padding:16px; color:#a9fbc1; background:#06130e; border:1px solid #315c42; font:10px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
 .header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; letter-spacing:.1em; }
 .header span { display:flex; align-items:center; gap:8px; }
 .header i { width:6px; height:6px; border-radius:50%; background:#91ffab; box-shadow:0 0 10px #91ffab; }
 .header strong { font:inherit; color:#73bd8a; }
-.screen { position:relative; margin:18px auto; max-width:540px; }
+.screen { position:relative; margin:14px auto; max-width:440px; }
 .scope { position:relative; aspect-ratio:1; border:1px solid #3b7850; border-radius:50%; background:radial-gradient(circle,#123922 0%,#071b10 65%,#06130e 100%); isolation:isolate; overflow:hidden; }
 .grid { position:absolute; inset:0; border-radius:inherit; background:repeating-radial-gradient(circle at center,transparent 0,transparent calc(20% - 1px),#37704b88 20%,transparent calc(20% + 1px)),linear-gradient(90deg,transparent calc(50% - .5px),#37704b88 50%,transparent calc(50% + .5px)),linear-gradient(0deg,transparent calc(50% - .5px),#37704b88 50%,transparent calc(50% + .5px)); }
 .sweep { position:absolute; inset:0; border-radius:inherit; background:conic-gradient(from 0deg,transparent 0deg,transparent 275deg,#61ff8312 315deg,#76ff9b66 359deg,transparent 360deg); animation:sweep 7s linear infinite; }
@@ -22,3 +22,4 @@
 @keyframes approach { from { left:var(--start-x); top:var(--start-y); } to { left:var(--end-x); top:var(--end-y); } }
 @media(prefers-reduced-motion:reduce) { .sweep { animation:none; } .contact { animation:none; left:var(--start-x); top:var(--start-y); } }
 @media(max-width:600px) { .radar { padding:14px; } .label { max-width:85px; font-size:8px; } }
+@media(max-width:850px) { .radar { justify-self:center; } }
