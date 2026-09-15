@@ -18,6 +18,7 @@ const explanations: Record<string, string> = {
     "How long the current owner has held the wall, measured from activation. A new takeover starts a new reign.",
   "Owner since":
     "The exact activation time, shown in UTC so everyone sees the same timestamp. UTC is a worldwide time standard, not your local time zone.",
+  "VIEWS THIS TAKEOVER": "All counted views since the current owner took over, including repeat visits. This resets with the next takeover, not at midnight. Open Radar to see these views grouped by city.",
   IMPRESSIONS:
     "How many times the current owner's content was viewed. Counts usually update within 15 seconds. Repeat views can count, so this can be higher than unique visitors. For example, 2 people viewing several times could create 9 impressions.",
   "UNIQUE VISITORS":

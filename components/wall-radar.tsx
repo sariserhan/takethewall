@@ -17,13 +17,14 @@ type Arrival = {
 };
 const place = (row: Arrival) =>
   row.label || [row.city, row.country].filter(Boolean).join(", ") || "Location unavailable";
-export function WallRadar() {
-  const live = useQuery(api.wallPresence.live, {});
+export function WallRadar({ scope = "today" }: { scope?: "today" | "takeover" }) {
+  const takeover = scope === "takeover";
+  const live = useQuery(api.wallPresence.live, takeover ? "skip" : {});
   const [requestedMode, setMode] = useState<"cities" | "live">("cities");
   const wall = useQuery(api.wall.current, {});
   const today = new Date().toISOString().slice(0, 10);
-  const report = wall?.radarCities ? wall.utcDate === today ? wall.radarCities : { date: today, views: 0, uniqueVisitors: 0, historicalThrough: null, cities: [] } : null;
-  const mode = report ? requestedMode : "live";
+  const report = takeover ? wall?.takeoverRadarCities : wall?.radarCities ? wall.utcDate === today ? wall.radarCities : { date: today, views: 0, uniqueVisitors: 0, historicalThrough: null, cities: [] } : null;
+  const mode = takeover ? "cities" : report ? requestedMode : "live";
   const connection = useConvexConnectionState();
   const [countries, setCountries] = useState<Country[]>([]),
     [cities, setCities] = useState<CityCenter[]>([]);
@@ -132,14 +133,14 @@ export function WallRadar() {
   return (
     <section
       className={styles.radar}
-      aria-label={mode === "cities" ? "Visits by city today" : "Visitors online now"}
+      aria-label={mode === "cities" ? takeover ? "Views by city this takeover" : "Visits by city today" : "Visitors online now"}
       data-testid="radar"
     >
       <header className={styles.heading}>
         <div>
-          <span className={styles.eyebrow}>{mode === "cities" ? "RADAR · VISITS BY CITY" : "RADAR · ONLINE NOW"}</span>
+          <span className={styles.eyebrow}>{mode === "cities" ? takeover ? "RADAR · THIS TAKEOVER" : "RADAR · VISITS BY CITY" : "RADAR · ONLINE NOW"}</span>
           <h2>The world, dropping by.</h2>
-          <p>{mode === "cities" ? "Today’s visits grouped by city, including repeat views. Totals match the wall’s daily view counter." : "Visitors with the wall visible right now, counted once per browser."}</p>
+          <p>{mode === "cities" ? takeover ? "Every counted view during this takeover, grouped by city. Includes repeat visits and resets with the next owner." : "Today’s visits grouped by city, including repeat views. Totals match the wall’s daily view counter." : "Visitors with the wall visible right now, counted once per browser."}</p>
         </div>
         <span className={styles.status}>
           {mode === "cities" ? "LIVE CITY TOTALS" : connection.isWebSocketConnected
@@ -149,9 +150,9 @@ export function WallRadar() {
       </header>
       <div className={styles.controls}>
         {report && <button aria-pressed={mode === "cities"} onClick={() => { setMode("cities"); setSelected(""); }}>Cities</button>}
-        <button aria-pressed={mode === "live"} onClick={() => { setMode("live"); setSelected(""); }}>Live visitors</button>
+        {!takeover && <button aria-pressed={mode === "live"} onClick={() => { setMode("live"); setSelected(""); }}>Live visitors</button>}
         <span>
-          {mode === "cities" ? report ? `${report.views} visits · ${report.uniqueVisitors} unique visitors · today (UTC)` : "Loading cities…" : !liveReady ? "Connecting…" : `${rows.length}${rows.length === 500 ? "+" : ""} ${rows.length === 1 ? "visitor" : "visitors"} online now`}
+          {mode === "cities" ? report ? takeover ? `${report.views} views · this takeover` : `${report.views} visits · ${report.uniqueVisitors} unique visitors · today (UTC)` : "Loading cities…" : !liveReady ? "Connecting…" : `${rows.length}${rows.length === 500 ? "+" : ""} ${rows.length === 1 ? "visitor" : "visitors"} online now`}
         </span>
       </div>
       <p className={styles.note}>
@@ -227,13 +228,13 @@ export function WallRadar() {
               <>
                 <strong>{place(latest)}</strong>
                 <span>
-                  {mode === "cities" ? `${latest.views} ${latest.views === 1 ? "visit" : "visits"} today` : "On the wall now"}
+                  {mode === "cities" ? `${latest.views} ${latest.views === 1 ? "view" : "views"} ${takeover ? "this takeover" : "today"}` : "On the wall now"}
                 </span>
               </>
             ) : (
               <>
                 <strong>
-                  {mode === "cities" ? report ? "No wall visits in today’s city report." : "Loading city report…" : !liveReady
+                  {mode === "cities" ? report ? takeover ? "No views during this takeover yet." : "No wall visits in today’s city report." : "Loading city report…" : !liveReady
                     ? "Connecting to arrivals…"
                     : !liveReady ? "Connecting to live visitors…" : "No visitors online right now."}
                 </strong>
@@ -257,7 +258,7 @@ export function WallRadar() {
           <h3>{mode === "cities" ? "Visits by city" : "Online now"}</h3>
           {!rows.length ? (
             <p>
-              {mode === "cities" ? report ? "No cities recorded yet today." : "City totals are loading." : !liveReady ? "Connecting to live visitors…" : "No visitors online right now."}
+              {mode === "cities" ? report ? takeover ? "No cities recorded for this takeover yet." : "No cities recorded yet today." : "City totals are loading." : !liveReady ? "Connecting to live visitors…" : "No visitors online right now."}
             </p>
           ) : (
             <ol aria-label={mode === "cities" ? "Visits by city" : "Arrival feed"}>
@@ -270,7 +271,7 @@ export function WallRadar() {
                     <strong>{row.city || "Location not recorded"}{mode === "cities" ? ` · ${row.views} ${row.views === 1 ? "visit" : "visits"}` : ""}</strong>
                     <span>{mode === "cities" ? row.label : row.country === "ZZ" ? "Location not recorded" : row.country}</span>
                     <small>
-                      {mode === "cities" ? "Today (UTC) · includes repeat views" : "On the wall now"}
+                      {mode === "cities" ? takeover ? "This takeover · includes repeat views" : "Today (UTC) · includes repeat views" : "On the wall now"}
                     </small>
                     <small>{precision}</small>
                   </button>
@@ -280,7 +281,7 @@ export function WallRadar() {
           )}
         </div>
       </div>
-      {mode === "cities" && report && <p className={styles.note}>City counts and the daily view total update together. {report.historicalThrough ? `Historical cities were imported once from VisitorPing through ${new Date(report.historicalThrough).toISOString().slice(11, 19)} UTC. ` : ""}New views use our shared visit records. Visits without a recorded location are included in “Location not recorded.” No recurring VisitorPing API calls.</p>}
+      {mode === "cities" && report && <p className={styles.note}>{takeover ? "City counts match Views This Takeover and continue across midnight until the next owner takes over." : "City counts and the daily view total update together."} {report.historicalThrough ? `Historical cities were imported once from VisitorPing through ${new Date(report.historicalThrough).toISOString().slice(11, 19)} UTC. ` : ""}New views use our shared visit records. Visits without a recorded location are included in “Location not recorded.” No recurring VisitorPing API calls.</p>}
       {mode === "live" && <p className={styles.note}>
         Live status comes from this page’s heartbeat. Multiple tabs count once per browser.
         Hidden or closed tabs leave the live view; interrupted connections expire within about 40 seconds.

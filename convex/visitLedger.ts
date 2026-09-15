@@ -1,3 +1,4 @@
+import { applyTakeoverCity, trackTakeoverCity } from "./takeoverCities";
 import savedCitySnapshot from "../lib/radar-city-snapshot.json";
 import { addCityDelta, applyCityDelta, cityKey } from "./radarCityModel";
 import { v } from "convex/values";
@@ -26,6 +27,7 @@ export async function createVisit(ctx: MutationCtx, a: Location & { key: string;
   const id = await ctx.db.insert("visitLedger", visit);
   await regionDelta(ctx, a.takeoverId, country, 1, Number(a.freshReign));
   await updateRadar(ctx, visit);
+  await trackTakeoverCity(ctx, id);
   return id;
 }
 export async function enrichVisit(ctx: MutationCtx, row: Doc<"visitLedger">, a: Location & { visitorHash: string }) {
@@ -41,6 +43,10 @@ export async function enrichVisit(ctx: MutationCtx, row: Doc<"visitLedger">, a: 
     await regionDelta(ctx, row.takeoverId, country, 1, Number(row.freshReign));
   }
   await ctx.db.patch(row._id, changes);
+  if (row.takeoverCityRecorded && (country !== row.country || city !== row.city)) {
+    await applyTakeoverCity(ctx, row.takeoverId, row.city, row.country, -1);
+    await applyTakeoverCity(ctx, row.takeoverId, city, country, 1);
+  }
   if ((row.cityBatchId || row.cityBackfilled) && (country !== row.country || city !== row.city)) {
     const batch = row.cityBatchId ? await ctx.db.get(row.cityBatchId) : null;
     if (batch) {

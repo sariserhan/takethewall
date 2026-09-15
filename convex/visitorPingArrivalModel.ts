@@ -1,3 +1,4 @@
+import { applyTakeoverCity } from "./takeoverCities";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import type { MutationCtx } from "./_generated/server";
@@ -80,6 +81,7 @@ export async function matchArrival(ctx: MutationCtx, a: { providerSessionId?: st
     const visit = await ctx.db.get(session.fallbackVisitId);
     if (visit) {
       await ctx.db.delete(visit._id);
+      if (visit.takeoverCityRecorded) await applyTakeoverCity(ctx, visit.takeoverId, visit.city, visit.country, -1);
       await regionDelta(ctx, visit.takeoverId, visit.country, -1, 0);
       await applyCityDelta(ctx, visit.date, { city: visit.city, country: visit.country, views: -1 });
       await totals(ctx, visit.takeoverId, visit.date, -1);

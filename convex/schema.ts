@@ -80,6 +80,8 @@ export default defineSchema({
     key: v.literal("email"),
     nextAt: v.number(),
   }).index("by_key", ["key"]),
+  takeoverCitySnapshots: defineTable({ takeoverId: v.id("takeovers"), through: v.number(), cities: v.array(cityDelta) }).index("by_takeoverId", ["takeoverId"]),
+  takeoverCityViews: defineTable({ takeoverId: v.id("takeovers"), key: v.string(), city: v.string(), country: v.string(), views: v.number(), lastVisitAt: v.number() }).index("by_takeoverId_key", ["takeoverId", "key"]),
   dailyCityViews: defineTable({ date: v.string(), key: v.string(), city: v.string(), country: v.string(), views: v.number(), lastVisitAt: v.optional(v.number()) }).index("by_date_key", ["date", "key"]),
   analyticsBatches: defineTable({
     takeoverId: v.id("takeovers"),
@@ -244,10 +246,11 @@ export default defineSchema({
     key: v.string(), takeoverId: v.id("takeovers"), visitorHash: v.string(),
     cityBatchId: v.optional(v.id("analyticsBatches")),
     cityBackfilled: v.optional(v.boolean()),
+    takeoverCityRecorded: v.optional(v.boolean()),
     occurredAt: v.number(), date: v.string(), country: v.string(), city: v.string(), cityKey: v.optional(v.string()),
     locationSource: v.union(v.literal("vercel"), v.literal("visitorping")),
     sources: v.array(v.union(v.literal("vercel"), v.literal("visitorping"))), freshReign: v.boolean(),
-  }).index("by_key", ["key"]).index("by_date", ["date"]).index("by_date_cityKey_occurredAt", ["date", "cityKey", "occurredAt"]),
+  }).index("by_key", ["key"]).index("by_date", ["date"]).index("by_date_cityKey_occurredAt", ["date", "cityKey", "occurredAt"]).index("by_takeoverId_cityKey_occurredAt", ["takeoverId", "cityKey", "occurredAt"]),
   presenceLocations: defineTable({
     visitorHash: v.string(), city: v.string(), country: v.string(),
   }).index("by_visitorHash", ["visitorHash"]),

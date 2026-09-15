@@ -11,7 +11,6 @@ import { MagneticTitle, PulseTool, WallExperiments } from "./wall-experiments";
 import { WallLab, StatToolButton } from "./wall-lab";
 import type { LabPanel } from "./wall-lab-panel";
 import { WallActions } from "./wall-actions";
-import { PopOutWall } from "./wall-companion";
 import { HackerTerminal } from "./hacker-terminal";
 import { HallOfFame } from "./hall-of-fame";
 import { MobilePurchaseBar, TakeoverSound } from "./live-controls";
@@ -478,8 +477,8 @@ function WallView({
             }
           />
           <Metric
-            label="IMPRESSIONS"
-            action={<PopOutWall compact />}
+            label="VIEWS THIS TAKEOVER"
+            action={<StatToolButton name="Radar" onClick={() => setLabPanel("Takeover Radar")} />}
             value={numbers(owner?.impressions)}
           />
           <Metric

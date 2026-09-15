@@ -1,3 +1,4 @@
+import { readTakeoverCities } from "./takeoverCities";
 import { historicalViews } from "./visitTotals";
 import { radarCityReport, readRadarCities } from "./radarCityModel";
 import { query, internalMutation, internalQuery } from "./_generated/server";
@@ -20,6 +21,7 @@ export const current = query({
       visitorsToday: v.number(),
       viewsToday: v.number(),
       radarCities: v.optional(radarCityReport),
+      takeoverRadarCities: v.optional(radarCityReport),
       utcDate: v.string(),
       regions: v.array(
         v.object({ regionCode: v.string(), impressions: v.number() }),
@@ -75,6 +77,7 @@ export const current = query({
       ...(s.numberingOffset ? { numberingOffset: s.numberingOffset } : {}),
       visitorsToday: d?.visitors ?? 0,
       viewsToday: d?.impressions ?? 0,
+      takeoverRadarCities: await readTakeoverCities(ctx, t._id, t.impressions, t.uniqueVisitors),
       radarCities: await readRadarCities(ctx, utcDate, d?.impressions ?? 0, d?.visitors ?? 0),
       utcDate,
       regions: r.filter(x => x.impressions > 0).map((x) => ({
