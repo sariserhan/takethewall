@@ -53,14 +53,14 @@ export function Dialog({
         if (event.key !== "Tab") return;
         const focusable = Array.from(
           event.currentTarget.querySelectorAll<HTMLElement>(
-            "button, a[href], input, select, textarea, [tabindex]",
+            "button, a[href], input, select, textarea, summary, [contenteditable='true'], [tabindex]",
           ),
         ).filter(
           (el) =>
             el.tabIndex >= 0 &&
             !el.matches(":disabled") &&
             !el.closest("[inert]") &&
-            el.getClientRects().length > 0,
+            el.checkVisibility({ visibilityProperty:true }),
         );
         const first = focusable[0],
           last = focusable.at(-1);

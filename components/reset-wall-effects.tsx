@@ -13,5 +13,9 @@ export function ResetWallEffects({ onReset }: { onReset: () => void }) {
     update();
     return () => observer.disconnect();
   }, []);
-  return <span ref={anchor} className="playground-reset">{active && <button type="button" onClick={onReset}>Reset effects ↺</button>}</span>;
+  return <span ref={anchor} className="playground-reset">{active && <button type="button" onClick={() => {
+    const section = anchor.current?.closest(".wall-explore");
+    onReset();
+    requestAnimationFrame(() => section?.querySelector<HTMLButtonElement>(".experiment-menu-controls>button")?.focus({ preventScroll:true }));
+  }}>Reset effects ↺</button>}</span>;
 }

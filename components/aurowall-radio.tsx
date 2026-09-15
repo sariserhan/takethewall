@@ -105,7 +105,7 @@ export function AurowallRadio() {
           <button className={styles.play} type="button" onClick={() => { effectPlayback.current = false; setMatchedEffect(null); if (playing || loading) pause(); else void play(); }} aria-label={playing || loading ? "Pause radio" : "Play radio"}>{playing || loading ? "Ⅱ Pause" : "▶ Play"}</button>
           <button type="button" onClick={() => tune(radioChannels[(radioChannels.indexOf(channel) + 1) % radioChannels.length])} aria-label="Next radio channel">Next →</button>
           <button type="button" onClick={shuffle} aria-label="Shuffle radio channel">Shuffle ⤨</button>
-          <label className={styles.volume}>Volume<input type="range" min="0" max="100" value={volume} onChange={event => { const value = Number(event.target.value); setVolume(value); playback.current?.setVolume(value / 100); }} /></label>
+          <label className={styles.volume}>Volume<input type="range" min="0" max="100" value={volume} aria-valuetext={`${volume}%`} onChange={event => { const value = Number(event.target.value); setVolume(value); playback.current?.setVolume(value / 100); }} /></label>
         </div>
         <label className={styles.matching}>
           <input type="checkbox" role="switch" checked={matching} onChange={event => setRadioMatching(event.target.checked)} />

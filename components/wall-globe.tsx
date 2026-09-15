@@ -215,7 +215,11 @@ export function WallGlobe() {
           }}
         />
       </label>
-      <button onClick={() => setSpin((s) => !s)}>
+      <label>
+        Tilt globe
+        <input type="range" min="-80" max="80" value={tilt} onChange={event => { setSpin(false); setTilt(Number(event.target.value)); }} />
+      </label>
+      <button aria-pressed={spin} onClick={() => setSpin((s) => !s)}>
         {spin ? "Pause rotation" : "Rotate automatically"}
       </button>
       <p>

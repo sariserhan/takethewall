@@ -36,6 +36,8 @@ const explanations: Record<string, string> = {
 export function StatHelp({ label, iconOnly = false }: { label: string; iconOnly?: boolean }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
+  const touchActivation = useRef(false);
+  const openAtPointerDown = useRef(false);
   const panel = useRef<HTMLSpanElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const cancelClose = () => clearTimeout(timer.current);
@@ -72,9 +74,15 @@ export function StatHelp({ label, iconOnly = false }: { label: string; iconOnly?
         className="stat-help-trigger"
         aria-describedby={id}
         aria-label={iconOnly ? label : undefined}
-        onFocus={show}
+        onPointerDown={event => { touchActivation.current = event.pointerType !== "mouse"; openAtPointerDown.current = panel.current?.matches(":popover-open") ?? false; }}
+        onKeyDown={() => { touchActivation.current = false; }}
+        onFocus={() => { if (!touchActivation.current) show(); }}
         onBlur={close}
-        onClick={show}
+        onClick={() => {
+          if (touchActivation.current && openAtPointerDown.current) close();
+          else show();
+          touchActivation.current = false;
+        }}
       >
         {!iconOnly && label}
         <span className="stat-help-icon" aria-hidden="true">

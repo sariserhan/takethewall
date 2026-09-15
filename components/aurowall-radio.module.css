@@ -45,3 +45,11 @@
 .matching input:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
 
 .radio:not([data-animating="true"]) .equalizer i { animation-play-state:paused; }
+
+.channels select:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+@media(pointer:coarse) {
+  .controls button,.volume,.channels select,.presets button { min-height:44px; }
+  .matching { min-height:44px; }
+}
+
+@media(pointer:coarse) { .volume input { min-height:44px; } }

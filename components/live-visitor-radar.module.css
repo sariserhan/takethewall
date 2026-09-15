@@ -28,3 +28,7 @@
 .contact[data-selected="true"] .label { color:#fff; background:#102d1d; font-weight:700; max-width:160px; }
 
 .radar:not([data-animating="true"]) :is(.sweep,.contact) { animation-play-state:paused; }
+
+.contact:is(:hover,:focus-within) { animation-play-state:paused; }
+.dot::before { content:""; position:absolute; inset:-9px; border-radius:50%; }
+@media(pointer:coarse) { .dot::before { inset:-17px; } }

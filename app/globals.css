@@ -1676,3 +1676,12 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 .metric>strong[data-pending="true"] { color:var(--muted); }
 .regions>p,.regions>ul { min-height:48px; }
 .lifetime-visits strong { min-width:3ch; font-variant-numeric:tabular-nums; }
+
+.wall-explore button:focus-visible,.dialog :is(button,summary,input,select,a):focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+@media(pointer:coarse) {
+  .stat-help-trigger { min-height:36px; }
+  .lifetime-visits-summary .stat-help-trigger { min-width:44px; min-height:44px; justify-content:center; }
+  .dialog .close { min-width:44px; min-height:44px; }
+  .globe-view input[type="range"] { min-height:44px; }
+  .playground-reset button { min-height:44px; }
+}
