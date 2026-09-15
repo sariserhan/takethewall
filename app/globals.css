@@ -1644,3 +1644,6 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 .wall-explore-controls { min-width:0; }
 .wall-explore .wall-tools { width:100%; }
 @media(max-width:850px) { .wall-explore { grid-template-columns:minmax(0,1fr); gap:24px; } }
+
+.lifetime-visits-summary { display:inline-flex; align-items:center; gap:5px; }
+.lifetime-visits-summary .stat-help-trigger { padding:4px 0; }

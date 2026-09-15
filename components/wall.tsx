@@ -271,12 +271,15 @@ function WallView({
                 <i className={connected ? "online" : ""} />
                 {connected ? "LIVE" : "CONNECTING"}
               </span>
-              <StatDetails label="All-time visits" description="All recorded views of this website since launch, including repeat visits. This total continues across every takeover. Click for a breakdown." className="lifetime-visits" trigger={<><strong>{numbers(data?.totalViews)}</strong><span>ALL-TIME VISITS</span></>} title="Website visit totals" rows={[
+              <span className="lifetime-visits-summary">
+              <StatDetails label="All-time visits" className="lifetime-visits" trigger={<><strong>{numbers(data?.totalViews)}</strong><span>ALL-TIME VISITS</span></>} title="Website visit totals" rows={[
               { label: "Visits · all time", value: numbers(data?.totalViews) },
               { label: "Unique visitors · all time", value: numbers(data?.totalVisitors) },
               { label: "Unique visitors · today (UTC)", value: numbers(realToday) },
               { label: "Views · today (UTC)", value: numbers(viewsToday) },
             ]}><p>All-time visits count recorded wall views, including repeat visits from the same browser. Today’s views are already included in that total. Unique visitors are shown separately.</p></StatDetails>
+              <StatHelp label="ALL-TIME VISITS" iconOnly />
+              </span>
             </div>
           </div>
         </header>
