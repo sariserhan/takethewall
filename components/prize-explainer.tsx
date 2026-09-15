@@ -258,6 +258,7 @@ export function PrizeExplainer({
             {m.performance && (
               <Link
                 href={`/${m.number}/referral`}
+                className="referral-reward-card"
                 data-in-progress={m.performance.status === "future" && m.number === next?.number}
               >
                 <span>#{format(m.number)}</span>
