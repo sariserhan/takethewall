@@ -200,7 +200,7 @@ main {
 }
 .reign-metrics {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1.1fr 0.75fr 0.75fr 0.85fr 1.2fr;
+  grid-template-columns: 1.4fr 1.1fr 0.75fr 0.75fr 0.85fr 1.2fr;
   padding: 17px 0;
   border-top: 1px solid var(--ink);
   gap: 0;
@@ -1585,3 +1585,12 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 .wall-owner-tools > .wall-morse-trigger { margin-right:auto; }
 
 .wall-morse-trigger[data-tooltip]::after { left:0; right:auto; }
+
+.masthead-status { display:flex; align-items:center; gap:14px; flex-shrink:0; }
+.lifetime-visits { display:inline-flex; align-items:baseline; gap:6px; padding:4px 0 4px 14px; border:0; border-left:1px solid var(--rule); background:transparent; color:var(--ink); white-space:nowrap; font:700 11px/1.4 var(--body); }
+.lifetime-visits strong { font-size:14px; font-variant-numeric:tabular-nums; }
+.lifetime-visits:hover { text-decoration:underline; text-underline-offset:3px; }
+.lifetime-visits:focus-visible { outline:2px solid var(--ink); outline-offset:4px; }
+.wall-page .strap { gap:8px 20px; flex-wrap:wrap; }
+@media(max-width:760px) { .reign-metrics>.regions { grid-column:span 2; } }
+@media(max-width:600px) { .masthead-status { gap:10px; } .lifetime-visits { font-size:9px; padding-left:10px; } .lifetime-visits strong { font-size:12px; } }

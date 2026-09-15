@@ -259,10 +259,18 @@ function WallView({
           <MagneticTitle />
           <div className="strap">
             <p>Your project. This entire wall. Until the next takeover.</p>
-            <span className="connection">
-              <i className={connected ? "online" : ""} />
-              {connected ? "LIVE" : "CONNECTING"}
-            </span>
+            <div className="masthead-status">
+              <span className="connection">
+                <i className={connected ? "online" : ""} />
+                {connected ? "LIVE" : "CONNECTING"}
+              </span>
+              <StatDetails label="All-time visits" className="lifetime-visits" trigger={<><strong>{numbers(data?.totalViews)}</strong><span>ALL-TIME VISITS</span></>} title="Website visit totals" rows={[
+              { label: "Visits · all time", value: numbers(data?.totalViews) },
+              { label: "Unique visitors · all time", value: numbers(data?.totalVisitors) },
+              { label: "Unique visitors · today (UTC)", value: numbers(realToday) },
+              { label: "Views · today (UTC)", value: numbers(viewsToday) },
+            ]}><p>All-time visits count recorded wall views, including repeat visits from the same browser. Today’s views are already included in that total. Unique visitors are shown separately.</p></StatDetails>
+            </div>
           </div>
         </header>
         {returnToken && (
@@ -309,14 +317,9 @@ function WallView({
             value={numbers(viewsToday)}
           />
           <Metric
-            label="VISITS · ALL TIME"
-            action={<StatDetails label="Visit totals" title="Website visit totals" rows={[
-              { label: "Visits · all time", value: numbers(data?.totalViews) },
-              { label: "Unique visitors · all time", value: numbers(data?.totalVisitors) },
-              { label: "Unique visitors · today (UTC)", value: numbers(realToday) },
-              { label: "Views · today (UTC)", value: numbers(viewsToday) },
-            ]}><p>All-time visits count recorded wall views, including repeat visits from the same browser. Today’s views are already included in that total. Unique visitors are shown separately.</p></StatDetails>}
-            value={numbers(data?.totalViews)}
+            label="VIEWS THIS TAKEOVER"
+            action={<StatToolButton name="Radar" onClick={() => setLabPanel("Takeover Radar")} />}
+            value={numbers(owner?.impressions)}
           />
           <Metric
             label="COUNTED TAKEOVERS"
@@ -475,11 +478,6 @@ function WallView({
                 )}
               </>
             }
-          />
-          <Metric
-            label="VIEWS THIS TAKEOVER"
-            action={<StatToolButton name="Radar" onClick={() => setLabPanel("Takeover Radar")} />}
-            value={numbers(owner?.impressions)}
           />
           <Metric
             label="UNIQUE VISITORS"

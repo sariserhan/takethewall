@@ -5,7 +5,9 @@ import { createPortal } from "react-dom";
 import { Dialog } from "./dialog";
 import { WallToolIcon } from "./wall-tool-icon";
 
-export function StatDetails({ label, title, rows, children }: {
+export function StatDetails({ label, title, rows, children, trigger, className }: {
+  trigger?: ReactNode;
+  className?: string;
   label: string;
   title: string;
   rows: { label: string; value: string }[];
@@ -14,8 +16,8 @@ export function StatDetails({ label, title, rows, children }: {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className="stat-tool-button" aria-label={label} data-tooltip={label} aria-haspopup="dialog" onClick={() => setOpen(true)}>
-        <WallToolIcon name="preview" />{label}
+      <button type="button" className={className ?? "stat-tool-button"} aria-label={label} data-tooltip={label} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        {trigger ?? <><WallToolIcon name="preview" />{label}</>}
       </button>
       {open && createPortal(
         <Dialog open onClose={() => setOpen(false)} title={title}>
