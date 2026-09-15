@@ -49,3 +49,9 @@ back to a labeled country center; unknown locations remain in the feed. Sound
 starts off. Pause holds the displayed snapshot while incoming data continues
 syncing; resuming does not replay arrival sounds. Initial history does not pulse.
 Reduced motion disables arrival ring animation.
+
+### Visitor numbers
+
+Optional `data.visitorNumber` on arrival alerts and signed `wall.impression` callbacks is a positive safe integer (for example, `231`). Missing or null numbers remain unnumbered. The webhook persists the number and uses the existing provider session and signed browser identity to attach it to live presence, regardless of arrival/callback order. Heartbeats retain the number across tabs and return visits. Radar labels and recent arrivals show `Visitor#231 · City, Country`; delayed enrichment updates existing entries without a new arrival. City aggregates remain grouped by location.
+
+Deploy the Convex schema/functions before the Next.js application. Existing records need no migration; numbers appear when a matching webhook arrives. No personal name is inferred from the provider's company name.

@@ -9,6 +9,7 @@ export type VisitorPingAlert = {
     referralPublicId?: string;
     sessionId?: string;
     visitorId?: string;
+    visitorNumber?: number;
     timestamp?: string;
     deviceType: string;
     isHotLead: boolean;
@@ -16,6 +17,12 @@ export type VisitorPingAlert = {
   };
 };
 export class VisitorPingValidationError extends Error {}
+export function parseVisitorNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1)
+    throw new VisitorPingValidationError("Invalid visitor number");
+  return value;
+}
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new VisitorPingValidationError("Expected an object");
@@ -65,6 +72,7 @@ export function parseVisitorPingAlert(value: unknown): VisitorPingAlert {
     throw new VisitorPingValidationError("Unexpected site domain");
   if (typeof data.isHotLead !== "boolean")
     throw new VisitorPingValidationError("Invalid hot-lead flag");
+  const visitorNumber = parseVisitorNumber(data.visitorNumber);
   const entryPage = text(data.entryPage, 2048, true);
   const fromUrl = trackedReferralId(entryPage);
   const preserved = typeof data.referralPublicId === "string" && /^ttw_[a-f0-9]{32}$/.test(data.referralPublicId) ? data.referralPublicId : undefined;
@@ -78,6 +86,7 @@ export function parseVisitorPingAlert(value: unknown): VisitorPingAlert {
         if (!value || (key === "timestamp" && !Number.isFinite(Date.parse(value)))) throw new VisitorPingValidationError("Invalid arrival identity or timestamp");
         return [[key, value]];
       })),
+      ...(visitorNumber !== undefined ? { visitorNumber } : {}),
       siteDomain: domain,
       siteName: text(data.siteName, 200),
       location: {

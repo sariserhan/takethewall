@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { backend, HttpError, jsonBody, opaqueId, readContext } from "@/lib/server";
 import {
   parseVisitorPingAlert,
+  parseVisitorNumber,
   VisitorPingValidationError,
 } from "@/lib/visitorping-webhook";
 export const runtime = "nodejs";
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
           provider[key] = value;
         }
       }
+      const visitorNumber = parseVisitorNumber(body.data.visitorNumber);
       const context = readContext(body.data.context, 86400_000);
       const location = body.data.location;
       if (!location || typeof location.country !== "string" || typeof location.city !== "string" || location.city.length > 160)
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
       const country = location.country.toUpperCase();
       if (!/^[A-Z]{2}$/.test(country)) throw new VisitorPingValidationError("Invalid visit country");
       try {
-        await backend("event", { ...context, ...provider, event: "impression", eventId: body.data.eventId, source: "visitorping", region: country, city: location.city });
+        await backend("event", { ...context, ...provider, ...(visitorNumber !== undefined ? { visitorNumber } : {}), event: "impression", eventId: body.data.eventId, source: "visitorping", region: country, city: location.city });
         return reply({ ok: true }, 200);
       } catch {
         return reply({ error: "Could not store visit; retry delivery" }, 503);

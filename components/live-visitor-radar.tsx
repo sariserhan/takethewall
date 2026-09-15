@@ -3,8 +3,11 @@ import { useVisibleAnimation } from "./use-visible-animation";
 import type { CSSProperties } from "react";
 import styles from "./live-visitor-radar.module.css";
 
-export type LiveVisitor = { id: string; city: string; country: string };
+export type LiveVisitor = { id: string; visitorNumber?: number; city: string; country: string };
 const countries = new Intl.DisplayNames(["en"], { type: "region" });
+export function visitorLabel(visitor: LiveVisitor) {
+  return [visitor.visitorNumber !== undefined ? `Visitor#${visitor.visitorNumber}` : "", visitorLocation(visitor)].filter(Boolean).join(" · ");
+}
 export function visitorLocation(visitor: LiveVisitor) {
   const code = visitor.country.trim().toUpperCase();
   const country = /^[A-Z]{2}$/.test(code) && code !== "ZZ"
@@ -41,7 +44,7 @@ export function LiveVisitorRadar({ visitors, connected, selected, onSelect }: {
           <div className={styles.contacts} role="list" aria-label="Visitors with the wall visible">
             {rows.map(visitor => {
               const angle = bearing(visitor.id);
-              const label = visitorLocation(visitor);
+              const label = visitorLabel(visitor);
               return (
                 <div key={visitor.id} role="listitem" className={styles.contact} data-selected={selected === visitor.id}
                   style={{

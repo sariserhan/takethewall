@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { visitorLocation, type LiveVisitor } from "./live-visitor-radar";
+import { visitorLabel, type LiveVisitor } from "./live-visitor-radar";
 import styles from "./recent-arrivals.module.css";
 
 type Arrival = LiveVisitor & { observedAt: number; arrival: boolean };
@@ -27,14 +27,13 @@ export function RecentArrivals({ visitors, connected, selected, onSelect }: {
       const observedAt = Date.now();
       const fresh = visitors.filter(visitor => !previous?.has(visitor.id));
       setNow(observedAt);
-      if (!fresh.length) return;
       setEntries(current => {
         // Reconnect snapshots must not move known visitors to the top again.
         const additions = fresh.filter(visitor => previous || !current.some(entry => entry.id === visitor.id));
         const ids = new Set(additions.map(visitor => visitor.id));
         return [
           ...additions.map(visitor => ({ ...visitor, observedAt, arrival: previous !== null })),
-          ...current.filter(entry => !ids.has(entry.id)),
+          ...current.filter(entry => !ids.has(entry.id)).map(entry => ({ ...entry, ...visitors.find(visitor => visitor.id === entry.id) })),
         ].slice(0, 5);
       });
     });
@@ -63,12 +62,12 @@ export function RecentArrivals({ visitors, connected, selected, onSelect }: {
             return (
               <li key={entry.id} data-selected={active && selected === entry.id}>
                 <button className={styles.row} type="button" disabled={!active} aria-pressed={active && selected === entry.id}
-                  aria-label={`${visitorLocation(entry)}${active ? ", highlight on radar" : ", no longer online"}`}
+                  aria-label={`${visitorLabel(entry)}${active ? ", highlight on radar" : ", no longer online"}`}
                   onMouseEnter={() => { if (active) onSelect?.(entry.id); }} onMouseLeave={() => onSelect?.(null)}
                   onFocus={() => onSelect?.(entry.id)} onBlur={() => onSelect?.(null)} onClick={() => onSelect?.(entry.id)}>
                 <i className={styles.indicator} data-online={active} aria-label={!ready ? "Status unavailable" : active ? "Online now" : "No longer online"} role="img" />
                 <span className={styles.location}>
-                  <strong>{visitorLocation(entry)}</strong>
+                  <strong>{visitorLabel(entry)}</strong>
                   <time dateTime={new Date(entry.observedAt).toISOString()}>
                     {entry.arrival ? "Arrived" : "First seen"} {age}
                   </time>

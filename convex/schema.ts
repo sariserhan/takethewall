@@ -252,6 +252,7 @@ export default defineSchema({
     sources: v.array(v.union(v.literal("vercel"), v.literal("visitorping"))), freshReign: v.boolean(),
   }).index("by_key", ["key"]).index("by_date", ["date"]).index("by_date_cityKey_occurredAt", ["date", "cityKey", "occurredAt"]).index("by_takeoverId_cityKey_occurredAt", ["takeoverId", "cityKey", "occurredAt"]),
   presenceLocations: defineTable({
+    visitorNumber: v.optional(v.number()),
     visitorHash: v.string(), city: v.string(), country: v.string(),
   }).index("by_visitorHash", ["visitorHash"]),
   radarVisitors: defineTable({
@@ -260,6 +261,7 @@ export default defineSchema({
   }).index("by_date_visitorHash", ["date", "visitorHash"]).index("by_date_lastSeenAt", ["date", "lastSeenAt"]),
   visitorPingIdentities: defineTable({ key: v.string(), referralHash: v.string(), ownerTokenHash: v.optional(v.string()) }).index("by_key", ["key"]),
   visitorPingSessions: defineTable({
+    browserHash: v.optional(v.string()), visitorNumber: v.optional(v.number()),
     key: v.string(), visitorHash: v.string(), matched: v.boolean(), excluded: v.boolean(),
     fallbackVisitId: v.optional(v.id("visitLedger")), referralPublicId: v.optional(v.string()),
   }).index("by_key", ["key"]),

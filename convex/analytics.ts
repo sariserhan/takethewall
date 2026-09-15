@@ -20,6 +20,7 @@ export const rate = internalMutation({
 });
 export const record = internalMutation({
   args: {
+    visitorNumber: v.optional(v.number()),
     providerSessionId: v.optional(v.string()),
     providerVisitorId: v.optional(v.string()),
     takeoverId: v.id("takeovers"),

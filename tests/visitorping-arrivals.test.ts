@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { convexTest } from "convex-test";
+import presence from "@convex-dev/presence/test";
 import schema from "../convex/schema";
 import { api, internal } from "../convex/_generated/api";
 import { flushAnalytics } from "./backend-work-helpers";
@@ -87,4 +88,32 @@ it("uses the provider visitor identity to avoid repeated referral credit across 
   await flushAnalytics(t);
   await t.mutation(internal.visitorPingWebhook.receive, { payload: { ...payload, data: { ...payload.data, sessionId: "session-two" } } });
   expect(await t.query(api.wall.current, {})).toMatchObject({ viewsToday: 2, owner: { shareVisitors: 1 } });
+});
+
+for (const order of ["arrival-first", "callback-first"] as const) it(`attaches visitor number to the live browser (${order}) without duplicate visits`, async () => {
+  const { t, payload, callback } = await setup();
+  presence.register(t);
+  const heartbeat = { visitorHash: callback.visitorHash, pageId: callback.pageId, city: "Tokyo", country: "JP" };
+  await t.mutation(internal.wallPresence.heartbeat, heartbeat);
+  const numbered = { ...payload, data: { ...payload.data, visitorNumber: 231 } };
+  if (order === "arrival-first") await t.mutation(internal.visitorPingWebhook.receive, { payload: numbered });
+  await t.mutation(internal.analytics.record, callback);
+  await t.mutation(internal.visitorPingWebhook.receive, { payload: numbered });
+  await t.mutation(internal.analytics.record, callback);
+  await t.mutation(internal.wallPresence.heartbeat, { ...heartbeat, pageId: "another-tab" });
+  await flushAnalytics(t);
+  const rows = await t.query(api.wallPresence.live, {});
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ visitorNumber: 231, city: "Tokyo", country: "JP" });
+  expect(JSON.stringify(rows)).not.toContain(callback.visitorHash);
+  expect((await t.query(api.wall.current, {}))?.viewsToday).toBe(1);
+});
+it("retains impression numbering before the first heartbeat and ignores excluded callbacks", async () => {
+  const { t, callback } = await setup();
+  presence.register(t);
+  await t.mutation(internal.analytics.record, { ...callback, visitorNumber: 231 });
+  await t.mutation(internal.wallPresence.heartbeat, { visitorHash: callback.visitorHash, pageId: callback.pageId, city: "Tokyo", country: "JP" });
+  expect((await t.query(api.wallPresence.live, {}))[0]).toMatchObject({ visitorNumber: 231 });
+  await t.mutation(internal.analytics.record, { ...callback, visitorNumber: 999, excluded: true });
+  expect((await t.query(api.wallPresence.live, {}))[0]).toMatchObject({ visitorNumber: 231 });
 });

@@ -43,6 +43,7 @@ export const radar = query({
     v.object({
       id: v.id("visitorPingWebhookDeliveries"),
       receivedAt: v.number(),
+      visitorNumber: v.optional(v.number()),
       city: v.string(),
       country: v.string(),
     }),
@@ -54,6 +55,7 @@ export const radar = query({
       .order("desc")
       .take(50);
     return rows.map((row) => ({
+      ...(row.data.visitorNumber !== undefined ? { visitorNumber: row.data.visitorNumber } : {}),
       id: row._id,
       receivedAt: row.receivedAt,
       city: row.data.location.city,

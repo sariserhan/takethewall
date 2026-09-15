@@ -217,3 +217,20 @@ it("forwards only signed referral attribution from a verified VisitorPing impres
   expect(result.status).toBe(200);
   expect(mocks.backend).toHaveBeenCalledWith("event", expect.objectContaining({ referral, source: "visitorping" }));
 });
+
+for (const visitorNumber of [231, undefined, null]) it(`accepts optional visitor number ${visitorNumber}`, async () => {
+  expect((await POST(request({ ...payload, data: { ...payload.data, visitorNumber } }))).status).toBe(200);
+  expect(mocks.backend.mock.calls[0][1].payload.data.visitorNumber).toBe(visitorNumber ?? undefined);
+});
+for (const visitorNumber of [0, -1, 1.5, "231", Number.MAX_SAFE_INTEGER + 1]) it(`rejects invalid visitor number ${visitorNumber}`, async () => {
+  expect((await POST(request({ ...payload, data: { ...payload.data, visitorNumber } }))).status).toBe(400);
+  expect(mocks.backend).not.toHaveBeenCalled();
+});
+it("passes the authenticated impression visitor number with the signed browser identity", async () => {
+  const { signContext } = await import("../lib/server");
+  const signed = { takeoverId: "takeover-identifier-123", visitorHash: "signed-browser", pageId: "signed-page", region: "US", issuedAt: Date.now(), expiresAt: Date.now() + 300_000, excluded: false };
+  const data = { context: signContext(signed), eventId: "valid-event-id-1234", location: { country: "US", city: "New York" }, visitorNumber: 231, visitorHash: "forged" };
+  expect((await POST(request({ event: "wall.impression", data }))).status).toBe(200);
+  expect(mocks.backend).toHaveBeenCalledWith("event", expect.objectContaining({ visitorHash: "signed-browser", visitorNumber: 231 }));
+  expect((await POST(request({ event: "wall.impression", data: { ...data, visitorNumber: -1 } }))).status).toBe(400);
+});

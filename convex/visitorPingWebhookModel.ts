@@ -13,6 +13,7 @@ export const visitorPingAlert = v.object({
     entryPage: v.string(),
     sessionId: v.optional(v.string()),
     visitorId: v.optional(v.string()),
+    visitorNumber: v.optional(v.number()),
     timestamp: v.optional(v.string()),
     referralPublicId: v.optional(v.string()),
     deviceType: v.string(),

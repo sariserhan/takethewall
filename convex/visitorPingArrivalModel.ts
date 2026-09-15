@@ -1,3 +1,4 @@
+import { setVisitorNumber } from "./wallPresence";
 import { applyTakeoverCity } from "./takeoverCities";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
@@ -52,6 +53,10 @@ export async function recordArrival(ctx: MutationCtx, alert: VisitorPingAlert, r
     const id = await ctx.db.insert("visitorPingSessions", { key, visitorHash, matched: false, excluded: false });
     session = (await ctx.db.get(id))!;
   }
+  if (data.visitorNumber !== undefined) {
+    await ctx.db.patch(session._id, { visitorNumber: data.visitorNumber });
+    if (session.browserHash) await setVisitorNumber(ctx, session.browserHash, data.visitorNumber);
+  }
   if (data.referralPublicId) {
     const identity = await ctx.db.query("visitorPingIdentities").withIndex("by_key", q => q.eq("key", session.visitorHash)).unique();
     await recordReferral(ctx, { publicId: data.referralPublicId, visitorHash: identity?.referralHash ?? session.visitorHash, ownerTokenHash: identity?.ownerTokenHash });
@@ -69,14 +74,20 @@ export async function recordArrival(ctx: MutationCtx, alert: VisitorPingAlert, r
   await ctx.db.patch(session._id, { fallbackVisitId: id });
 }
 
-export async function matchArrival(ctx: MutationCtx, a: { providerSessionId?: string; providerVisitorId?: string; excluded: boolean; referral?: { publicId: string; visitorHash: string; ownerTokenHash?: string } }) {
-  if (!a.providerSessionId) return;
+export async function matchArrival(ctx: MutationCtx, a: { visitorHash: string; visitorNumber?: number; providerSessionId?: string; providerVisitorId?: string; excluded: boolean; referral?: { publicId: string; visitorHash: string; ownerTokenHash?: string } }) {
+  if (!a.providerSessionId) {
+    if (!a.excluded && a.visitorNumber !== undefined) await setVisitorNumber(ctx, a.visitorHash, a.visitorNumber);
+    return;
+  }
   const key = `session:${a.providerSessionId}`;
   let session = await ctx.db.query("visitorPingSessions").withIndex("by_key", q => q.eq("key", key)).unique();
   if (!session) {
     const id = await ctx.db.insert("visitorPingSessions", { key, visitorHash: hash(`visitorping:${a.providerVisitorId ?? key}`), matched: true, excluded: a.excluded });
     session = (await ctx.db.get(id))!;
   }
+  const visitorNumber = a.visitorNumber ?? session.visitorNumber;
+  if (!a.excluded && visitorNumber !== undefined) await setVisitorNumber(ctx, a.visitorHash, visitorNumber);
+  await ctx.db.patch(session._id, { browserHash: a.visitorHash, ...(visitorNumber !== undefined ? { visitorNumber } : {}) });
   if (session.fallbackVisitId) {
     const visit = await ctx.db.get(session.fallbackVisitId);
     if (visit) {

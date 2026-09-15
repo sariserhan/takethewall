@@ -1,4 +1,5 @@
 "use client";
+import { visitorLabel } from "./live-visitor-radar";
 import { VisitorPingCredit } from "./visitorping-credit";
 import { isReachedCity } from "@/lib/reached-cities";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,13 +13,14 @@ type Country = Feature<Geometry, { name: string; code: string }>;
 type Arrival = {
   id: string;
   receivedAt: number;
+  visitorNumber?: number;
   city: string;
   country: string;
   views?: number;
   label?: string;
 };
 const place = (row: Arrival) =>
-  row.label || [row.city, row.country].filter(Boolean).join(", ") || "Location unavailable";
+  row.label || visitorLabel(row);
 export function WallRadar({ scope = "today" }: { scope?: "today" | "takeover" | "reached" }) {
   const namesOnly = scope === "reached";
   const takeover = scope !== "today";
