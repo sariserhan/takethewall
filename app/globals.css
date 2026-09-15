@@ -97,8 +97,16 @@ main {
   background: var(--muted);
 }
 .connection i.online {
-  background: var(--accent);
+  background: #16803d;
   box-shadow: 0 0 0 1px #1111;
+  animation: live-status-blink 1.8s ease-in-out infinite;
+}
+@keyframes live-status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .connection i.online { animation:none; }
 }
 .site-metrics {
   border-top: 2px solid var(--ink);
