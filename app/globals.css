@@ -1558,7 +1558,8 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 @media(pointer:coarse) {.stat-tool-button {min-height:44px;}}
 
 .stat-tool-button {text-decoration:none;}
-.reign-metrics .stat-heading {justify-content:flex-start;}
+.reign-metrics .stat-heading {justify-content:flex-start;flex-wrap:nowrap;}
+.reign-metrics .stat-heading>.stat-help {min-width:0;flex:1;}
 
 .stat-details-list {margin:20px 0;}
 .stat-details-list>div {display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid var(--rule);}
