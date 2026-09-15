@@ -1,4 +1,5 @@
 "use client";
+import { AurowallRadio } from "./aurowall-radio";
 import { StatValue } from "./stat-value";
 import { ResetWallEffects } from "./reset-wall-effects";
 import { setInteractionMode } from "./wall-interaction-mode";
@@ -621,6 +622,7 @@ function WallView({
         <WallSubscription />
         <MilestoneAlerts />
       </section>
+      <AurowallRadio />
       <section className="wall-explore" aria-labelledby="wall-explore-title">
         <div className="wall-explore-controls">
         <div className="wall-explore-heading">
