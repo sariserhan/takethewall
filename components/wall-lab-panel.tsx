@@ -9,7 +9,7 @@ import { createWallSnapshot } from "@/lib/wall-snapshot";
 import { WallRadar } from "./wall-radar";
 import { WallGlobe } from "./wall-globe";
 export type LabPanel =
-  "Globe" | "Radar" | "Takeover Radar" | "Snapshot" | "Audit" | "QR Code";
+  "Globe" | "Radar" | "Takeover Radar" | "Cities Radar" | "Snapshot" | "Audit" | "QR Code";
 export type LabData = WallSnapshot & {
   id: Id<"takeovers">;
   contentType: string;
@@ -32,6 +32,7 @@ export default function WallLabPanel({
       </>
     );
   if (panel === "Radar") return <WallRadar />;
+  if (panel === "Cities Radar") return <WallRadar scope="reached" />;
   if (panel === "Takeover Radar") return <WallRadar scope="takeover" />;
   if (panel === "Globe") return <WallGlobe />;
   if (!data) return <p>Waiting for the current wall…</p>;

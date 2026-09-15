@@ -1,4 +1,5 @@
 "use client";
+import { isReachedCity } from "@/lib/reached-cities";
 import Link from "next/link";
 import { CrumblingWall, Gazette, CommunityEvent } from "./community-wall";
 import { WhisperPreview } from "./whisper-room";
@@ -480,14 +481,6 @@ function WallView({
             }
           />
           <Metric
-            label="CITIES REACHED"
-            action={<StatToolButton name="Radar" onClick={() => setLabPanel("Takeover Radar")} />}
-            value={numbers(data?.takeoverRadarCities?.cities.filter(city =>
-              city.views > 0 && city.country !== "ZZ" && city.city.trim() &&
-              !/^(unknown|unknown city|city not recorded|location not recorded|unavailable)$/i.test(city.city.trim()),
-            ).length)}
-          />
-          <Metric
             label="CLICKS"
             action={owner?.outboundLinkEnabled && owner.websiteUrl ? <a className="stat-tool-button" aria-label="Visit website" data-tooltip="Visit website" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={event => { if (event.button === 1) void wallEvent(owner.id, "click"); }}><WallToolIcon name="popout" /> Visit website</a> : <button type="button" className="stat-tool-button" aria-label="Visit website unavailable" data-tooltip="No website link" disabled title="The current owner has no enabled outbound link"><WallToolIcon name="popout" /> Visit website</button>}
             value={numbers(owner?.clicks)}
@@ -518,6 +511,11 @@ function WallView({
             <small className="referral-prize-label">Referral prize · Reward B</small>
             <small className="referral-prize-hint">Share this takeover’s link to support its referral count</small>
           </div>
+          <Metric
+            label="CITIES REACHED"
+            action={<StatToolButton name="Radar" onClick={() => setLabPanel("Cities Radar")} />}
+            value={numbers(data?.takeoverRadarCities?.cities.filter(isReachedCity).length)}
+          />
           <div className="regions">
             <span className="eyebrow stat-heading">
               <StatHelp label="TOP REGIONS" />
