@@ -200,7 +200,7 @@ main {
 }
 .reign-metrics {
   display: grid;
-  grid-template-columns: 1.4fr 0.75fr 0.75fr 0.85fr 1.1fr 1.2fr;
+  grid-template-columns: 1.4fr 0.85fr 0.75fr 0.75fr 1.1fr 1.2fr;
   padding: 17px 0;
   border-top: 1px solid var(--ink);
   gap: 0;
@@ -1595,8 +1595,10 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 @media(max-width:760px) {
   .reign-metrics { grid-template-columns:repeat(6,minmax(0,1fr)); }
   .reign-metrics>.metric { grid-column:span 3; }
-  .reign-metrics>.metric:nth-child(3) { border-right:0; }
-  .reign-metrics>.referral-prize-stat { grid-column:1/-1; }
+  .reign-metrics>.metric:first-child { grid-column:span 3; min-width:0; padding-right:12px; }
+  .reign-metrics .owner-since { white-space:normal; }
+  .reign-metrics>.metric:nth-child(3) { border-right:1px solid var(--rule); padding-left:0; }
+  .reign-metrics>.metric.referral-prize-stat { grid-column:span 3; padding:10px 12px; }
   .reign-metrics>.regions { grid-column:span 3; }
 }
 @media(max-width:600px) { .masthead-status { gap:10px; } .lifetime-visits { font-size:9px; padding-left:10px; } .lifetime-visits strong { font-size:12px; } }

@@ -480,6 +480,14 @@ function WallView({
               </>
             }
           />
+          <div className="metric referral-prize-stat">
+            <span className="stat-heading"><StatHelp label="REFERRALS" />
+              {owner?.publicId ? <StatShare key={owner.publicId} publicId={owner.publicId} name={owner.displayName} /> : <button type="button" className="stat-tool-button" aria-label="Share referral unavailable" disabled><WallToolIcon name="share" />Share referral</button>}
+            </span>
+            <strong>{owner ? numbers(owner.shareVisitors ?? 0) : "—"}</strong>
+            <small className="referral-prize-label">Referral prize · Reward B</small>
+            <small className="referral-prize-hint">Share this takeover’s link to support its referral count</small>
+          </div>
           <Metric
             label="CLICKS"
             action={owner?.outboundLinkEnabled && owner.websiteUrl ? <a className="stat-tool-button" aria-label="Visit website" data-tooltip="Visit website" href={owner.websiteUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={() => void wallEvent(owner.id, "click")} onAuxClick={event => { if (event.button === 1) void wallEvent(owner.id, "click"); }}><WallToolIcon name="popout" /> Visit website</a> : <button type="button" className="stat-tool-button" aria-label="Visit website unavailable" data-tooltip="No website link" disabled title="The current owner has no enabled outbound link"><WallToolIcon name="popout" /> Visit website</button>}
@@ -503,14 +511,6 @@ function WallView({
                 : "—"
             }
           />
-          <div className="metric referral-prize-stat">
-            <span className="stat-heading"><StatHelp label="REFERRALS" />
-              {owner?.publicId ? <StatShare key={owner.publicId} publicId={owner.publicId} name={owner.displayName} /> : <button type="button" className="stat-tool-button" aria-label="Share referral unavailable" disabled><WallToolIcon name="share" />Share referral</button>}
-            </span>
-            <strong>{owner ? numbers(owner.shareVisitors ?? 0) : "—"}</strong>
-            <small className="referral-prize-label">Referral prize · Reward B</small>
-            <small className="referral-prize-hint">Share this takeover’s link to support its referral count</small>
-          </div>
           <Metric
             label="CITIES REACHED"
             action={<StatToolButton name="Radar" onClick={() => setLabPanel("Cities Radar")} />}
