@@ -264,7 +264,7 @@ function WallView({
                 <i className={connected ? "online" : ""} />
                 {connected ? "LIVE" : "CONNECTING"}
               </span>
-              <StatDetails label="All-time visits" className="lifetime-visits" trigger={<><strong>{numbers(data?.totalViews)}</strong><span>ALL-TIME VISITS</span></>} title="Website visit totals" rows={[
+              <StatDetails label="All-time visits" description="All recorded views of this website since launch, including repeat visits. This total continues across every takeover. Click for a breakdown." className="lifetime-visits" trigger={<><strong>{numbers(data?.totalViews)}</strong><span>ALL-TIME VISITS</span></>} title="Website visit totals" rows={[
               { label: "Visits · all time", value: numbers(data?.totalViews) },
               { label: "Unique visitors · all time", value: numbers(data?.totalVisitors) },
               { label: "Unique visitors · today (UTC)", value: numbers(realToday) },
