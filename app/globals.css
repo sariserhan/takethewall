@@ -1639,3 +1639,8 @@ button.morse-preview-button[aria-expanded="true"]{background:var(--paper);color:
 @media(max-width:600px) {
   .wall-page .site-metrics>.previous-owner-stat { grid-column:1/-1; }
 }
+
+.wall-explore { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; gap:32px; }
+.wall-explore-controls { min-width:0; }
+.wall-explore .wall-tools { width:100%; }
+@media(max-width:850px) { .wall-explore { grid-template-columns:minmax(0,1fr); gap:24px; } }

@@ -24,6 +24,7 @@ import { WallSubscription } from "./wall-subscription";
 import { MilestoneAlerts } from "./milestone-alerts";
 import { ReportContent } from "./report-content";
 import { WallCanvas } from "./wall-canvas";
+import { LiveVisitorRadar, type LiveVisitor } from "./live-visitor-radar";
 import { WallPresence } from "./wall-presence";
 import { RadarArrivalSound } from "./radar-arrival-sound";
 import { StatShare } from "./stat-share";
@@ -65,6 +66,7 @@ function Connected() {
   );
   const data = useQuery(api.wall.current);
   const controls = useQuery(api.checkoutControls.state);
+  const liveVisitors = useQuery(api.wallPresence.live, {});
   const connection = useConvexConnectionState();
   return (
     <>
@@ -72,6 +74,7 @@ function Connected() {
     <WallPresence takeoverId={data?.owner?.id} />
     <WallView
       data={data}
+      liveVisitors={liveVisitors}
       checkoutPaused={controls?.paused ?? false}
       connected={hydrated && connection.isWebSocketConnected}
     />
@@ -111,10 +114,12 @@ function WallView({
   checkoutPaused = false,
   data,
   connected,
+  liveVisitors,
 }: {
   checkoutPaused?: boolean;
   data: WallData | undefined;
   connected: boolean;
+  liveVisitors?: LiveVisitor[];
 }) {
   const [labPanel, setLabPanel] = useState<LabPanel | null>(null);
   const [draftVersion, setDraftVersion] = useState(0);
@@ -599,6 +604,7 @@ function WallView({
         <MilestoneAlerts />
       </section>
       <section className="wall-explore" aria-labelledby="wall-explore-title">
+        <div className="wall-explore-controls">
         <div className="wall-explore-heading">
           <h2 id="wall-explore-title">Explore the wall</h2>
           <p>Share it, inspect it, or play. These tools are optional.</p>
@@ -634,6 +640,8 @@ function WallView({
             <WallCreativeTools data={owner ? { id:owner.id,name:owner.displayName,message:owner.description,websiteUrl:owner.websiteUrl,morseMessage:owner.morseMessage,logoUrl:owner.logoUrl,number:owner.takeoverNumber,activatedAt:owner.activatedAt,visitors:owner.uniqueVisitors,includesDemo:false } : null}/>
           </div>
       </div>
+        </div>
+        <LiveVisitorRadar visitors={liveVisitors} connected={connected} />
       </section>
       <PublicFooter home />
       <ResumeCheckout />
