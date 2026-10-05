@@ -9,9 +9,9 @@ type Props = { params: Promise<{ milestone: string }> };
 export async function generateMetadata({ params }: Props) {
   const m = await milestoneOf((await params).milestone);
   if (!m) return {};
-  const title = `Referral winner · Milestone #${m.takeoverNumber.toLocaleString("en-US")} | TakeTheWall`;
-  const description =
-    "Follow the referral reward, recipient verification and permanent paid winner’s wall.";
+  const number = m.takeoverNumber.toLocaleString("en-US");
+  const title = `Referral winner · Milestone #${number} | TakeTheWall`;
+  const description = `Follow the referral reward for TakeTheWall milestone #${number}: recipient verification and the permanent paid winner’s wall.`;
   const url = `/${m.takeoverNumber}/referral`;
   return {
     title,

@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
+  // Streamed metadata lands in <body> for Googlebot, which ignores a canonical
+  // there (Search Console saw no user canonical on milestone pages). Every
+  // crawler and browser gets title, description and canonical in <head>.
+  htmlLimitedBots: /.*/,
   async rewrites() {
     return [
       {
